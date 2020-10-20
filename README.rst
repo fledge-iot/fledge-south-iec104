@@ -19,6 +19,7 @@ To build IEC104 C/C++ South plugin, you need to download lib60870 at:
 https://github.com/mz-automation/lib60870
 
 .. code-block:: console
+
   $ git clone https://github.com/mz-automation/lib60870.git
   $ cd lib60870
   $ export LIB_104=`pwd`
@@ -29,6 +30,7 @@ library.
 Then, you can build lib60870 with:
 
 .. code-block:: console
+
   $ cd lib60970-C
   $ mkdir build
   $ cd build
@@ -44,6 +46,7 @@ Build
 To build the iec104 plugin, once you are in the plugin source tree you need to run:
 
 .. code-block:: console
+
   $ mkdir build
   $ cd build
   $ cmake ..
@@ -107,15 +110,18 @@ As described in the Fledge documentation, you can use the plugin by adding
 a service from a terminal, or from the web API.
 
 1 - Add the service from a terminal:
+
 .. code-block:: console
-curl -sX POST http://localhost:2081/fledge/service -d '{"name":"iec104_name","type":"south","plugin":"iec104","enabled":true}'
+
+  $ curl -sX POST http://localhost:2081/fledge/service -d '{"name":"iec104_name","type":"south","plugin":"iec104","enabled":true}'
 
 Or
 
-2 - Add the service from the web API:
-- On the web API, go to the South tab
-- Click on "Add +"
-- Select iec104 and give it a name, then click on "Next"
-- Change the default settings to your settings, then click on "Next"
-- Let the "Enabled" option checked, then click on "Done"
+2) Add the service from the web API:
+
+ - On the web API, go to the South tab
+ - Click on "Add +"
+ - Select iec104 and give it a name, then click on "Next"
+ - Change the default settings to your settings, then click on "Next"
+ - Let the "Enabled" option checked, then click on "Done"
 
