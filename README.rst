@@ -113,7 +113,7 @@ a service from a terminal, or from the web API.
 
 .. code-block:: console
 
-  $ curl -sX POST http://localhost:2081/fledge/service -d '{"name":"iec104_name","type":"south","plugin":"iec104","enabled":true}'
+  $ curl -sX POST http://localhost:8081/fledge/service -d '{"name":"iec104_name","type":"south","plugin":"iec104","enabled":true}'
 
 Or
 
