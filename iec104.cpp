@@ -62,43 +62,194 @@ IEC104::setPort(uint16_t port){
 
 bool
 IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu){
-    //Logger::getLogger()->debug("asduReceivedHandler");
-    if (CS101_ASDU_getTypeID(asdu) == M_ME_NB_1) {
-        //Logger::getLogger()->debug("M_ME_NB_1");
-        int i;
+    int i;
+    IEC104Client* mclient;
+    switch (CS101_ASDU_getTypeID(asdu)) {
+        case M_ME_NB_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (MeasuredValueScaledWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                long int a = MeasuredValueScaled_getValue((MeasuredValueScaled) io);
+                trans = a;
+                mclient = static_cast<IEC104Client*>(parameter);
+                string name = "M_ME_NB_1";
+                transferDataint(mclient, a,name);
 
-        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                MeasuredValueScaledWithCP56Time2a_destroy(io);
+            }
+            break;
+        case M_SP_NA_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (SinglePointInformation) CS101_ASDU_getElement(asdu, i);
+                long int a = SinglePointInformation_getValue((SinglePointInformation) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDataint(mclient, a,"M_SP_NA_1");
 
-            auto io = (MeasuredValueScaledWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                SinglePointInformation_destroy(io);
+            }
+            break;
+        case M_SP_TB_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (SinglePointWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                long int a = SinglePointInformation_getValue((SinglePointInformation) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDataint(mclient, a,"M_SP_TB_1");
 
-            long int a = MeasuredValueScaled_getValue((MeasuredValueScaled) io);
+                SinglePointWithCP56Time2a_destroy(io);
+            }
+            break;
+        case M_DP_NA_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (DoublePointInformation) CS101_ASDU_getElement(asdu, i);
+                long int a = DoublePointInformation_getValue((DoublePointInformation) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDataint(mclient, a,"M_DP_NA_1");
 
-            trans = a;
+                DoublePointInformation_destroy(io);
+            }
+            break;
+        case M_DP_TB_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (DoublePointWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                long int a = DoublePointInformation_getValue((DoublePointInformation) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDataint(mclient, a,"M_DP_TA_1");
 
-            IEC104Client * mclient = static_cast<IEC104Client*>(parameter);
-            string name = "M_ME_NB_1";
-            transferData(mclient, a,name);
+                DoublePointWithCP56Time2a_destroy(io);
+            }
+            break;
+        case M_ST_NA_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (StepPositionInformation) CS101_ASDU_getElement(asdu, i);
+                long int a = StepPositionInformation_getValue((StepPositionInformation) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDataint(mclient, a,"M_ST_NA_1");
 
-            MeasuredValueScaledWithCP56Time2a_destroy(io);
-        }
-        
+                StepPositionInformation_destroy(io);
+            }
+            break;
+        case M_ST_TB_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (StepPositionWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                long int a = StepPositionInformation_getValue((StepPositionInformation) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDataint(mclient, a,"M_ST_TB_1");
+
+                StepPositionWithCP56Time2a_destroy(io);
+            }
+            break;
+        case M_ME_NA_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (MeasuredValueNormalized) CS101_ASDU_getElement(asdu, i);
+                float a = MeasuredValueNormalized_getValue((MeasuredValueNormalized) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDatafloat(mclient, a,"M_ME_NA_1");
+
+                MeasuredValueNormalized_destroy(io);
+            }
+            break;
+        case M_ME_TD_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (MeasuredValueNormalizedWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                float a = MeasuredValueNormalized_getValue((MeasuredValueNormalized) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDatafloat(mclient, a,"M_ME_TD_1");
+
+                MeasuredValueNormalizedWithCP56Time2a_destroy(io);
+            }
+            break;
+        case M_ME_TE_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (MeasuredValueScaledWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                float a = MeasuredValueScaled_getValue((MeasuredValueScaled) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDatafloat(mclient, a,"M_ME_TE_1");
+
+                MeasuredValueScaledWithCP56Time2a_destroy(io);
+            }
+            break;
+        case M_ME_NC_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (MeasuredValueShort) CS101_ASDU_getElement(asdu, i);
+                float a = MeasuredValueShort_getValue((MeasuredValueShort) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDatafloat(mclient, a,"M_ME_NC_1");
+
+                MeasuredValueShort_destroy(io);
+            }
+            break;
+        case M_ME_TF_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (MeasuredValueShortWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                float a = MeasuredValueShort_getValue((MeasuredValueShort) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDatafloat(mclient, a,"M_ME_TF_1");
+
+                MeasuredValueShortWithCP56Time2a_destroy(io);
+            }
+            break;
+        case C_SC_TA_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (SingleCommandWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                long int a = SingleCommand_getState((SingleCommand) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDataint(mclient, a,"C_SC_TA_1");
+
+                SingleCommandWithCP56Time2a_destroy(io);
+            }
+            break;
+        case C_DC_TA_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (DoubleCommandWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                long int a = DoubleCommand_getState((DoubleCommand) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDataint(mclient, a,"C_DC_TA_1");
+
+                DoubleCommandWithCP56Time2a_destroy(io);
+            }
+            break;
+        case C_SE_TB_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (SetpointCommandScaledWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                long int a = SetpointCommandScaled_getValue((SetpointCommandScaled) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDataint(mclient, a,"C_SC_TA_1");
+
+                SetpointCommandScaledWithCP56Time2a_destroy(io);
+            }
+            break;
+        case C_SE_TC_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (SetpointCommandShortWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+                float a = SetpointCommandShort_getValue((SetpointCommandShort) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDatafloat(mclient, a,"C_SC_TC_1");
+
+                SetpointCommandShortWithCP56Time2a_destroy(io);
+            }
+            break;
+        case C_SE_NC_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (SetpointCommandShort) CS101_ASDU_getElement(asdu, i);
+                float a = SetpointCommandShort_getValue((SetpointCommandShort) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDatafloat(mclient, a,"C_SE_NC_1");
+
+                SetpointCommandShort_destroy(io);
+            }
+            break;
+        case C_SE_NB_1:
+            for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+                auto io = (SetpointCommandScaled) CS101_ASDU_getElement(asdu, i);
+                long int a = SetpointCommandScaled_getValue((SetpointCommandScaled) io);
+                mclient = static_cast<IEC104Client*>(parameter);
+                transferDataint(mclient, a,"C_SC_TA_1");
+
+                SetpointCommandScaled_destroy(io);
+            }
+            break;
+        default:
+            Logger::getLogger()->error("Type of message not supported");
     }
-    else if (CS101_ASDU_getTypeID(asdu) == M_SP_NA_1) {
-        //Logger::getLogger()->debug("M_SP_NA_1");
-        int i;
-
-        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
-
-
-            auto io = (SinglePointInformation) CS101_ASDU_getElement(asdu, i);
-            long int a = MeasuredValueScaled_getValue((MeasuredValueScaled) io);
-            IEC104Client * mclient = static_cast<IEC104Client*>(parameter);
-            transferData(mclient, a,"M_SP_NA_1");
-            //Logger::getLogger()->debug("Data sent");
-            SinglePointInformation_destroy(io);
-        }
-    }
-
     return true;
 }
 
@@ -114,9 +265,15 @@ IEC104::setAssetName(const std::string& asset)
 }
 
 void
-IEC104::transferData(IEC104Client *client, long int a, string name ) {
-    client->sendData(name,a);
+IEC104::transferDataint(IEC104Client *client, long int a, string name ) {
+    client->sendDataint(name,a);
 }
+
+void
+IEC104::transferDatafloat(IEC104Client *client, float a, string name ) {
+    client->sendDatafloat(name,a);
+}
+
 /**
  * Restart the iec104 connection
  */

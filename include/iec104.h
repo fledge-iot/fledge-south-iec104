@@ -35,7 +35,8 @@ class IEC104
 		void		start();
 		void		stop();
 		void		ingest(std::vector<Datapoint *>  points);
-		static void transferData(IEC104Client *client, long int a,std::string name);
+		static void transferDataint(IEC104Client *client, long int a,std::string name);
+		static void transferDatafloat(IEC104Client *client, float a,std::string name);
 		void		registerIngest(void *data, void (*cb)(void *, Reading))
 				{
 					m_ingest = cb;
@@ -65,7 +66,21 @@ class IEC104Client
 
 		explicit IEC104Client(IEC104 *iec104) : m_iec104(iec104) {};
 
-		void sendData(std::string dataname,long int a)
+		void sendDataint(std::string dataname,long int a)
+		{
+
+        	DatapointValue value = DatapointValue(a);
+
+        	std::vector<Datapoint *> points;
+
+        	std::string name = dataname;
+
+        	points.push_back(new Datapoint(name,value));
+
+        	m_iec104->ingest(points);
+
+        }
+        void sendDatafloat(std::string dataname,float a)
 		{
 
         	DatapointValue value = DatapointValue(a);
