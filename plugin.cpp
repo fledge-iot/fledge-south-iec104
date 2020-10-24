@@ -1,11 +1,7 @@
 #include <iec104.h>
 #include <plugin_api.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
 #include <string>
 #include <logger.h>
-#include <plugin_exception.h>
 #include <config_category.h>
 #include <rapidjson/document.h>
 #include <version.h>
@@ -85,6 +81,7 @@ PLUGIN_HANDLE plugin_init(ConfigCategory *config) {
 
     if (config->itemExists("ip")){
         ip = config->getValue("ip");
+        Logger::getLogger()->warn(ip);
     }
     if (config->itemExists("port")){
         port = static_cast<uint16_t>(stoi(config->getValue("port")));
