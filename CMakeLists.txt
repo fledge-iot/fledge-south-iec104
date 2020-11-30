@@ -55,7 +55,8 @@ endif()
 if (NOT "$ENV{LIB_104}" STREQUAL "")
 	set(LIB_104 "$ENV{LIB_104}/lib60870-C")
 else()
-	set(LIB_104 "$ENV{HOME}/lib60870/lib60870-C")
+	set(LIB_104 "${CMAKE_SOURCE_DIR}/lib60870/lib60870-C")
+	message(STATUS "LIB_104 set to " ${LIB_104})
 endif()
 
 # Add ./include
