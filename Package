@@ -3,7 +3,7 @@
 plugin_name=iec104
 plugin_type=south
 plugin_install_dirname=iec104
-
+iadditional_libs="usr/local/lib:/usr/local/lib/liblib60870*"
 # Now build up the runtime requirements list. This has 3 components
 #   1. Generic packages we depend on in all architectures and package managers
 #   2. Architecture specific packages we depend on

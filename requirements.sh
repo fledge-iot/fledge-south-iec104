@@ -30,4 +30,4 @@ mkdir build
 cd build
 cmake ..
 make
-mv src/liblib60870.a lib60870.a
+sudo make install
