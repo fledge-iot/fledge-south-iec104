@@ -81,7 +81,7 @@ PLUGIN_HANDLE plugin_init(ConfigCategory *config) {
 
     if (config->itemExists("ip")){
         ip = config->getValue("ip");
-        Logger::getLogger()->warn(ip);
+        Logger::getLogger()->info(ip);
     }
     if (config->itemExists("port")){
         port = static_cast<uint16_t>(stoi(config->getValue("port")));
