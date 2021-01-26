@@ -36,7 +36,6 @@ public:
    void        setIp(const char* ip) { m_ip = (strlen(ip) > 1) ? ip : "127.0.0.1"; }
    void        setPort(uint16_t port) { m_port = (port > 0) ? port : IEC_60870_5_104_DEFAULT_PORT; }
    void		setAssetName(const std::string& asset) { m_asset = asset; }
-
    void		restart();
    void        start();
    void		stop();

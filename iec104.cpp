@@ -136,7 +136,7 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
                 QualityDescriptor qd = MeasuredValueNormalized_getQuality((MeasuredValueNormalized) io);
                 Datapoint* dp = mclient->createDataPoint("M_ME_NA_1", a);
                 IEC104Client::addData(data, dp, qd);
-
+              
                 MeasuredValueNormalized_destroy(io);
             }
             break;
