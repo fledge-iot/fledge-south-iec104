@@ -13,8 +13,6 @@ project(iec104)
 # then Fledge libraries and header files are pulled from FLEDGE_ROOT path.
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -O3")
-set("-I${HOME}lib60870/lib60870-C/src/hal/inc/")
-set("-I${HOME}lib60870/lib60870-C/src/inc/api/")
 
 # Generation version header file
 set_source_files_properties(version.h PROPERTIES GENERATED TRUE)
