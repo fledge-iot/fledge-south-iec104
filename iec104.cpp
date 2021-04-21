@@ -42,8 +42,7 @@ void IEC104::connectionHandler (void* parameter, CS104_Connection connection, CS
  */
 bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
 {
-    vector<Datapoint*> points;
-    IEC104Client::Data data;
+    vector<Datapoint*> datapoints;
     auto mclient = static_cast<IEC104Client*>(parameter);
 
     int i;
@@ -51,10 +50,9 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
         case M_ME_NB_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (MeasuredValueScaled) CS101_ASDU_getElement(asdu, i);
-                long int a = MeasuredValueScaled_getValue((MeasuredValueScaled) io);
+                long int value = MeasuredValueScaled_getValue((MeasuredValueScaled) io);
                 QualityDescriptor qd = MeasuredValueScaled_getQuality(io);
-                Datapoint* dp = mclient->createDataPoint("M_ME_NB_1", a);
-                IEC104Client::addData(data, dp, qd);
+                IEC104Client::addData(datapoints, "M_ME_NB_1", value, qd);
 
                 MeasuredValueScaled_destroy(io);
             }
@@ -62,10 +60,9 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
         case M_SP_NA_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (SinglePointInformation) CS101_ASDU_getElement(asdu, i);
-                long int a = SinglePointInformation_getValue((SinglePointInformation) io);
+                long int value = SinglePointInformation_getValue((SinglePointInformation) io);
                 QualityDescriptor qd = SinglePointInformation_getQuality((SinglePointInformation) io);
-                Datapoint* dp = mclient->createDataPoint("M_SP_NA_1", a);
-                IEC104Client::addData(data, dp, qd);
+                IEC104Client::addData(datapoints, "M_SP_NA_1", value, qd);
 
                 SinglePointInformation_destroy(io);
             }
@@ -73,12 +70,11 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
         case M_SP_TB_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (SinglePointWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
-                long int a = SinglePointInformation_getValue((SinglePointInformation) io);
+                long int value = SinglePointInformation_getValue((SinglePointInformation) io);
                 QualityDescriptor qd = SinglePointInformation_getQuality((SinglePointInformation) io);
                 CP56Time2a ts = SinglePointWithCP56Time2a_getTimestamp(io);
                 bool is_invalid = CP56Time2a_isInvalid(ts);
-                Datapoint* dp = mclient->createDataPoint("M_SP_TB_1", a);
-                IEC104Client::addData(data, dp, qd, ts, is_invalid);
+                IEC104Client::addData(datapoints, "M_SP_TB_1", value, qd, ts, is_invalid);
 
                 SinglePointWithCP56Time2a_destroy(io);
             }
@@ -86,10 +82,9 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
         case M_DP_NA_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (DoublePointInformation) CS101_ASDU_getElement(asdu, i);
-                long int a = DoublePointInformation_getValue((DoublePointInformation) io);
+                long int value = DoublePointInformation_getValue((DoublePointInformation) io);
                 QualityDescriptor qd = DoublePointInformation_getQuality((DoublePointInformation) io);
-                Datapoint* dp = mclient->createDataPoint("M_DP_NA_1", a);
-                IEC104Client::addData(data, dp, qd);
+                IEC104Client::addData(datapoints, "M_DP_NA_1", value, qd);
 
                 DoublePointInformation_destroy(io);
             }
@@ -97,12 +92,11 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
         case M_DP_TB_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (DoublePointWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
-                long int a = DoublePointInformation_getValue((DoublePointInformation) io);
+                long int value = DoublePointInformation_getValue((DoublePointInformation) io);
                 QualityDescriptor qd = DoublePointInformation_getQuality((DoublePointInformation) io);
                 CP56Time2a ts = DoublePointWithCP56Time2a_getTimestamp(io);
                 bool is_invalid = CP56Time2a_isInvalid(ts);
-                Datapoint* dp = mclient->createDataPoint("M_DP_TB_1", a);
-                IEC104Client::addData(data, dp, qd, ts, is_invalid);
+                IEC104Client::addData(datapoints, "M_DP_TB_1", value, qd, ts, is_invalid);
 
                 DoublePointWithCP56Time2a_destroy(io);
             }
@@ -110,10 +104,9 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
         case M_ST_NA_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (StepPositionInformation) CS101_ASDU_getElement(asdu, i);
-                long int a = StepPositionInformation_getValue((StepPositionInformation) io);
+                long int value = StepPositionInformation_getValue((StepPositionInformation) io);
                 QualityDescriptor qd = StepPositionInformation_getQuality((StepPositionInformation) io);
-                Datapoint* dp = mclient->createDataPoint("M_ST_NA_1", a);
-                IEC104Client::addData(data, dp, qd);
+                IEC104Client::addData(datapoints, "M_ST_NA_1", value, qd);
 
                 StepPositionInformation_destroy(io);
             }
@@ -121,12 +114,11 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
         case M_ST_TB_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (StepPositionWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
-                long int a = StepPositionInformation_getValue((StepPositionInformation) io);
+                long int value = StepPositionInformation_getValue((StepPositionInformation) io);
                 QualityDescriptor qd = StepPositionInformation_getQuality((StepPositionInformation) io);
                 CP56Time2a ts = StepPositionWithCP56Time2a_getTimestamp(io);
                 bool is_invalid = CP56Time2a_isInvalid(ts);
-                Datapoint* dp = mclient->createDataPoint("M_ST_TB_1", a);
-                IEC104Client::addData(data, dp, qd, ts, is_invalid);
+                IEC104Client::addData(datapoints, "M_ST_TB_1", value, qd, ts, is_invalid);
 
                 StepPositionWithCP56Time2a_destroy(io);
             }
@@ -134,23 +126,21 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
         case M_ME_NA_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (MeasuredValueNormalized) CS101_ASDU_getElement(asdu, i);
-                float a = MeasuredValueNormalized_getValue((MeasuredValueNormalized) io);
+                float value = MeasuredValueNormalized_getValue((MeasuredValueNormalized) io);
                 QualityDescriptor qd = MeasuredValueNormalized_getQuality((MeasuredValueNormalized) io);
-                Datapoint* dp = mclient->createDataPoint("M_ME_NA_1", a);
-                IEC104Client::addData(data, dp, qd);
-              
+                IEC104Client::addData(datapoints, "M_ME_NA_1", value, qd);
+
                 MeasuredValueNormalized_destroy(io);
             }
             break;
         case M_ME_TD_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (MeasuredValueNormalizedWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
-                float a = MeasuredValueNormalized_getValue((MeasuredValueNormalized) io);
+                float value = MeasuredValueNormalized_getValue((MeasuredValueNormalized) io);
                 QualityDescriptor qd = MeasuredValueNormalized_getQuality((MeasuredValueNormalized) io);
                 CP56Time2a ts = MeasuredValueNormalizedWithCP56Time2a_getTimestamp(io);
                 bool is_invalid = CP56Time2a_isInvalid(ts);
-                Datapoint* dp = mclient->createDataPoint("M_ME_TD_1", a);
-                IEC104Client::addData(data, dp, qd, ts, is_invalid);
+                IEC104Client::addData(datapoints, "M_ME_TD_1", value, qd, ts, is_invalid);
 
                 MeasuredValueNormalizedWithCP56Time2a_destroy(io);
             }
@@ -158,12 +148,11 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
         case M_ME_TE_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (MeasuredValueScaledWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
-                long int a = MeasuredValueScaled_getValue((MeasuredValueScaled) io);
+                long int value = MeasuredValueScaled_getValue((MeasuredValueScaled) io);
                 QualityDescriptor qd = MeasuredValueScaled_getQuality((MeasuredValueScaled) io);
                 CP56Time2a ts = MeasuredValueScaledWithCP56Time2a_getTimestamp(io);
                 bool is_invalid = CP56Time2a_isInvalid(ts);
-                Datapoint* dp = mclient->createDataPoint("M_ME_TE_1", a);
-                IEC104Client::addData(data, dp, qd, ts, is_invalid);
+                IEC104Client::addData(datapoints, "M_ME_TE_1", value, qd, ts, is_invalid);
 
                 MeasuredValueScaledWithCP56Time2a_destroy(io);
             }
@@ -171,10 +160,9 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
         case M_ME_NC_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (MeasuredValueShort) CS101_ASDU_getElement(asdu, i);
-                float a = MeasuredValueShort_getValue((MeasuredValueShort) io);
+                float value = MeasuredValueShort_getValue((MeasuredValueShort) io);
                 QualityDescriptor qd = MeasuredValueShort_getQuality((MeasuredValueShort) io);
-                Datapoint* dp = mclient->createDataPoint("M_ME_NC_1", a);
-                IEC104Client::addData(data, dp, qd);
+                IEC104Client::addData(datapoints, "M_ME_NC_1", value, qd);
 
                 MeasuredValueShort_destroy(io);
             }
@@ -182,12 +170,11 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
         case M_ME_TF_1:
             for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
                 auto io = (MeasuredValueShortWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
-                float a = MeasuredValueShort_getValue((MeasuredValueShort) io);
+                float value = MeasuredValueShort_getValue((MeasuredValueShort) io);
                 QualityDescriptor qd = MeasuredValueShort_getQuality((MeasuredValueShort) io);
                 CP56Time2a ts = MeasuredValueShortWithCP56Time2a_getTimestamp(io);
                 bool is_invalid = CP56Time2a_isInvalid(ts);
-                Datapoint* dp = mclient->createDataPoint("M_ME_TF_1", a);
-                IEC104Client::addData(data, dp, qd, ts, is_invalid);
+                IEC104Client::addData(datapoints, "M_ME_TF_1", value, qd, ts, is_invalid);
 
                 MeasuredValueShortWithCP56Time2a_destroy(io);
             }
@@ -196,7 +183,7 @@ bool IEC104::asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
             Logger::getLogger()->error("Type of message not supported");
             return false;
     }
-    mclient->sendData(data);
+    mclient->sendData(datapoints);
 
     return true;
 }
@@ -274,10 +261,29 @@ void IEC104::registerIngest(void *data, INGEST_CB cb)
     m_data = data;
 }
 
-void IEC104Client::sendData(Data& data)
+void IEC104Client::sendData(vector<Datapoint*> datapoints)
 {
-    string asset = data.datapoints[0]->getName();    // Every datapoint has the same name
+    string asset = datapoints[0]->getName();    // Every point has the same name
 
-    Reading reading(asset, data.datapoints);
+    Reading reading(asset, datapoints);
+
     m_iec104->ingest(reading);
+}
+
+template <class T>
+void IEC104Client::m_addData(vector<Datapoint*>& datapoints,
+                             const std::string& dataname, const T value,
+                             QualityDescriptor qd, CP56Time2a ts, bool is_ts_invalid)
+{
+    auto* measure_features = new vector<Datapoint*>(
+    {
+        m_createDatapoint("Value", value),
+        m_createDatapoint("Quality_Descriptor", (long) qd),
+        m_createDatapoint("Timestamp", CP56Time2aToString(ts)),
+        m_createDatapoint("Is_Timestamp_Valid", (long) (!is_ts_invalid))
+    });
+
+    DatapointValue dpv(measure_features, true);
+
+    datapoints.push_back(new Datapoint(dataname, dpv));
 }
