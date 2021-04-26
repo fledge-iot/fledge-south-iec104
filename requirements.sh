@@ -28,6 +28,6 @@ tar xf mbedtls-2.6.0-apache.tgz
 cd ..
 mkdir build
 cd build
-cmake ..
+cmake -DBUILD_TESTS=NO -DBUILD_EXAMPLES=NO ..
 make
-mv src/liblib60870.a lib60870.a
+sudo make install
