@@ -8,7 +8,9 @@
 
 #include <reading.h>
 #include <logger.h>
-#include "include/iec104.h"
+#include <config_category.h>
+#include <iec104.h>
+
 
 using namespace std;
 
