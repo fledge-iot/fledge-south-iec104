@@ -6,21 +6,25 @@
  *
  * Released under the Apache 2.0 Licence
  *
- * Author: Estelle Chigot, Lucas Barret
+ * Author: Estelle Chigot, Lucas Barret, Chauchadis Rémi, Colin Constans
  */
 
 #include <iostream>
 #include <cstring>
+#include <vector>
 #include <reading.h>
 #include <logger.h>
 #include <cstdlib>
 #include <cstdio>
-#include <lib60870/tls_config.h>
-#include <lib60870/hal_time.h>
-#include <lib60870/hal_thread.h>
-#include <lib60870/cs104_connection.h>
+#include <tls_config.h>
+#include <hal_time.h>
+#include <hal_thread.h>
+#include <cs104_connection.h>
 #include <utility>
-
+#include <json.hpp> // https://github.com/nlohmann/json
+#include <thread>
+#include <chrono>
+#include <mutex>
 
 
 class IEC104Client;
@@ -31,65 +35,91 @@ public:
     typedef void (*INGEST_CB)(void *, Reading);
 
 
-    IEC104(const char *ip, uint16_t port);
+    IEC104();
     ~IEC104() = default;
 
-    void        setIp(const char *ip)  { m_ip = (strlen(ip) > 1) ? ip : "127.0.0.1"; }
-    void        setPort(uint16_t port) { m_port = (port > 0) ? port : IEC_60870_5_104_DEFAULT_PORT; }
     void		setAssetName(const std::string& asset) { m_asset = asset; }
+    static void        setJsonConfig(const std::string& stack_configuration, const std::string& msg_configuration,
+                              const std::string& pivot_configuration, const std::string& tls_configuration);
 
     void		restart();
     void        start();
     void		stop();
-    void		connect();
+    void		connect(unsigned int connection_index);
 
     void		ingest(Reading& reading);
     void		registerIngest(void *data, void (*cb)(void *, Reading));
 
-private:
-    static void connectionHandler (void* parameter, CS104_Connection connection, CS104_ConnectionEvent event);
-    static bool asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu);
-
-    std::string			m_asset;
-    std::string         m_ip;
-    uint16_t            m_port;
-    CS104_Connection    m_connection;
 
 private:
+    template <class T>
+    static T m_getConfigValue(nlohmann::json configuration, nlohmann::json_pointer<nlohmann::json> path);
+
+    void m_sendInterrogationCommmands();
+    void m_sendInterrogationCommmandToCA(unsigned int ca, int gi_repeat_count, int gi_time);
+	void m_sendTestCommmands();
+	
+	static std::string m_checkExchangedDataLayer(unsigned int ca, const std::string& type_id, unsigned int ioa);
+
+    static CS104_Connection m_createTlsConnection(const char* ip, int port);
+
+	static int m_watchdog(int delay, int checkRes, bool *flag, std::string id);
+
+    static int m_getBroadcastCA() ;
+
+    static void m_connectionHandler (void* parameter, CS104_Connection connection, CS104_ConnectionEvent event);
+    static bool m_asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu);
+
+    bool m_startup_done;
+
+    static nlohmann::json m_stack_configuration;
+    static nlohmann::json m_msg_configuration;
+    static nlohmann::json m_pivot_configuration;
+    static nlohmann::json m_tls_configuration;
+
+    std::string	m_asset;
+
+    static bool	        m_comm_wttag;
+	static std::string	m_tsiv;
+    std::vector<CS104_Connection>    m_connections;
+
     INGEST_CB			m_ingest;     // Callback function used to send data to south service
     void*               m_data;       // Ingest function data
-    bool				m_connected;
     IEC104Client*       m_client;
 };
 
 class IEC104Client
 {
 public :
-    explicit IEC104Client(IEC104 *iec104) : m_iec104(iec104) {};
+    explicit IEC104Client(IEC104 *iec104, nlohmann::json* pivot_configuration) :
+        m_iec104(iec104),
+        m_pivot_configuration(pivot_configuration)
+        {};
 
     // ==================================================================== //
     // Note : The overloaded method addData is used to prevent the user from
     // giving value type that can't be handled. The real work is forwarded
     // to the private method m_addData
 
-    static void addData(std::vector<Datapoint*>& datapoints,
+    void addData(std::vector<Datapoint*>& datapoints, long ioa,
                         const std::string& dataname, const long int value,
-                        QualityDescriptor qd, CP56Time2a ts = nullptr, bool is_ts_invalid = true)
-    { m_addData(datapoints, dataname, value, qd, ts, is_ts_invalid); }
+                        QualityDescriptor qd, CP56Time2a ts = nullptr)
+    { m_addData(datapoints, ioa, dataname, value, qd, ts); }
 
-    static void addData(std::vector<Datapoint*>& datapoints,
+    void addData(std::vector<Datapoint*>& datapoints, long ioa,
                         const std::string& dataname, const float value,
-                        QualityDescriptor qd, CP56Time2a ts = nullptr, bool is_ts_invalid = true)
-    { m_addData(datapoints, dataname, value, qd, ts, is_ts_invalid); }
+                        QualityDescriptor qd, CP56Time2a ts = nullptr)
+    { m_addData(datapoints, ioa, dataname, value, qd, ts); }
     // ==================================================================== //
 
     // Sends the datapoints passed as Reading to Fledge
-    void sendData(std::vector<Datapoint*> data);
+    void sendData(CS101_ASDU asdu, std::vector<Datapoint*> data, const std::string& dataName);
+
 private:
     template <class T>
-    static void m_addData(std::vector<Datapoint *> &datapoints,
+    void m_addData(std::vector<Datapoint *> &datapoints, long ioa,
                           const std::string& dataname, const T value,
-                          QualityDescriptor qd, CP56Time2a ts, bool is_ts_invalid);
+                          QualityDescriptor qd, CP56Time2a ts);
 
     template <class T>
     static Datapoint* m_createDatapoint(const std::string& dataname, const T value)
@@ -124,6 +154,7 @@ private:
     }
 
     IEC104* m_iec104;
+    nlohmann::json* m_pivot_configuration;
 };
 
 #endif
