@@ -1,9 +1,11 @@
 /*
- * Fledge south service plugin
+ * Fledge IEC 104 south plugin.
  *
+ * Copyright (c) 2020, RTE (https://www.rte-france.com)
+ * 
  * Released under the Apache 2.0 Licence
  *
- * Author: Estelle Chigot, Lucas Barret, Chauchadis Rémi, Colin Constans
+ * Author: Estelle Chigot, Lucas Barret, Chauchadis Rémi, Colin Constans, Akli Rahmoun
  */
 
 #include <reading.h>
@@ -301,6 +303,21 @@ bool IEC104::m_asduReceivedHandler(void *parameter, int address, CS101_ASDU asdu
                 }
             }
             break;
+        case M_EI_NA_1:
+            Logger::getLogger()->info("Received end of initialization");
+            break;
+        case C_IC_NA_1:
+            Logger::getLogger()->info("General interrogation command");
+            break;
+        case C_TS_TA_1:
+            Logger::getLogger()->info("Test command with time tag CP56Time2a");
+            break;
+        case C_SC_TA_1:
+            Logger::getLogger()->info("Single command with time tag CP56Time2a");
+            break;
+        case C_DC_TA_1:
+            Logger::getLogger()->info("Double command with time tag CP56Time2a");
+            break;
         default:
             Logger::getLogger()->error("Type of message not supported");
             return false;
@@ -531,9 +548,9 @@ void IEC104::m_sendInterrogationCommmands()
         for (auto& element : m_msg_configuration["asdu_list"])
             m_sendInterrogationCommmandToCA(m_getConfigValue<unsigned int>(element, "/ca"_json_pointer), gi_repeat_count, gi_time);
     }
-    else  // Otherwise, broadcast
+    else  // Otherwise, broadcast (causes Segmentation fault)
     {
-        m_sendInterrogationCommmandToCA(broadcast_ca, gi_repeat_count, gi_time);
+        //m_sendInterrogationCommmandToCA(broadcast_ca, gi_repeat_count, gi_time);
     }
 
     Logger::getLogger()->info("Interrogation command sent");
@@ -738,4 +755,51 @@ void IEC104Client::m_addData(vector<Datapoint*>& datapoints, long ioa,
     DatapointValue dpv(measure_features, true);
 
     datapoints.push_back(new Datapoint("data_object_item", dpv));
+}
+
+/**
+ * SetPoint operation.
+ */
+bool IEC104::operation(const std::string& operation, int count, PLUGIN_PARAMETER **params)
+{
+        if (operation.compare("CS104_Connection_sendInterrogationCommand") == 0)
+        {       
+                int casdu = atoi(params[0]->value.c_str());
+                CS104_Connection_sendInterrogationCommand(m_connection, CS101_COT_ACTIVATION, casdu, IEC60870_QOI_STATION);
+                Logger::getLogger()->info("InterrogationCommand send");
+                return true;
+        } else if (operation.compare("CS104_Connection_sendTestCommandWithTimestamp") == 0) {
+                int casdu = atoi(params[0]->value.c_str());
+                struct sCP56Time2a testTimestamp;
+                CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
+                CS104_Connection_sendTestCommandWithTimestamp(m_connection, casdu, 0x4938, &testTimestamp);
+                Logger::getLogger()->info("TestCommandWithTimestamp send");
+                return true;
+        } else if (operation.compare("SingleCommandWithCP56Time2a") == 0) {
+                int casdu = atoi(params[0]->value.c_str());
+                int ioa = atoi(params[1]->value.c_str());
+                bool value = static_cast<bool>(atoi(params[2]->value.c_str()));
+                struct sCP56Time2a testTimestamp;
+                CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
+                InformationObject sc = (InformationObject)
+                        SingleCommandWithCP56Time2a_create(NULL, ioa, value, false, 0, &testTimestamp);
+                CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, casdu, sc);
+                Logger::getLogger()->info("SingleCommandWithCP56Time2a send");
+                InformationObject_destroy(sc);
+                return true;
+        } else if (operation.compare("DoubleCommandWithCP56Time2a") == 0) {
+                int casdu = atoi(params[0]->value.c_str());
+                int ioa = atoi(params[1]->value.c_str());
+                int value = atoi(params[2]->value.c_str());
+                struct sCP56Time2a testTimestamp;
+                CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
+                InformationObject dc = (InformationObject)
+                        DoubleCommandWithCP56Time2a_create(NULL, ioa, value, false, 0, &testTimestamp);
+                CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, casdu, dc);
+                Logger::getLogger()->info("DoubleCommandWithCP56Time2a send");
+                InformationObject_destroy(dc);
+                return true;
+        }
+        Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
+        return false;
 }

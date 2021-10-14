@@ -2,11 +2,13 @@
 #define _IEC104_H
 
 /*
- * Fledge south service plugin
+ * Fledge IEC 104 south plugin.
  *
+ * Copyright (c) 2020, RTE (https://www.rte-france.com)
+ * 
  * Released under the Apache 2.0 Licence
  *
- * Author: Estelle Chigot, Lucas Barret, Chauchadis Rémi, Colin Constans
+ * Author: Estelle Chigot, Lucas Barret, Chauchadis Rémi, Colin Constans, Akli Rahmoun
  */
 
 #include <iostream>
@@ -16,10 +18,10 @@
 #include <logger.h>
 #include <cstdlib>
 #include <cstdio>
-#include <tls_config.h>
-#include <hal_time.h>
-#include <hal_thread.h>
-#include <cs104_connection.h>
+#include <lib60870/tls_config.h>
+#include <lib60870/hal_time.h>
+#include <lib60870/hal_thread.h>
+#include <lib60870/cs104_connection.h>
 #include <utility>
 #include <json.hpp> // https://github.com/nlohmann/json
 #include <thread>
@@ -49,6 +51,7 @@ public:
 
     void		ingest(Reading& reading);
     void		registerIngest(void *data, void (*cb)(void *, Reading));
+    bool        operation(const std::string& operation, int count, PLUGIN_PARAMETER **params);
 
 
 private:
