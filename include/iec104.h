@@ -23,6 +23,7 @@
 #include <lib60870/hal_thread.h>
 #include <lib60870/cs104_connection.h>
 #include <utility>
+#include <plugin_api.h>
 #include <json.hpp> // https://github.com/nlohmann/json
 #include <thread>
 #include <chrono>

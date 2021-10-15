@@ -762,6 +762,8 @@ void IEC104Client::m_addData(vector<Datapoint*>& datapoints, long ioa,
  */
 bool IEC104::operation(const std::string& operation, int count, PLUGIN_PARAMETER **params)
 {
+    for (auto connection : m_connections)
+    {
         if (operation.compare("CS104_Connection_sendInterrogationCommand") == 0)
         {       
                 int casdu = atoi(params[0]->value.c_str());
@@ -802,4 +804,5 @@ bool IEC104::operation(const std::string& operation, int count, PLUGIN_PARAMETER
         }
         Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
         return false;
+    }
 }
