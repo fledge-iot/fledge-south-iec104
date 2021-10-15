@@ -767,14 +767,14 @@ bool IEC104::operation(const std::string& operation, int count, PLUGIN_PARAMETER
         if (operation.compare("CS104_Connection_sendInterrogationCommand") == 0)
         {       
                 int casdu = atoi(params[0]->value.c_str());
-                CS104_Connection_sendInterrogationCommand(m_connection, CS101_COT_ACTIVATION, casdu, IEC60870_QOI_STATION);
+                CS104_Connection_sendInterrogationCommand(connection, CS101_COT_ACTIVATION, casdu, IEC60870_QOI_STATION);
                 Logger::getLogger()->info("InterrogationCommand send");
                 return true;
         } else if (operation.compare("CS104_Connection_sendTestCommandWithTimestamp") == 0) {
                 int casdu = atoi(params[0]->value.c_str());
                 struct sCP56Time2a testTimestamp;
                 CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
-                CS104_Connection_sendTestCommandWithTimestamp(m_connection, casdu, 0x4938, &testTimestamp);
+                CS104_Connection_sendTestCommandWithTimestamp(connection, casdu, 0x4938, &testTimestamp);
                 Logger::getLogger()->info("TestCommandWithTimestamp send");
                 return true;
         } else if (operation.compare("SingleCommandWithCP56Time2a") == 0) {
@@ -785,7 +785,7 @@ bool IEC104::operation(const std::string& operation, int count, PLUGIN_PARAMETER
                 CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
                 InformationObject sc = (InformationObject)
                         SingleCommandWithCP56Time2a_create(NULL, ioa, value, false, 0, &testTimestamp);
-                CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, casdu, sc);
+                CS104_Connection_sendProcessCommandEx(connection, CS101_COT_ACTIVATION, casdu, sc);
                 Logger::getLogger()->info("SingleCommandWithCP56Time2a send");
                 InformationObject_destroy(sc);
                 return true;
@@ -797,7 +797,7 @@ bool IEC104::operation(const std::string& operation, int count, PLUGIN_PARAMETER
                 CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
                 InformationObject dc = (InformationObject)
                         DoubleCommandWithCP56Time2a_create(NULL, ioa, value, false, 0, &testTimestamp);
-                CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, casdu, dc);
+                CS104_Connection_sendProcessCommandEx(connection, CS101_COT_ACTIVATION, casdu, dc);
                 Logger::getLogger()->info("DoubleCommandWithCP56Time2a send");
                 InformationObject_destroy(dc);
                 return true;
