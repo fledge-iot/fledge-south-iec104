@@ -1,3 +1,13 @@
+/*
+ * Fledge IEC 104 south plugin.
+ *
+ * Copyright (c) 2020, RTE (https://www.rte-france.com)
+ * 
+ * Released under the Apache 2.0 Licence
+ *
+ * Author: Estelle Chigot, Lucas Barret, Chauchadis Rémi, Colin Constans, Akli Rahmoun
+ */
+
 #include <iec104.h>
 #include <plugin_api.h>
 #include <string>
@@ -197,7 +207,7 @@ extern "C" {
 static PLUGIN_INFORMATION info = {
         PLUGIN_NAME,          // Name
         VERSION,              // Version
-        SP_ASYNC,             // Flags
+        SP_ASYNC|SP_CONTROL,  // Flags - added control
         PLUGIN_TYPE_SOUTH,    // Type
         "1.0.0",     // Interface version
         default_config        // Default configuration
@@ -299,6 +309,29 @@ void plugin_shutdown(PLUGIN_HANDLE *handle)
 
     iec104->stop();
     delete iec104;
+}
+
+/**
+ * plugin plugin_write entry point
+ * NOT USED
+*/
+bool plugin_write(PLUGIN_HANDLE *handle, string& name, string& value)
+{
+    return false;
+}
+
+
+/**
+ * plugin plugin_operation entry point
+*/
+bool plugin_operation(PLUGIN_HANDLE *handle, string& operation, int count, PLUGIN_PARAMETER **params)
+{
+    if (!handle)
+        throw new exception();
+
+    auto *iec104 = (IEC104 *) handle;
+
+    return iec104->operation(operation, count, params);
 }
 
 } // extern "C"
