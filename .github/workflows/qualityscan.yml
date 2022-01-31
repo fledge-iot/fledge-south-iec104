@@ -1,9 +1,3 @@
-# Copyright (c) 2020, RTE (https://www.rte-france.com)
-#
-# Released under the Apache 2.0 Licence
-#
-# Author: Akli Rahmoun <akli.rahmoun at rte-france.com>
-
 name: CodeQualityScan
 on:
   push:
@@ -101,4 +95,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          sonar-scanner --define sonar.host.url="${{ env.SONAR_SERVER_URL }}" --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+          sonar-scanner --define sonar.host.url="${{ env.SONAR_SERVER_URL }}" 
+          --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}" 
+          --define sonar.organization=fledge-power 
+          --define sonar.projectName=fledge-south-iec104 
+          --define sonar.projectKey=fledge-power_fledge-south-iec104 
+          --define sonar.projectVersion=1.0
+          --define sonar.sourceEncoding=UTF-8
