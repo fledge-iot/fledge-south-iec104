@@ -1,0 +1,104 @@
+# Copyright (c) 2020, RTE (https://www.rte-france.com)
+#
+# Released under the Apache 2.0 Licence
+#
+# Author: Akli Rahmoun <akli.rahmoun at rte-france.com>
+
+name: CodeQualityScan
+on:
+  push:
+    branches:
+      - refactoring
+  pull_request:
+    types: [opened, synchronize, reopened]
+    
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    env:
+      SONAR_SCANNER_VERSION: 4.6.1.2450 # Find the latest version in the "Windows" link on this page:
+                                        # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
+      SONAR_SERVER_URL: "https://sonarcloud.io"
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: Cache SonarQube packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      - name: Download and set up sonar-scanner
+        env:
+          SONAR_SCANNER_DOWNLOAD_URL: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${{ env.SONAR_SCANNER_VERSION }}-linux.zip
+        run: |
+          mkdir -p $HOME/.sonar
+          curl -sSLo $HOME/.sonar/sonar-scanner.zip ${{ env.SONAR_SCANNER_DOWNLOAD_URL }} 
+          unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
+          echo "$HOME/.sonar/sonar-scanner-${{ env.SONAR_SCANNER_VERSION }}-linux/bin" >> $GITHUB_PATH
+      - name: Download and set up build-wrapper
+        env:
+          BUILD_WRAPPER_DOWNLOAD_URL: ${{ env.SONAR_SERVER_URL }}/static/cpp/build-wrapper-linux-x86.zip
+        run: |
+          curl -sSLo $HOME/.sonar/build-wrapper-linux-x86.zip ${{ env.BUILD_WRAPPER_DOWNLOAD_URL }}
+          unzip -o $HOME/.sonar/build-wrapper-linux-x86.zip -d $HOME/.sonar/
+          echo "$HOME/.sonar/build-wrapper-linux-x86" >> $GITHUB_PATH     
+      - name: Download and install Fledge
+        env:
+          FLEDGE_REPO_URL: "https://github.com/fledge-iot/fledge/archive/refs/heads/develop.zip" 
+        run: |
+          curl -sSLo fledge-pkg.zip ${{ env.FLEDGE_REPO_URL }}
+          unzip -o fledge-pkg.zip -d $HOME
+          mv $HOME/fledge-develop $HOME/fledge
+          cd $HOME/fledge
+          sudo apt-get install libcurl4-openssl-dev
+          sudo $HOME/fledge/requirements.sh
+          sudo make install
+          sudo mkdir -p /usr/include/fledge/rapidjson/
+          find $HOME/fledge/C/common/ -name '*.h' -exec sudo cp -prv '{}' '/usr/include/fledge/' ';'
+          find $HOME/fledge/C/plugins/ -name '*.h' -exec sudo cp -prv '{}' '/usr/include/fledge/' ';'
+          find $HOME/fledge/C/services/ -name '*.h' -exec sudo cp -prv '{}' '/usr/include/fledge/' ';'
+          find $HOME/fledge/C/tasks/ -name '*.h' -exec sudo cp -prv '{}' '/usr/include/fledge/' ';'
+          sudo cp -prv $HOME/fledge/C/thirdparty/rapidjson/include/rapidjson/* /usr/include/fledge/rapidjson/
+          sudo mkdir -p /usr/lib/fledge/
+          sudo cp -prv /usr/local/fledge/lib/* /usr/lib/fledge/
+      - name: Download and install lib60870
+        env:
+          LIB60870_REPO_URL: "https://github.com/mz-automation/lib60870.git" 
+          MBEDTLS_REPO_URL: "https://tls.mbed.org/download/mbedtls-2.6.0-apache.tgz"
+        run: |
+          cd $HOME
+          git clone ${{ env.LIB60870_REPO_URL }}
+          cd $HOME/lib60870/lib60870-C
+          cd dependencies
+          wget  ${{ env.MBEDTLS_REPO_URL }}
+          tar xf mbedtls-2.6.0-apache.tgz
+          cd ..
+          mkdir build
+          cd build
+          cmake -DBUILD_TESTS=NO -DBUILD_EXAMPLES=NO ..
+          make
+          sudo make install
+          sudo cp $HOME/lib60870/lib60870-C/src/hal/inc/* /usr/local/include/lib60870/
+      - name: Run build-wrapper
+        run: |
+          chmod +x mkversion
+          mkdir build
+          cmake -S . -B build
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build/ --config Release
+      - name: Run sonar-scanner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner --define sonar.host.url="${{ env.SONAR_SERVER_URL }}" --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
