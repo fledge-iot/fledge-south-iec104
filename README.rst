@@ -45,11 +45,22 @@ Build
 
 To build the iec104 plugin, once you are in the plugin source tree you need to run:
 
+To build a release:
+
 .. code-block:: console
 
   $ mkdir build
   $ cd build
-  $ cmake ..
+  $ cmake -DCMAKE_BUILD_TYPE=Release ..
+  $ make
+
+To build with unit tests and code coverage:
+
+.. code-block:: console
+
+  $ mkdir build
+  $ cd build
+  $ cmake -DCMAKE_BUILD_TYPE=Coverage ..
   $ make
 
 - By default the Fledge develop package header files and libraries
