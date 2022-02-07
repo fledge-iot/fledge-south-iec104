@@ -587,7 +587,8 @@ void IEC104::start()
             if (m_getConfigValue<bool>(
                     m_stack_configuration,
                     "/transport_layer/connection/tls"_json_pointer))
-                new_connection = m_createTlsConnection(ip.c_str(), port);
+                //new_connection = m_createTlsConnection(ip.c_str(), port);
+                Logger::getLogger()->error("TLS not supported yet");
             else
                 new_connection = CS104_Connection_create(ip.c_str(), port);
             Logger::getLogger()->info("Connection created");
@@ -832,7 +833,7 @@ std::string IEC104::m_checkExchangedDataLayer(unsigned int ca,
 
     return "";
 }
-
+/*
 CS104_Connection IEC104::m_createTlsConnection(const char* ip, int port)
 {
     TLSConfiguration TLSConfig =
@@ -859,6 +860,7 @@ CS104_Connection IEC104::m_createTlsConnection(const char* ip, int port)
 
     return CS104_Connection_createSecure(ip, port, TLSConfig);
 }
+*/
 
 int IEC104::m_watchdog(int delay, int checkRes, bool* flag, std::string id)
 {
