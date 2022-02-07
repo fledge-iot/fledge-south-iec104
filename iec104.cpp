@@ -587,7 +587,7 @@ void IEC104::start()
             if (m_getConfigValue<bool>(
                     m_stack_configuration,
                     "/transport_layer/connection/tls"_json_pointer))
-                //new_connection = m_createTlsConnection(ip.c_str(), port);
+                // new_connection = m_createTlsConnection(ip.c_str(), port);
                 Logger::getLogger()->error("TLS not supported yet");
             else
                 new_connection = CS104_Connection_create(ip.c_str(), port);
@@ -931,10 +931,12 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
         Reading reading(dataName, {header_dp, item_dp});
         m_iec104->ingest(reading);
     }
+    delete header_dp;
+    header_dp = nullptr;
 }
 
 template <class T>
-void IEC104Client::m_addData(vector<Datapoint*>& datapoints, int64_t ioa,
+void IEC104Client::m_addData(const vector<Datapoint*>& datapoints, int64_t ioa,
                              const std::string& dataname, const T value,
                              QualityDescriptor qd, CP56Time2a ts)
 {
@@ -1046,8 +1048,7 @@ bool IEC104::operation(const std::string& operation, int count,
             InformationObject_destroy(dc);
             return true;
         }
-        Logger::getLogger()->error("Unrecognised operation %s",
-                                   operation.c_str());
-        return false;
     }
+    Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
+    return false;
 }

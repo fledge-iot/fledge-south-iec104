@@ -11,6 +11,7 @@
  * Author: Estelle Chigot, Lucas Barret, Chauchadis Rémi, Colin Constans, Akli
  * Rahmoun
  */
+
 #include <lib60870/cs104_connection.h>
 #include <lib60870/hal_thread.h>
 #include <lib60870/hal_time.h>
@@ -19,22 +20,25 @@
 #include <plugin_api.h>
 #include <reading.h>
 
-#include <chrono>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <json.hpp>  // https://github.com/nlohmann/json
+// clang-format off
 #include <mutex>
+#include <chrono>
 #include <string>
 #include <thread>
 #include <utility>
 #include <vector>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <json.hpp>
+// clang-format on
+
 class IEC104Client;
 
 class IEC104
 {
-   public:
+public:
     typedef void (*INGEST_CB)(void*, Reading);
 
     IEC104();
@@ -56,7 +60,7 @@ class IEC104
     bool operation(const std::string& operation, int count,
                    PLUGIN_PARAMETER** params);
 
-   private:
+private:
     template <class T>
     static T m_getConfigValue(nlohmann::json configuration,
                               nlohmann::json_pointer<nlohmann::json> path);
@@ -102,7 +106,7 @@ class IEC104
 
 class IEC104Client
 {
-   public:
+public:
     explicit IEC104Client(IEC104* iec104, nlohmann::json* pivot_configuration)
         : m_iec104(iec104), m_pivot_configuration(pivot_configuration)
     {
@@ -113,14 +117,14 @@ class IEC104Client
     // giving value type that can't be handled. The real work is forwarded
     // to the private method m_addData
 
-    void addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
+    void addData(const std::vector<Datapoint*>& datapoints, int64_t ioa,
                  const std::string& dataname, const int64_t value,
                  QualityDescriptor qd, CP56Time2a ts = nullptr)
     {
         m_addData(datapoints, ioa, dataname, value, qd, ts);
     }
 
-    void addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
+    void addData(const std::vector<Datapoint*>& datapoints, int64_t ioa,
                  const std::string& dataname, const float value,
                  QualityDescriptor qd, CP56Time2a ts = nullptr)
     {
@@ -132,9 +136,9 @@ class IEC104Client
     void sendData(CS101_ASDU asdu, std::vector<Datapoint*> data,
                   const std::string& dataName);
 
-   private:
+private:
     template <class T>
-    void m_addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
+    void m_addData(const std::vector<Datapoint*>& datapoints, int64_t ioa,
                    const std::string& dataname, const T value,
                    QualityDescriptor qd, CP56Time2a ts);
 

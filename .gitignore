@@ -36,6 +36,7 @@
 /.vscode
 
 build/*
+tests/build/
 cmake-build-debug/*
 
 # Github
