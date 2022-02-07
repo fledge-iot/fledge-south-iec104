@@ -1,5 +1,5 @@
-#ifndef _IEC104_H
-#define _IEC104_H
+#ifndef INCLUDE_IEC104_H_
+#define INCLUDE_IEC104_H_
 
 /*
  * Fledge IEC 104 south plugin.
@@ -11,7 +11,6 @@
  * Author: Estelle Chigot, Lucas Barret, Chauchadis Rémi, Colin Constans, Akli
  * Rahmoun
  */
-
 #include <lib60870/cs104_connection.h>
 #include <lib60870/hal_thread.h>
 #include <lib60870/hal_time.h>
@@ -27,10 +26,10 @@
 #include <iostream>
 #include <json.hpp>  // https://github.com/nlohmann/json
 #include <mutex>
+#include <string>
 #include <thread>
 #include <utility>
 #include <vector>
-
 class IEC104Client;
 
 class IEC104
@@ -105,21 +104,23 @@ class IEC104Client
 {
    public:
     explicit IEC104Client(IEC104* iec104, nlohmann::json* pivot_configuration)
-        : m_iec104(iec104), m_pivot_configuration(pivot_configuration){};
+        : m_iec104(iec104), m_pivot_configuration(pivot_configuration)
+    {
+    }
 
     // ==================================================================== //
     // Note : The overloaded method addData is used to prevent the user from
     // giving value type that can't be handled. The real work is forwarded
     // to the private method m_addData
 
-    void addData(std::vector<Datapoint*>& datapoints, long ioa,
-                 const std::string& dataname, const long int value,
+    void addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
+                 const std::string& dataname, const int64_t value,
                  QualityDescriptor qd, CP56Time2a ts = nullptr)
     {
         m_addData(datapoints, ioa, dataname, value, qd, ts);
     }
 
-    void addData(std::vector<Datapoint*>& datapoints, long ioa,
+    void addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
                  const std::string& dataname, const float value,
                  QualityDescriptor qd, CP56Time2a ts = nullptr)
     {
@@ -133,7 +134,7 @@ class IEC104Client
 
    private:
     template <class T>
-    void m_addData(std::vector<Datapoint*>& datapoints, long ioa,
+    void m_addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
                    const std::string& dataname, const T value,
                    QualityDescriptor qd, CP56Time2a ts);
 
@@ -173,4 +174,4 @@ class IEC104Client
     nlohmann::json* m_pivot_configuration;
 };
 
-#endif
+#endif  // INCLUDE_IEC104_H_
