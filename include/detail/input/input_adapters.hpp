@@ -38,8 +38,8 @@ enum class input_format_t
 
 #ifndef JSON_NO_IO
 /*!
-Input adapter for stdio file access. This adapter read only 1 byte and do not
-use any buffer. This adapter is a very low level adapter.
+Input adapter for stdio file access. This adapter read only 1 byte and do
+not use any buffer. This adapter is a very low level adapter.
 */
 class file_input_adapter
 {
@@ -69,11 +69,11 @@ private:
 /*!
 Input adapter for a (caching) istream. Ignores a UFT Byte Order Mark at
 beginning of input. Does not support changing the underlying std::streambuf
-in mid-input. Maintains underlying std::istream and std::streambuf to support
-subsequent use of standard std::istream operations to process any input
-characters following those used in parsing the JSON input.  Clears the
-std::istream flags; any input errors (e.g., EOF) will be detected by the first
-subsequent call for input from the std::istream.
+in mid-input. Maintains underlying std::istream and std::streambuf to
+support subsequent use of standard std::istream operations to process any
+input characters following those used in parsing the JSON input.  Clears the
+std::istream flags; any input errors (e.g., EOF) will be detected by the
+first subsequent call for input from the std::istream.
 */
 class input_stream_adapter
 {
@@ -104,9 +104,9 @@ public:
         rhs.sb = nullptr;
     }
 
-    // std::istream/std::streambuf use std::char_traits<char>::to_int_type, to
-    // ensure that std::char_traits<char>::eof() and the character 0xFF do not
-    // end up as the same value, e.g. 0xFFFFFFFF.
+    // std::istream/std::streambuf use std::char_traits<char>::to_int_type,
+    // to ensure that std::char_traits<char>::eof() and the character 0xFF
+    // do not end up as the same value, e.g. 0xFFFFFFFF.
     std::char_traits<char>::int_type get_character()
     {
         auto res = sb->sbumpc();
@@ -126,7 +126,8 @@ private:
 #endif  // JSON_NO_IO
 
 // General-purpose iterator-based adapter. It might not be as fast as
-// theoretically possible for some containers, but it is extremely versatile.
+// theoretically possible for some containers, but it is extremely
+// versatile.
 template <typename IteratorType>
 class iterator_input_adapter
 {
@@ -313,8 +314,8 @@ struct wide_string_input_helper<BaseInputAdapter, 2>
     }
 };
 
-// Wraps another input apdater to convert wide character types into individual
-// bytes.
+// Wraps another input apdater to convert wide character types into
+// individual bytes.
 template <typename BaseInputAdapter, typename WideCharType>
 class wide_string_input_adapter
 {
@@ -410,8 +411,8 @@ input_adapter(IteratorType first, IteratorType last)
 
 // Convenience shorthand from container to iterator
 // Enables ADL on begin(container) and end(container)
-// Encloses the using declarations in namespace for not to leak them to outside
-// scope
+// Encloses the using declarations in namespace for not to leak them to
+// outside scope
 
 namespace container_input_adapter_factory_impl
 {
@@ -480,7 +481,8 @@ template <typename CharT,
               int>::type = 0>
 contiguous_bytes_input_adapter input_adapter(CharT b)
 {
-    auto length = std::strlen_s(reinterpret_cast<const char*>(b));
+    using std::string;
+    auto length = strlen(reinterpret_cast<const char*>(b));
     const auto* ptr = reinterpret_cast<const char*>(b);
     return input_adapter(ptr, ptr + length);
 }
