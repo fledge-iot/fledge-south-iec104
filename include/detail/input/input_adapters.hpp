@@ -481,7 +481,7 @@ template <typename CharT,
               int>::type = 0>
 contiguous_bytes_input_adapter input_adapter(CharT b)
 {
-    using std::string;
+    // TODO : change strlen into strnlen_s to remove security hotspot
     auto length = strlen(reinterpret_cast<const char*>(b));
     const auto* ptr = reinterpret_cast<const char*>(b);
     return input_adapter(ptr, ptr + length);
