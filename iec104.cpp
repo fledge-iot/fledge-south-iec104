@@ -936,7 +936,7 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
 }
 
 template <class T>
-void IEC104Client::m_addData(const vector<Datapoint*>& datapoints, int64_t ioa,
+void IEC104Client::m_addData(vector<Datapoint*>& datapoints, int64_t ioa,
                              const std::string& dataname, const T value,
                              QualityDescriptor qd, CP56Time2a ts)
 {

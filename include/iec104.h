@@ -117,14 +117,14 @@ public:
     // giving value type that can't be handled. The real work is forwarded
     // to the private method m_addData
 
-    void addData(const std::vector<Datapoint*>& datapoints, int64_t ioa,
+    void addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
                  const std::string& dataname, const int64_t value,
                  QualityDescriptor qd, CP56Time2a ts = nullptr)
     {
         m_addData(datapoints, ioa, dataname, value, qd, ts);
     }
 
-    void addData(const std::vector<Datapoint*>& datapoints, int64_t ioa,
+    void addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
                  const std::string& dataname, const float value,
                  QualityDescriptor qd, CP56Time2a ts = nullptr)
     {
@@ -138,7 +138,7 @@ public:
 
 private:
     template <class T>
-    void m_addData(const std::vector<Datapoint*>& datapoints, int64_t ioa,
+    void m_addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
                    const std::string& dataname, const T value,
                    QualityDescriptor qd, CP56Time2a ts);
 
