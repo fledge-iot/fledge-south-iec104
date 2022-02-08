@@ -69,14 +69,14 @@ jobs:
       - name: Download and install lib60870
         env:
           LIB60870_REPO_URL: "https://github.com/mz-automation/lib60870.git" 
-          MBEDTLS_REPO_URL: "https://tls.mbed.org/download/mbedtls-2.6.0-apache.tgz"
+          MBEDTLS_REPO_URL: "https://github.com/ARMmbed/mbedtls/archive/refs/tags/v2.16.12.tar.gz"
         run: |
           cd $HOME
           git clone ${{ env.LIB60870_REPO_URL }}
           cd $HOME/lib60870/lib60870-C
           cd dependencies
           wget  ${{ env.MBEDTLS_REPO_URL }}
-          tar xf mbedtls-2.6.0-apache.tgz
+          tar xf v2.16.12.tar.gz
           cd ..
           mkdir build
           cd build
