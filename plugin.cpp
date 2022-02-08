@@ -266,7 +266,7 @@ extern "C"
      */
     void plugin_register_ingest(PLUGIN_HANDLE *handle, INGEST_CB cb, void *data)
     {
-        if (!handle) throw new exception();
+        if (!handle) throw exception();
 
         auto *iec104 = reinterpret_cast<IEC104 *>(handle);
         iec104->registerIngest(data, cb);
@@ -333,7 +333,7 @@ extern "C"
     bool plugin_operation(PLUGIN_HANDLE *handle, string &operation, int count,
                           PLUGIN_PARAMETER **params)
     {
-        if (!handle) throw new exception();
+        if (!handle) throw exception();
 
         auto *iec104 = reinterpret_cast<IEC104 *>(handle);
 
