@@ -72,7 +72,7 @@ private:
 
     static std::string m_checkExchangedDataLayer(unsigned int ca,
                                                  const std::string& type_id,
-                                                 unsigned int ioa);
+                                                 uint64_t ioa);
 
     static CS104_Connection m_createTlsConnection(const char* ip, int port);
 

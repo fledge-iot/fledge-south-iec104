@@ -117,7 +117,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_NB_1",
                                                                 ioa))
                          .empty())
@@ -138,7 +138,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_SP_NA_1",
                                                                 ioa))
                          .empty())
@@ -159,7 +159,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_SP_TB_1",
                                                                 ioa))
                          .empty())
@@ -190,7 +190,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_DP_NA_1",
                                                                 ioa))
                          .empty())
@@ -211,7 +211,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_DP_TB_1",
                                                                 ioa))
                          .empty())
@@ -242,7 +242,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ST_NA_1",
                                                                 ioa))
                          .empty())
@@ -263,7 +263,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_NB_1",
                                                                 ioa))
                          .empty())
@@ -294,7 +294,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_NA_1",
                                                                 ioa))
                          .empty())
@@ -315,7 +315,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_TD_1",
                                                                 ioa))
                          .empty())
@@ -347,7 +347,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_TE_1",
                                                                 ioa))
                          .empty())
@@ -379,7 +379,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_NC_1",
                                                                 ioa))
                          .empty())
@@ -400,7 +400,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
-                int64_t ioa = InformationObject_getObjectAddress(io);
+                uint64_t ioa = InformationObject_getObjectAddress(io);
                 label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_TF_1", ioa);
                 if (!label.empty())
                 {
@@ -575,7 +575,7 @@ void IEC104::start()
     for (auto& path_element :
          m_stack_configuration["transport_layer"]["connection"]["path"])
     {
-        CS104_Connection new_connection;
+        CS104_Connection new_connection = nullptr;
 
         try
         {
@@ -796,7 +796,7 @@ int IEC104::m_getBroadcastCA()
 
 std::string IEC104::m_checkExchangedDataLayer(unsigned int ca,
                                               const string& type_id,
-                                              unsigned int ioa)
+                                              uint64_t ioa)
 {
     bool known_ca = false, known_type_id = false;
 
@@ -1019,7 +1019,7 @@ bool IEC104::operation(const std::string& operation, int count,
         else if (operation.compare("SingleCommandWithCP56Time2a") == 0)
         {
             int casdu = atoi(params[0]->value.c_str());
-            int ioa = atoi(params[1]->value.c_str());
+            int64_t ioa = atoi(params[1]->value.c_str());
             bool value = static_cast<bool>(atoi(params[2]->value.c_str()));
             struct sCP56Time2a testTimestamp;
             CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
@@ -1035,7 +1035,7 @@ bool IEC104::operation(const std::string& operation, int count,
         else if (operation.compare("DoubleCommandWithCP56Time2a") == 0)
         {
             int casdu = atoi(params[0]->value.c_str());
-            int ioa = atoi(params[1]->value.c_str());
+            int64_t ioa = atoi(params[1]->value.c_str());
             int value = atoi(params[2]->value.c_str());
             struct sCP56Time2a testTimestamp;
             CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
