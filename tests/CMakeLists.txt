@@ -37,7 +37,7 @@ endif()
 include_directories(${CMAKE_BINARY_DIR})
 
 # Set plugin type (south, north, filter)
-set(PLUGIN_TYPE "north")
+set(PLUGIN_TYPE "south")
 
 # Add here all needed Fledge libraries as list
 set(NEEDED_FLEDGE_LIBS common-lib services-common-lib)
