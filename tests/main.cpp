@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
 #include <resultset.h>
 #include <string.h>
+
 #include <string>
 
 using namespace std;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     testing::InitGoogleTest(&argc, argv);
 
     testing::GTEST_FLAG(repeat) = 2;
@@ -14,4 +16,3 @@ int main(int argc, char **argv) {
 
     return RUN_ALL_TESTS();
 }
-
