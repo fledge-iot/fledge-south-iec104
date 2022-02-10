@@ -1,17 +1,14 @@
 #include <gtest/gtest.h>
 #include <iec104.h>
 #include <plugin_api.h>
-#include <rapidjson/document.h>
 #include <string.h>
 
-#include <string>
-
 using namespace std;
-using namespace rapidjson;
+using namespace nlohmann;
 
-TEST(IEC104, PluginConfig)
+struct jc
 {
-    const string& protocol_stack =
+    string protocol_stack =
         "{\"description\":\"protocolstackparameters\",\"type\":\"string\","
         "\"displayName\":\"Protocolstackparameters\",\"order\":\"2\","
         "\"default\":"
@@ -31,7 +28,7 @@ TEST(IEC104, PluginConfig)
         "wttag\":false,\"comm_parallel\":0,\"exec_cycl_test\":false,\"startup_"
         "state\":true,\"reverse\":false,\"time_sync\":false}}}}";
 
-    const string& exchanged_data =
+    string exchanged_data =
         "{\"description\":\"exchangeddatalist\",\"type\":\"string\","
         "\"displayName\":\"Exchangeddatalist\",\"order\":\"3\",\"default\":{"
         "\"exchanged_data\":{\"name\":\"iec104client\",\"version\":\"1.0\","
@@ -41,7 +38,7 @@ TEST(IEC104, PluginConfig)
         "\"TM-2\",\"ioa\":4202852},{\"ca\":41025,\"type_id\":\"M_SP_TB_1\","
         "\"label\":\"TS-1\",\"ioa\":4206948}]}}}";
 
-    const string& protocol_translation =
+    string protocol_translation =
         "{\"description\":\"protocoltranslationmapping\",\"type\":\"string\","
         "\"displayName\":\"Protocoltranslationmapping\",\"order\":\"4\","
         "\"default\":{\"protocol_translation\":{\"name\":\"iec104_to_pivot\","
@@ -54,15 +51,112 @@ TEST(IEC104, PluginConfig)
         "\"isinvalid\",\"doi_ts_flag2\":\"isSummerTime\",\"doi_ts_flag3\":"
         "\"isSubstituted\"}}}}}";
 
-    const string& tls =
+    string tls =
         "{\"description\":\"tlsparameters\",\"type\":\"string\","
         "\"displayName\":"
         "\"TLSparameters\",\"order\":\"5\",\"default\":{\"tls_conf:\":{"
         "\"private_"
         "key\":\"server-key.pem\",\"server_cert\":\"server.cer\",\"ca_cert\":"
         "\"root.cer\"}}}";
+};
+
+TEST(IEC104, PluginConfigNoThrow)
+{
+    jc a;
+    IEC104* iec104 = new IEC104();
+
+    ASSERT_NO_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
+                                          a.protocol_translation, a.tls));
+
+    delete iec104;
+    iec104 = nullptr;
+}
+
+TEST(IEC104, PluginConfigThrowTLS)
+{
+    jc a;
+    // empty string
+    a.tls = "}";
 
     IEC104* iec104 = new IEC104();
-    ASSERT_NO_THROW(iec104->setJsonConfig(protocol_stack, exchanged_data,
-                                          protocol_translation, tls));
+
+    ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
+                                       a.protocol_translation, a.tls),
+                 const char*);
+
+    delete iec104;
+    iec104 = nullptr;
+}
+
+TEST(IEC104, PluginConfigThrowProtTrans)
+{
+    jc a;
+    // : forgotten after description
+    a.protocol_translation =
+        "{\"description\"\"protocoltranslationmapping\",\"type\":\"string\","
+        "\"displayName\":\"Protocoltranslationmapping\",\"order\":\"4\","
+        "\"default\":{\"protocol_translation\":{\"name\":\"iec104_to_pivot\","
+        "\"version\":\"1.0\",\"mapping\":{\"data_object_header\":{\"doh_type\":"
+        "\"type_id\",\"doh_ca\":\"ca\",\"doh_oa\":\"oa\",\"doh_cot\":\"cot\","
+        "\"doh_test\":\"istest\",\"doh_negative\":\"isnegative\"},\"data_"
+        "object_"
+        "item\":{\"doi_ioa\":\"ioa\",\"doi_value\":\"value\",\"doi_quality\":"
+        "\"quality_desc\",\"doi_ts\":\"time_marker\",\"doi_ts_flag1\":"
+        "\"isinvalid\",\"doi_ts_flag2\":\"isSummerTime\",\"doi_ts_flag3\":"
+        "\"isSubstituted\"}}}}}";
+
+    IEC104* iec104 = new IEC104();
+
+    ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
+                                       a.protocol_translation, a.tls),
+                 const char*);
+
+    delete iec104;
+    iec104 = nullptr;
+}
+
+TEST(IEC104, PluginConfigThrowExchData)
+{
+    jc a;
+    // " forgotten after description
+    a.exchanged_data =
+        "{\"description:\"exchangeddatalist\",\"type\":\"string\","
+        "\"displayName\":\"Exchangeddatalist\",\"order\":\"3\",\"default\":{"
+        "\"exchanged_data\":{\"name\":\"iec104client\",\"version\":\"1.0\","
+        "\"asdu_list\":[{\"ca\":41025,\"type_id\":\"M_ME_NA_1\",\"label\":\"TM-"
+        "1\",\"ioa\":4202832},{\"ca\":41025,\"type_id\":\"M_ME_NA_1\","
+        "\"label\":"
+        "\"TM-2\",\"ioa\":4202852},{\"ca\":41025,\"type_id\":\"M_SP_TB_1\","
+        "\"label\":\"TS-1\",\"ioa\":4206948}]}}}";
+
+    IEC104* iec104 = new IEC104();
+
+    ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
+                                       a.protocol_translation, a.tls),
+                 const char*);
+
+    delete iec104;
+    iec104 = nullptr;
+}
+
+TEST(IEC104, PluginConfigThrowProtStack)
+{
+    jc a;
+    // } forgotten at the end
+    a.protocol_stack =
+        "{\"description\":\"tlsparameters\",\"type\":\"string\","
+        "\"displayName\":"
+        "\"TLSparameters\",\"order\":\"5\",\"default\":{\"tls_conf:\":{"
+        "\"private_"
+        "key\":\"server-key.pem\",\"server_cert\":\"server.cer\",\"ca_cert\":"
+        "\"root.cer\"}}";
+
+    IEC104* iec104 = new IEC104();
+
+    ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
+                                       a.protocol_translation, a.tls),
+                 const char*);
+
+    delete iec104;
+    iec104 = nullptr;
 }
