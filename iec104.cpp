@@ -48,6 +48,7 @@ void IEC104::setJsonConfig(const std::string& stack_configuration,
         Logger::getLogger()->fatal(
             "Couldn't read protocol_stack json config string : " +
             string(e.what()));
+        throw("json config error");
     }
 
     try
@@ -59,6 +60,7 @@ void IEC104::setJsonConfig(const std::string& stack_configuration,
         Logger::getLogger()->fatal(
             "Couldn't read exchanged_data json config string : " +
             string(e.what()));
+        throw("json config error");
     }
 
     try
@@ -71,6 +73,7 @@ void IEC104::setJsonConfig(const std::string& stack_configuration,
         Logger::getLogger()->fatal(
             "Couldn't read protocol_translation json config string : " +
             string(e.what()));
+        throw("json config error");
     }
 
     try
@@ -81,6 +84,7 @@ void IEC104::setJsonConfig(const std::string& stack_configuration,
     {
         Logger::getLogger()->fatal(
             "Couldn't read tls_conf json config string : " + string(e.what()));
+        throw("json config error");
     }
 }
 
