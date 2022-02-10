@@ -82,7 +82,7 @@ TEST(IEC104, PluginConfigThrowTLS)
 
     ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
                                        a.protocol_translation, a.tls),
-                 const char*);
+                 string);
 
     delete iec104;
     iec104 = nullptr;
@@ -109,7 +109,7 @@ TEST(IEC104, PluginConfigThrowProtTrans)
 
     ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
                                        a.protocol_translation, a.tls),
-                 const char*);
+                 string);
 
     delete iec104;
     iec104 = nullptr;
@@ -133,7 +133,7 @@ TEST(IEC104, PluginConfigThrowExchData)
 
     ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
                                        a.protocol_translation, a.tls),
-                 const char*);
+                 string);
 
     delete iec104;
     iec104 = nullptr;
@@ -155,7 +155,7 @@ TEST(IEC104, PluginConfigThrowProtStack)
 
     ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
                                        a.protocol_translation, a.tls),
-                 const char*);
+                 string);
 
     delete iec104;
     iec104 = nullptr;
