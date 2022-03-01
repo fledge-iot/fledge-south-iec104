@@ -1052,7 +1052,8 @@ bool IEC104::operation(const std::string& operation, int count,
             InformationObject_destroy(dc);
             return true;
         }
+        Logger::getLogger()->error("Unrecognised operation %s",
+                                   operation.c_str());
+        return false;
     }
-    Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
-    return false;
 }
