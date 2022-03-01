@@ -935,8 +935,6 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
         Reading reading(dataName, {header_dp, item_dp});
         m_iec104->ingest(reading);
     }
-    delete header_dp;
-    header_dp = nullptr;
 }
 
 template <class T>
