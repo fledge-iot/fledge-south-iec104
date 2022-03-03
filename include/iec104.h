@@ -55,7 +55,8 @@ public:
     void stop();
     void connect(unsigned int connection_index);
 
-    void ingest(Reading& reading);
+    //void ingest(Reading& reading);
+    void ingest(std::string assetName, std::vector<Datapoint *>  &points);
     void registerIngest(void* data, void (*cb)(void*, Reading));
     bool operation(const std::string& operation, int count,
                    PLUGIN_PARAMETER** params);
@@ -134,7 +135,7 @@ public:
 
     // Sends the datapoints passed as Reading to Fledge
     void sendData(CS101_ASDU asdu, std::vector<Datapoint*> data,
-                  const std::string& dataName);
+                  const std::vector<std::string> labels);
 
 private:
     template <class T>

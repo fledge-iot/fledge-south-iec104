@@ -110,6 +110,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                                    CS101_ASDU asdu)
 {
     vector<Datapoint*> datapoints;
+    std::vector<std::string> labels;
     auto mclient = static_cast<IEC104Client*>(parameter);
 
     unsigned int ca = CS101_ASDU_getCA(asdu);
@@ -134,6 +135,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                     mclient->addData(datapoints, ioa, label, value, qd);
 
                     MeasuredValueScaled_destroy(io_casted);
+                    labels.push_back(label);
                 }
             }
             break;
@@ -268,7 +270,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             {
                 InformationObject io = CS101_ASDU_getElement(asdu, i);
                 uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_NB_1",
+                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ST_TB_1",
                                                                 ioa))
                          .empty())
                 {
@@ -451,7 +453,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             Logger::getLogger()->error("Type of message not supported");
             return false;
     }
-    if (!datapoints.empty()) mclient->sendData(asdu, datapoints, label);
+    if (!datapoints.empty()) mclient->sendData(asdu, datapoints, labels);
 
     return true;
 }
@@ -671,7 +673,11 @@ void IEC104::stop()
  *
  * @param points    The points in the reading we must create
  */
-void IEC104::ingest(Reading& reading) { (*m_ingest)(m_data, reading); }
+//void IEC104::ingest(Reading& reading) { (*m_ingest)(m_data, reading); }
+void	IEC104::ingest(std::string assetName, std::vector<Datapoint *>  &points)
+{
+  (*m_ingest)(m_data, Reading(assetName, points));
+}
 
 /**
  * Save the callback function and its data
@@ -897,7 +903,7 @@ int IEC104::m_watchdog(int delay, int checkRes, bool* flag, std::string id)
 }
 
 void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
-                            const std::string& dataName)
+                            const vector<std::string> labels)
 {
     auto* data_header = new vector<Datapoint*>;
 
@@ -930,10 +936,14 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
 
     // We send as many pivot format objects as information objects in the source
     // ASDU
-    for (Datapoint* item_dp : datapoints)
+
+    for (int i = 0; Datapoint* item_dp : datapoints)
     {
-        Reading reading(dataName, {header_dp, item_dp});
-        m_iec104->ingest(reading);
+	std::vector<Datapoint *>  points;
+	points.push_back(header_dp);
+        points.push_back(item_dp);
+        m_iec104->ingest(labels.at(i), points);
+        i++;
     }
 }
 
