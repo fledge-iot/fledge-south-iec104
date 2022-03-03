@@ -932,15 +932,14 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
 
     DatapointValue header_dpv(data_header, true);
 
-    auto* header_dp = new Datapoint("data_object_header", header_dpv);
-
     // We send as many pivot format objects as information objects in the source
-    // ASDU
+    // ASDU 
+    int i = 0;
 
-    for (int i = 0; Datapoint* item_dp : datapoints)
+    for (Datapoint* item_dp : datapoints)
     {
 	std::vector<Datapoint *>  points;
-	points.push_back(header_dp);
+	points.push_back(new Datapoint("data_object_header", header_dpv));
         points.push_back(item_dp);
         m_iec104->ingest(labels.at(i), points);
         i++;
