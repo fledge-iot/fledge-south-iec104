@@ -157,6 +157,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                     mclient->addData(datapoints, ioa, label, value, qd);
 
                     SinglePointInformation_destroy(io_casted);
+		    labels.push_back(label);	
                 }
             }
             break;
@@ -188,6 +189,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                         mclient->addData(datapoints, ioa, label, value, qd);
 
                     SinglePointWithCP56Time2a_destroy(io_casted);
+                    labels.push_back(label);
                 }
             }
             break;
@@ -209,6 +211,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                     mclient->addData(datapoints, ioa, label, value, qd);
 
                     DoublePointInformation_destroy(io_casted);
+                    labels.push_back(label);
                 }
             }
             break;
@@ -240,6 +243,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                         mclient->addData(datapoints, ioa, label, value, qd);
 
                     DoublePointWithCP56Time2a_destroy(io_casted);
+                    labels.push_back(label);
                 }
             }
             break;
@@ -261,6 +265,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                     mclient->addData(datapoints, ioa, label, value, qd);
 
                     StepPositionInformation_destroy(io_casted);
+                    labels.push_back(label);
                 }
             }
             break;
@@ -292,6 +297,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                         mclient->addData(datapoints, ioa, label, value, qd);
 
                     StepPositionWithCP56Time2a_destroy(io_casted);
+                    labels.push_back(label);
                 }
             }
             break;
@@ -313,6 +319,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                     mclient->addData(datapoints, ioa, label, value, qd);
 
                     MeasuredValueNormalized_destroy(io_casted);
+                    labels.push_back(label);
                 }
             }
             break;
@@ -345,6 +352,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                         mclient->addData(datapoints, ioa, label, value, qd);
 
                     MeasuredValueNormalizedWithCP56Time2a_destroy(io_casted);
+                    labels.push_back(label);
                 }
             }
             break;
@@ -377,6 +385,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                         mclient->addData(datapoints, ioa, label, value, qd);
 
                     MeasuredValueScaledWithCP56Time2a_destroy(io_casted);
+                    labels.push_back(label);
                 }
             }
             break;
@@ -398,6 +407,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                     mclient->addData(datapoints, ioa, label, value, qd);
 
                     MeasuredValueShort_destroy(io_casted);
+                    labels.push_back(label); 
                 }
             }
             break;
@@ -429,6 +439,7 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                         mclient->addData(datapoints, ioa, label, value, qd);
 
                     MeasuredValueShortWithCP56Time2a_destroy(io_casted);
+                    labels.push_back(label);
                 }
             }
             break;
