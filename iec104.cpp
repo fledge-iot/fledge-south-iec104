@@ -363,6 +363,12 @@ void IEC104::handleM_ME_TF_1(vector<Datapoint*>& datapoints, string& label,
 /** Handle ASDU message
  *  For CS104 the address parameter has to be ignored
  */
+bool IEC104::m_asduReceivedHandlerP(void* parameter, int address,
+                                    CS101_ASDU asdu)
+{
+    return m_asduReceivedHandler(parameter, address, asdu);
+}
+
 bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                                    CS101_ASDU asdu)
 {

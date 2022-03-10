@@ -61,6 +61,10 @@ public:
     bool operation(const std::string& operation, int count,
                    PLUGIN_PARAMETER** params);
 
+    // For test purpose
+    static bool m_asduReceivedHandlerP(void* parameter, int address,
+                                       CS101_ASDU asdu);
+
 private:
     typedef void (*IEC104_ASDUHandler)(std::vector<Datapoint*>& datapoints,
                                        std::string& label,
