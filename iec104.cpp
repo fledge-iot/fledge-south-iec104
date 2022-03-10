@@ -103,6 +103,263 @@ void IEC104::m_connectionHandler(void* parameter, CS104_Connection connection,
     }
 }
 
+std::map<int, std::string> mapOfAsdu = {
+    {M_ME_NB_1, "M_ME_NB_1"}, {M_SP_NA_1, "M_SP_NA_1"},
+    {M_SP_TB_1, "M_SP_TB_1"}, {M_DP_NA_1, "M_DP_NA_1"},
+    {M_DP_TB_1, "M_DP_TB_1"}, {M_ST_NA_1, "M_ST_NA_1"},
+    {M_ST_TB_1, "M_ST_TB_1"}, {M_ME_NA_1, "M_ME_NA_1"},
+    {M_ME_TD_1, "M_ME_TD_1"}, {M_ME_TE_1, "M_ME_TE_1"},
+    {M_ME_NC_1, "M_ME_NC_1"}, {M_ME_TF_1, "M_ME_TF_1"}};
+
+void IEC104::handleASDU(vector<string>& labels, vector<Datapoint*>& datapoints,
+                        string& label, IEC104Client* mclient, unsigned int& ca,
+                        CS101_ASDU& asdu, IEC104_ASDUHandler callback)
+{
+    IEC60870_5_TypeID asduID = CS101_ASDU_getTypeID(asdu);
+    Logger::getLogger()->debug("Received " + mapOfAsdu[asduID]);
+
+    for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
+    {
+        InformationObject io = CS101_ASDU_getElement(asdu, i);
+        uint64_t ioa = InformationObject_getObjectAddress(io);
+        if (!(label =
+                  IEC104::m_checkExchangedDataLayer(ca, mapOfAsdu[asduID], ioa))
+                 .empty())
+        {
+            callback(datapoints, label, mclient, ca, asdu, io, ioa);
+            labels.push_back(label);
+        }
+    }
+}
+
+void IEC104::handleM_ME_NB_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (MeasuredValueScaled)io;
+    int64_t value =
+        MeasuredValueScaled_getValue((MeasuredValueScaled)io_casted);
+    QualityDescriptor qd = MeasuredValueScaled_getQuality(io_casted);
+    mclient->addData(datapoints, ioa, label, value, qd);
+
+    MeasuredValueScaled_destroy(io_casted);
+}
+
+void IEC104::handleM_SP_NA_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (SinglePointInformation)io;
+    int64_t value =
+        SinglePointInformation_getValue((SinglePointInformation)io_casted);
+    QualityDescriptor qd =
+        SinglePointInformation_getQuality((SinglePointInformation)io_casted);
+    mclient->addData(datapoints, ioa, label, value, qd);
+
+    SinglePointInformation_destroy(io_casted);
+}
+
+void IEC104::handleM_SP_TB_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (SinglePointWithCP56Time2a)io;
+    int64_t value =
+        SinglePointInformation_getValue((SinglePointInformation)io_casted);
+    QualityDescriptor qd =
+        SinglePointInformation_getQuality((SinglePointInformation)io_casted);
+    if (m_comm_wttag)
+    {
+        CP56Time2a ts = SinglePointWithCP56Time2a_getTimestamp(io_casted);
+        bool is_invalid = CP56Time2a_isInvalid(ts);
+        if (m_tsiv == "PROCESS" || !is_invalid)
+            mclient->addData(datapoints, ioa, label, value, qd, ts);
+    }
+    else
+        mclient->addData(datapoints, ioa, label, value, qd);
+
+    SinglePointWithCP56Time2a_destroy(io_casted);
+}
+
+void IEC104::handleM_DP_NA_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (DoublePointInformation)io;
+    int64_t value =
+        DoublePointInformation_getValue((DoublePointInformation)io_casted);
+    QualityDescriptor qd =
+        DoublePointInformation_getQuality((DoublePointInformation)io_casted);
+    mclient->addData(datapoints, ioa, label, value, qd);
+
+    DoublePointInformation_destroy(io_casted);
+}
+
+void IEC104::handleM_DP_TB_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (DoublePointWithCP56Time2a)io;
+    int64_t value =
+        DoublePointInformation_getValue((DoublePointInformation)io_casted);
+    QualityDescriptor qd =
+        DoublePointInformation_getQuality((DoublePointInformation)io_casted);
+    if (m_comm_wttag)
+    {
+        CP56Time2a ts = DoublePointWithCP56Time2a_getTimestamp(io_casted);
+        bool is_invalid = CP56Time2a_isInvalid(ts);
+        if (m_tsiv == "PROCESS" || !is_invalid)
+            mclient->addData(datapoints, ioa, label, value, qd, ts);
+    }
+    else
+        mclient->addData(datapoints, ioa, label, value, qd);
+
+    DoublePointWithCP56Time2a_destroy(io_casted);
+}
+
+void IEC104::handleM_ST_NA_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (StepPositionInformation)io;
+    int64_t value =
+        StepPositionInformation_getValue((StepPositionInformation)io_casted);
+    QualityDescriptor qd =
+        StepPositionInformation_getQuality((StepPositionInformation)io_casted);
+    mclient->addData(datapoints, ioa, label, value, qd);
+
+    StepPositionInformation_destroy(io_casted);
+}
+
+void IEC104::handleM_ST_TB_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (StepPositionWithCP56Time2a)io;
+    int64_t value =
+        StepPositionInformation_getValue((StepPositionInformation)io_casted);
+    QualityDescriptor qd =
+        StepPositionInformation_getQuality((StepPositionInformation)io_casted);
+    if (m_comm_wttag)
+    {
+        CP56Time2a ts = StepPositionWithCP56Time2a_getTimestamp(io_casted);
+        bool is_invalid = CP56Time2a_isInvalid(ts);
+        if (m_tsiv == "PROCESS" || !is_invalid)
+            mclient->addData(datapoints, ioa, label, value, qd, ts);
+    }
+    else
+        mclient->addData(datapoints, ioa, label, value, qd);
+
+    StepPositionWithCP56Time2a_destroy(io_casted);
+}
+
+void IEC104::handleM_ME_NA_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (MeasuredValueNormalized)io;
+    float value =
+        MeasuredValueNormalized_getValue((MeasuredValueNormalized)io_casted);
+    QualityDescriptor qd =
+        MeasuredValueNormalized_getQuality((MeasuredValueNormalized)io_casted);
+    mclient->addData(datapoints, ioa, label, value, qd);
+
+    MeasuredValueNormalized_destroy(io_casted);
+}
+
+void IEC104::handleM_ME_TD_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (MeasuredValueNormalizedWithCP56Time2a)io;
+    float value =
+        MeasuredValueNormalized_getValue((MeasuredValueNormalized)io_casted);
+    QualityDescriptor qd =
+        MeasuredValueNormalized_getQuality((MeasuredValueNormalized)io_casted);
+    if (m_comm_wttag)
+    {
+        CP56Time2a ts =
+            MeasuredValueNormalizedWithCP56Time2a_getTimestamp(io_casted);
+        bool is_invalid = CP56Time2a_isInvalid(ts);
+        if (m_tsiv == "PROCESS" || !is_invalid)
+            mclient->addData(datapoints, ioa, label, value, qd, ts);
+    }
+    else
+        mclient->addData(datapoints, ioa, label, value, qd);
+
+    MeasuredValueNormalizedWithCP56Time2a_destroy(io_casted);
+}
+
+void IEC104::handleM_ME_TE_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (MeasuredValueScaledWithCP56Time2a)io;
+    int64_t value =
+        MeasuredValueScaled_getValue((MeasuredValueScaled)io_casted);
+    QualityDescriptor qd =
+        MeasuredValueScaled_getQuality((MeasuredValueScaled)io_casted);
+    if (m_comm_wttag)
+    {
+        CP56Time2a ts =
+            MeasuredValueScaledWithCP56Time2a_getTimestamp(io_casted);
+        bool is_invalid = CP56Time2a_isInvalid(ts);
+        if (m_tsiv == "PROCESS" || !is_invalid)
+            mclient->addData(datapoints, ioa, label, value, qd, ts);
+    }
+    else
+        mclient->addData(datapoints, ioa, label, value, qd);
+
+    MeasuredValueScaledWithCP56Time2a_destroy(io_casted);
+}
+
+void IEC104::handleM_ME_NC_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (MeasuredValueShort)io;
+    float value = MeasuredValueShort_getValue((MeasuredValueShort)io_casted);
+    QualityDescriptor qd =
+        MeasuredValueShort_getQuality((MeasuredValueShort)io_casted);
+    mclient->addData(datapoints, ioa, label, value, qd);
+
+    MeasuredValueShort_destroy(io_casted);
+}
+
+void IEC104::handleM_ME_TF_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (MeasuredValueShortWithCP56Time2a)io;
+    float value = MeasuredValueShort_getValue((MeasuredValueShort)io_casted);
+    QualityDescriptor qd =
+        MeasuredValueShort_getQuality((MeasuredValueShort)io_casted);
+    if (m_comm_wttag)
+    {
+        CP56Time2a ts =
+            MeasuredValueShortWithCP56Time2a_getTimestamp(io_casted);
+        bool is_invalid = CP56Time2a_isInvalid(ts);
+        if (m_tsiv == "PROCESS" || !is_invalid)
+            mclient->addData(datapoints, ioa, label, value, qd, ts);
+    }
+    else
+        mclient->addData(datapoints, ioa, label, value, qd);
+
+    MeasuredValueShortWithCP56Time2a_destroy(io_casted);
+}
+
 /** Handle ASDU message
  *  For CS104 the address parameter has to be ignored
  */
@@ -110,338 +367,61 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
                                    CS101_ASDU asdu)
 {
     vector<Datapoint*> datapoints;
-    std::vector<std::string> labels;
+    vector<string> labels;
     auto mclient = static_cast<IEC104Client*>(parameter);
 
     unsigned int ca = CS101_ASDU_getCA(asdu);
-    std::string label;
+    string label;
+
     switch (CS101_ASDU_getTypeID(asdu))
     {
         case M_ME_NB_1:
-            Logger::getLogger()->debug("Received M_ME_NB_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_NB_1",
-                                                                ioa))
-                         .empty())
-                {
-                    auto io_casted = (MeasuredValueScaled)io;
-                    int64_t value = MeasuredValueScaled_getValue(
-                        (MeasuredValueScaled)io_casted);
-                    QualityDescriptor qd =
-                        MeasuredValueScaled_getQuality(io_casted);
-                    mclient->addData(datapoints, ioa, label, value, qd);
-
-                    MeasuredValueScaled_destroy(io_casted);
-                    labels.push_back(label);
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_ME_NB_1);
             break;
         case M_SP_NA_1:
-            Logger::getLogger()->debug("Received M_SP_NA_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_SP_NA_1",
-                                                                ioa))
-                         .empty())
-                {
-                    auto io_casted = (SinglePointInformation)io;
-                    int64_t value = SinglePointInformation_getValue(
-                        (SinglePointInformation)io_casted);
-                    QualityDescriptor qd = SinglePointInformation_getQuality(
-                        (SinglePointInformation)io_casted);
-                    mclient->addData(datapoints, ioa, label, value, qd);
-
-                    SinglePointInformation_destroy(io_casted);
-		    labels.push_back(label);	
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_SP_NA_1);
             break;
         case M_SP_TB_1:
-            Logger::getLogger()->debug("Received M_SP_TB_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_SP_TB_1",
-                                                                ioa))
-                         .empty())
-                {
-                    auto io_casted = (SinglePointWithCP56Time2a)io;
-                    int64_t value = SinglePointInformation_getValue(
-                        (SinglePointInformation)io_casted);
-                    QualityDescriptor qd = SinglePointInformation_getQuality(
-                        (SinglePointInformation)io_casted);
-                    if (m_comm_wttag)
-                    {
-                        CP56Time2a ts =
-                            SinglePointWithCP56Time2a_getTimestamp(io_casted);
-                        bool is_invalid = CP56Time2a_isInvalid(ts);
-                        if (m_tsiv == "PROCESS" || !is_invalid)
-                            mclient->addData(datapoints, ioa, label, value, qd,
-                                             ts);
-                    }
-                    else
-                        mclient->addData(datapoints, ioa, label, value, qd);
-
-                    SinglePointWithCP56Time2a_destroy(io_casted);
-                    labels.push_back(label);
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_SP_TB_1);
             break;
         case M_DP_NA_1:
-            Logger::getLogger()->debug("Received M_DP_NA_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_DP_NA_1",
-                                                                ioa))
-                         .empty())
-                {
-                    auto io_casted = (DoublePointInformation)io;
-                    int64_t value = DoublePointInformation_getValue(
-                        (DoublePointInformation)io_casted);
-                    QualityDescriptor qd = DoublePointInformation_getQuality(
-                        (DoublePointInformation)io_casted);
-                    mclient->addData(datapoints, ioa, label, value, qd);
-
-                    DoublePointInformation_destroy(io_casted);
-                    labels.push_back(label);
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_DP_NA_1);
             break;
         case M_DP_TB_1:
-            Logger::getLogger()->debug("Received M_DP_TB_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_DP_TB_1",
-                                                                ioa))
-                         .empty())
-                {
-                    auto io_casted = (DoublePointWithCP56Time2a)io;
-                    int64_t value = DoublePointInformation_getValue(
-                        (DoublePointInformation)io_casted);
-                    QualityDescriptor qd = DoublePointInformation_getQuality(
-                        (DoublePointInformation)io_casted);
-                    if (m_comm_wttag)
-                    {
-                        CP56Time2a ts =
-                            DoublePointWithCP56Time2a_getTimestamp(io_casted);
-                        bool is_invalid = CP56Time2a_isInvalid(ts);
-                        if (m_tsiv == "PROCESS" || !is_invalid)
-                            mclient->addData(datapoints, ioa, label, value, qd,
-                                             ts);
-                    }
-                    else
-                        mclient->addData(datapoints, ioa, label, value, qd);
-
-                    DoublePointWithCP56Time2a_destroy(io_casted);
-                    labels.push_back(label);
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_DP_TB_1);
             break;
         case M_ST_NA_1:
-            Logger::getLogger()->debug("Received M_ST_NA_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ST_NA_1",
-                                                                ioa))
-                         .empty())
-                {
-                    auto io_casted = (StepPositionInformation)io;
-                    int64_t value = StepPositionInformation_getValue(
-                        (StepPositionInformation)io_casted);
-                    QualityDescriptor qd = StepPositionInformation_getQuality(
-                        (StepPositionInformation)io_casted);
-                    mclient->addData(datapoints, ioa, label, value, qd);
-
-                    StepPositionInformation_destroy(io_casted);
-                    labels.push_back(label);
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_ST_NA_1);
             break;
         case M_ST_TB_1:
-            Logger::getLogger()->debug("Received M_ST_TB_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ST_TB_1",
-                                                                ioa))
-                         .empty())
-                {
-                    auto io_casted = (StepPositionWithCP56Time2a)io;
-                    int64_t value = StepPositionInformation_getValue(
-                        (StepPositionInformation)io_casted);
-                    QualityDescriptor qd = StepPositionInformation_getQuality(
-                        (StepPositionInformation)io_casted);
-                    if (m_comm_wttag)
-                    {
-                        CP56Time2a ts =
-                            StepPositionWithCP56Time2a_getTimestamp(io_casted);
-                        bool is_invalid = CP56Time2a_isInvalid(ts);
-                        if (m_tsiv == "PROCESS" || !is_invalid)
-                            mclient->addData(datapoints, ioa, label, value, qd,
-                                             ts);
-                    }
-                    else
-                        mclient->addData(datapoints, ioa, label, value, qd);
-
-                    StepPositionWithCP56Time2a_destroy(io_casted);
-                    labels.push_back(label);
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_ST_TB_1);
             break;
         case M_ME_NA_1:
-            Logger::getLogger()->debug("Received M_ME_NA_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_NA_1",
-                                                                ioa))
-                         .empty())
-                {
-                    auto io_casted = (MeasuredValueNormalized)io;
-                    float value = MeasuredValueNormalized_getValue(
-                        (MeasuredValueNormalized)io_casted);
-                    QualityDescriptor qd = MeasuredValueNormalized_getQuality(
-                        (MeasuredValueNormalized)io_casted);
-                    mclient->addData(datapoints, ioa, label, value, qd);
-
-                    MeasuredValueNormalized_destroy(io_casted);
-                    labels.push_back(label);
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_ME_NA_1);
             break;
         case M_ME_TD_1:
-            Logger::getLogger()->debug("Received M_ME_TD_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_TD_1",
-                                                                ioa))
-                         .empty())
-                {
-                    auto io_casted = (MeasuredValueNormalizedWithCP56Time2a)io;
-                    float value = MeasuredValueNormalized_getValue(
-                        (MeasuredValueNormalized)io_casted);
-                    QualityDescriptor qd = MeasuredValueNormalized_getQuality(
-                        (MeasuredValueNormalized)io_casted);
-                    if (m_comm_wttag)
-                    {
-                        CP56Time2a ts =
-                            MeasuredValueNormalizedWithCP56Time2a_getTimestamp(
-                                io_casted);
-                        bool is_invalid = CP56Time2a_isInvalid(ts);
-                        if (m_tsiv == "PROCESS" || !is_invalid)
-                            mclient->addData(datapoints, ioa, label, value, qd,
-                                             ts);
-                    }
-                    else
-                        mclient->addData(datapoints, ioa, label, value, qd);
-
-                    MeasuredValueNormalizedWithCP56Time2a_destroy(io_casted);
-                    labels.push_back(label);
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_ME_TD_1);
             break;
         case M_ME_TE_1:
-            Logger::getLogger()->debug("Received M_ME_TE_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_TE_1",
-                                                                ioa))
-                         .empty())
-                {
-                    auto io_casted = (MeasuredValueScaledWithCP56Time2a)io;
-                    int64_t value = MeasuredValueScaled_getValue(
-                        (MeasuredValueScaled)io_casted);
-                    QualityDescriptor qd = MeasuredValueScaled_getQuality(
-                        (MeasuredValueScaled)io_casted);
-                    if (m_comm_wttag)
-                    {
-                        CP56Time2a ts =
-                            MeasuredValueScaledWithCP56Time2a_getTimestamp(
-                                io_casted);
-                        bool is_invalid = CP56Time2a_isInvalid(ts);
-                        if (m_tsiv == "PROCESS" || !is_invalid)
-                            mclient->addData(datapoints, ioa, label, value, qd,
-                                             ts);
-                    }
-                    else
-                        mclient->addData(datapoints, ioa, label, value, qd);
-
-                    MeasuredValueScaledWithCP56Time2a_destroy(io_casted);
-                    labels.push_back(label);
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_ME_TE_1);
             break;
         case M_ME_NC_1:
-            Logger::getLogger()->debug("Received M_ME_NC_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                if (!(label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_NC_1",
-                                                                ioa))
-                         .empty())
-                {
-                    auto io_casted = (MeasuredValueShort)io;
-                    float value = MeasuredValueShort_getValue(
-                        (MeasuredValueShort)io_casted);
-                    QualityDescriptor qd = MeasuredValueShort_getQuality(
-                        (MeasuredValueShort)io_casted);
-                    mclient->addData(datapoints, ioa, label, value, qd);
-
-                    MeasuredValueShort_destroy(io_casted);
-                    labels.push_back(label); 
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_ME_NC_1);
             break;
         case M_ME_TF_1:
-            Logger::getLogger()->debug("Received M_ME_TF_1");
-            for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
-            {
-                InformationObject io = CS101_ASDU_getElement(asdu, i);
-                uint64_t ioa = InformationObject_getObjectAddress(io);
-                label = IEC104::m_checkExchangedDataLayer(ca, "M_ME_TF_1", ioa);
-                if (!label.empty())
-                {
-                    auto io_casted = (MeasuredValueShortWithCP56Time2a)io;
-                    float value = MeasuredValueShort_getValue(
-                        (MeasuredValueShort)io_casted);
-                    QualityDescriptor qd = MeasuredValueShort_getQuality(
-                        (MeasuredValueShort)io_casted);
-                    if (m_comm_wttag)
-                    {
-                        CP56Time2a ts =
-                            MeasuredValueShortWithCP56Time2a_getTimestamp(
-                                io_casted);
-                        bool is_invalid = CP56Time2a_isInvalid(ts);
-                        if (m_tsiv == "PROCESS" || !is_invalid)
-                            mclient->addData(datapoints, ioa, label, value, qd,
-                                             ts);
-                    }
-                    else
-                        mclient->addData(datapoints, ioa, label, value, qd);
-
-                    MeasuredValueShortWithCP56Time2a_destroy(io_casted);
-                    labels.push_back(label);
-                }
-            }
+            handleASDU(labels, datapoints, label, mclient, ca, asdu,
+                       handleM_ME_TF_1);
             break;
         case M_EI_NA_1:
             Logger::getLogger()->info("Received end of initialization");
@@ -536,6 +516,7 @@ void IEC104::connect(unsigned int connection_index)
         while (!CS104_Connection_connect(connection))
         {
         }
+
         Logger::getLogger()->info("Connection started");
 
         // If conn_all = false, only start dt with the first connection
@@ -684,10 +665,10 @@ void IEC104::stop()
  *
  * @param points    The points in the reading we must create
  */
-//void IEC104::ingest(Reading& reading) { (*m_ingest)(m_data, reading); }
-void	IEC104::ingest(std::string assetName, std::vector<Datapoint *>  &points)
+// void IEC104::ingest(Reading& reading) { (*m_ingest)(m_data, reading); }
+void IEC104::ingest(std::string assetName, std::vector<Datapoint*>& points)
 {
-  (*m_ingest)(m_data, Reading(assetName, points));
+    (*m_ingest)(m_data, Reading(assetName, points));
 }
 
 /**
@@ -944,13 +925,13 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
     DatapointValue header_dpv(data_header, true);
 
     // We send as many pivot format objects as information objects in the source
-    // ASDU 
+    // ASDU
     int i = 0;
 
     for (Datapoint* item_dp : datapoints)
     {
-	std::vector<Datapoint *>  points;
-	points.push_back(new Datapoint("data_object_header", header_dpv));
+        std::vector<Datapoint*> points;
+        points.push_back(new Datapoint("data_object_header", header_dpv));
         points.push_back(item_dp);
         m_iec104->ingest(labels.at(i), points);
         i++;
@@ -1070,7 +1051,8 @@ bool IEC104::operation(const std::string& operation, int count,
             InformationObject_destroy(dc);
             return true;
         }
+        Logger::getLogger()->error("Unrecognised operation %s",
+                                   operation.c_str());
+        return false;
     }
-    Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
-    return false;
 }

@@ -55,13 +55,18 @@ public:
     void stop();
     void connect(unsigned int connection_index);
 
-    //void ingest(Reading& reading);
-    void ingest(std::string assetName, std::vector<Datapoint *>  &points);
+    // void ingest(Reading& reading);
+    void ingest(std::string assetName, std::vector<Datapoint*>& points);
     void registerIngest(void* data, void (*cb)(void*, Reading));
     bool operation(const std::string& operation, int count,
                    PLUGIN_PARAMETER** params);
 
 private:
+    typedef void (*IEC104_ASDUHandler)(std::vector<Datapoint*>& datapoints,
+                                       std::string& label,
+                                       IEC104Client* mclient, unsigned int& ca,
+                                       CS101_ASDU& asdu, InformationObject& io,
+                                       uint64_t& ioa);
     template <class T>
     static T m_getConfigValue(nlohmann::json configuration,
                               nlohmann::json_pointer<nlohmann::json> path);
@@ -87,7 +92,73 @@ private:
     static bool m_asduReceivedHandler(void* parameter, int address,
                                       CS101_ASDU asdu);
 
+    static void handleASDU(std::vector<std::string>&,
+                           std::vector<Datapoint*>& datapoints,
+                           std::string& label, IEC104Client* mclient,
+                           unsigned int& ca, CS101_ASDU& asdu,
+                           IEC104_ASDUHandler callback);
+
     bool m_startup_done;
+
+    static void handleM_ME_NB_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
+
+    static void handleM_SP_NA_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
+
+    static void handleM_SP_TB_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
+
+    static void handleM_DP_NA_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
+
+    static void handleM_DP_TB_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
+
+    static void handleM_ST_NA_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
+
+    static void handleM_ST_TB_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
+
+    static void handleM_ME_NA_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
+
+    static void handleM_ME_TD_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
+
+    static void handleM_ME_TE_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
+
+    static void handleM_ME_NC_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
+
+    static void handleM_ME_TF_1(std::vector<Datapoint*>& datapoints,
+                                std::string& label, IEC104Client* mclient,
+                                unsigned int& ca, CS101_ASDU& asdu,
+                                InformationObject& io, uint64_t& ioa);
 
     static nlohmann::json m_stack_configuration;
     static nlohmann::json m_msg_configuration;
