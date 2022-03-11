@@ -95,6 +95,7 @@ jobs:
           cd /usr/src/gtest
           sudo cmake CMakeLists.txt
           sudo make
+          sudo apt-get install libgmock-dev
       - name: Download and install gcovr
         run: |
           sudo apt-get install gcovr
