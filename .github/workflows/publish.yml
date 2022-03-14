@@ -1,0 +1,75 @@
+name: Publish
+
+# Controls when the workflow will run
+on:
+  push:
+    tags:        
+      - v*-rc* # publish only rc (release candidates), example: v1.0.0-rc0
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  IMAGE_REGISTRY: ghcr.io
+  REGISTRY_USER: ${{ github.actor }}
+  REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  FLEDGE_IMAGE_NAME: 'fledgepower/fledge'
+  FLEDGE_GUI_IMAGE_NAME: 'fledgepower/fledge-gui'
+  IMAGE_TAG: 'latest'
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Download and install Docker
+      - name: Download and install Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install \
+                  ca-certificates \
+                  curl \
+                  gnupg \
+                  lsb-release
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+          echo \
+              "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+              $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install docker-ce docker-ce-cli containerd.io
+
+      # Download fledgepower deployment
+      - name: Download fledgepower deployment
+        env: 
+          FP_DEPLOY_REPO: "https://github.com/fledge-power/fledgepower-deployment.git"
+        run: |
+          git clone ${{ env.FP_DEPLOY_REPO }}
+          
+      # Log in to the Container registry ghcr.io
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.IMAGE_REGISTRY }}
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+
+      # Build image
+      - name: Build images
+        run: |
+          cd ./fledgepower-deployment/s104-n104-ubuntu2004/fledge/
+          sudo -E docker build -f fledge.dockerfile -t ${{ env.IMAGE_REGISTRY }}/${{ github.actor }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.IMAGE_TAG }} . --label ${{ github.ref }}
+          cd ../fledge-gui
+          sudo -E docker build -f fledge-gui.dockerfile -t ${{ env.IMAGE_REGISTRY }}/${{ github.actor }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:${{ env.IMAGE_TAG }} . --label ${{ github.ref }}          
+  
+      # Push to ghcr.io (Github Image Registry)
+      - name: Push images
+        run: |
+          sudo -E docker push ${{ env.IMAGE_REGISTRY }}/${{ github.actor }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          sudo -E docker push ${{ env.IMAGE_REGISTRY }}/${{ github.actor }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          
