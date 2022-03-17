@@ -12,6 +12,8 @@ using ::testing::NiceMock;
 using namespace std;
 using namespace nlohmann;
 
+// Define configuration, important part is the exchanged_data
+// It contains all asdu to take into account
 struct json_config
 {
     string protocol_stack = "{\"description\":\"protocolstackparameters\"}";
@@ -150,39 +152,50 @@ public:
                  QualityDescriptor qd, CP56Time2a ts));
 };
 
+// Dummy fonction to prevent code execution in iec104::ingest during test
 void ingest_cb(void* data, Reading reading) {}
 
+// Class to be called in each test, contains fixture to be used in
 class AsduHandlerTest : public testing::Test
 {
 protected:
-    CS101_ASDU asdu;
+    CS101_ASDU asdu;       // ASDU used during each test, will contain IO
+    IEC104* iec104;        // Object on which we call for tests
+    json_config config;    // Will contain JSON defined above
+    InformationObject io;  // Contain information object for asdu
     CS101_AppLayerParameters alParams;
     CS104_Slave slave;
-    IEC104* iec104;
-    json_config config;
     json m_pivot_configuration;
-    InformationObject io;
     struct sCP56Time2a testTimestamp;
     MockIEC104Client* m_client;
 
+    // Setup is ran for every tests, so each variable are reinitialised
     void SetUp() override
     {
         m_pivot_configuration = json::parse(config.protocol_translation);
 
+        // Init iec object with dummy ingest callback and json configuration
         iec104 = new IEC104();
+        iec104->setTsiv("PROCESS");
+        iec104->setCommWttag(false);
         iec104->registerIngest(NULL, ingest_cb);
-
-        slave = CS104_Slave_create(100, 100);
-        alParams = CS104_Slave_getAppLayerParameters(slave);
-        CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
-
         iec104->setJsonConfig(config.protocol_stack, config.exchanged_data,
                               config.protocol_translation, config.tls);
 
+        // Init used parameters to define create ASDU
+        slave = CS104_Slave_create(100, 100);
+        alParams = CS104_Slave_getAppLayerParameters(slave);
+
+        // Get current timestamp (used in tests)
+        CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
+
         m_client = new MockIEC104Client(iec104, &m_pivot_configuration);
 
+        // Default base ASDU
         asdu = CS101_ASDU_create(alParams, false, CS101_COT_INITIALIZED, 0, 1,
                                  false, false);
+
+        // Set CA, in relation with what is in the description
         CS101_ASDU_setCA(asdu, 41025);
 
         // Default IO for destroy purpose
@@ -190,6 +203,7 @@ protected:
             NULL, 4202832, 100, IEC60870_QUALITY_GOOD);
     }
 
+    // TearDown is ran for every tests, so each variable are destroyed again
     void TearDown() override
     {
         CS101_ASDU_destroy(asdu);
@@ -197,19 +211,18 @@ protected:
     }
 };
 
-// vector<Datapoint*> datapoints;
-// EXPECT_CALL(m_client,
-//             addData(datapoints, (int64_t)4202832, (std::string) "TM_1",
-//                     testing::Matcher<int64_t>(100),
-//                     IEC60870_QUALITY_GOOD, nullptr));
-
+// Test the default case of m_asduReceivedHandler() in iec104
+// Should return false
 TEST_F(AsduHandlerTest, AsduReceivedHandlerDefault)
 {
-    // Unknown type should return false
+    // Unknown/not used type
     CS101_ASDU_setTypeID(asdu, F_SC_NB_1);
     ASSERT_FALSE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
 
+// For all the following
+// Tests all cases where we handle the type in m_asduReceivedHandler() in iec104
+// Should return true
 TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ME_NB_1)
 {
     // M_ME_NB_1
@@ -235,6 +248,10 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_SP_TB_1)
         NULL, 4202832, true, IEC60870_QUALITY_GOOD, &testTimestamp);
     ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
 
 TEST_F(AsduHandlerTest, AsduReceivedHandlerM_DP_NA_1)
@@ -254,6 +271,10 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_DP_TB_1)
         &testTimestamp);
     ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
 
 TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ST_NA_1)
@@ -271,6 +292,10 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ST_TB_1)
     io = (InformationObject)StepPositionWithCP56Time2a_create(
         NULL, 4202832, 10, true, IEC60870_QUALITY_GOOD, &testTimestamp);
     ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
 
@@ -290,6 +315,10 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ME_TD_1)
         NULL, 4202832, 10.0, IEC60870_QUALITY_GOOD, &testTimestamp);
     ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
 
 TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ME_TE_1)
@@ -298,6 +327,10 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ME_TE_1)
     io = (InformationObject)MeasuredValueScaledWithCP56Time2a_create(
         NULL, 4202832, 10, IEC60870_QUALITY_GOOD, &testTimestamp);
     ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
 
@@ -316,6 +349,10 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ME_TF_1)
     io = (InformationObject)MeasuredValueShortWithCP56Time2a_create(
         NULL, 4202832, 10.0, IEC60870_QUALITY_GOOD, &testTimestamp);
     ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
 

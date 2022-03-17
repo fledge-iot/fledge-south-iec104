@@ -31,6 +31,15 @@ json IEC104::m_pivot_configuration;
 /** Constructor for the iec104 plugin */
 IEC104::IEC104() : m_client(nullptr) {}
 
+// Map of all handled ASDU type by the plugin, see m_asduReceivedHandler
+map<int, string> mapOfAsdu = {
+    {M_ME_NB_1, "M_ME_NB_1"}, {M_SP_NA_1, "M_SP_NA_1"},
+    {M_SP_TB_1, "M_SP_TB_1"}, {M_DP_NA_1, "M_DP_NA_1"},
+    {M_DP_TB_1, "M_DP_TB_1"}, {M_ST_NA_1, "M_ST_NA_1"},
+    {M_ST_TB_1, "M_ST_TB_1"}, {M_ME_NA_1, "M_ME_NA_1"},
+    {M_ME_TD_1, "M_ME_TD_1"}, {M_ME_TE_1, "M_ME_TE_1"},
+    {M_ME_NC_1, "M_ME_NC_1"}, {M_ME_TF_1, "M_ME_TF_1"}};
+
 void IEC104::setJsonConfig(const std::string& stack_configuration,
                            const std::string& msg_configuration,
                            const std::string& pivot_configuration,
@@ -103,20 +112,111 @@ void IEC104::m_connectionHandler(void* parameter, CS104_Connection connection,
     }
 }
 
-std::map<int, std::string> mapOfAsdu = {
-    {M_ME_NB_1, "M_ME_NB_1"}, {M_SP_NA_1, "M_SP_NA_1"},
-    {M_SP_TB_1, "M_SP_TB_1"}, {M_DP_NA_1, "M_DP_NA_1"},
-    {M_DP_TB_1, "M_DP_TB_1"}, {M_ST_NA_1, "M_ST_NA_1"},
-    {M_ST_TB_1, "M_ST_TB_1"}, {M_ME_NA_1, "M_ME_NA_1"},
-    {M_ME_TD_1, "M_ME_TD_1"}, {M_ME_TE_1, "M_ME_TE_1"},
-    {M_ME_NC_1, "M_ME_NC_1"}, {M_ME_TF_1, "M_ME_TF_1"}};
+bool IEC104::m_asduReceivedHandlerP(void* parameter, int address,
+                                    CS101_ASDU asdu)
+{
+    return m_asduReceivedHandler(parameter, address, asdu);
+}
 
+/**
+ * @brief Callback handler function to handle an ASDU
+ *
+ * @param parameter an IEC104 Client
+ * @param address for CS104 it has to be ignored
+ * @param asdu the asdu to handle
+ * @return true if type is supported
+ * @return false if type is not supported
+ */
+bool IEC104::m_asduReceivedHandler(void* parameter, int address,
+                                   CS101_ASDU asdu)
+{
+    vector<Datapoint*> datapoints;
+    vector<string> labels;
+    auto mclient = static_cast<IEC104Client*>(parameter);
+
+    switch (CS101_ASDU_getTypeID(asdu))
+    {
+        case M_ME_NB_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_ME_NB_1);
+            break;
+        case M_SP_NA_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_SP_NA_1);
+            break;
+        case M_SP_TB_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_SP_TB_1);
+            break;
+        case M_DP_NA_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_DP_NA_1);
+            break;
+        case M_DP_TB_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_DP_TB_1);
+            break;
+        case M_ST_NA_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_ST_NA_1);
+            break;
+        case M_ST_TB_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_ST_TB_1);
+            break;
+        case M_ME_NA_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_ME_NA_1);
+            break;
+        case M_ME_TD_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_ME_TD_1);
+            break;
+        case M_ME_TE_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_ME_TE_1);
+            break;
+        case M_ME_NC_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_ME_NC_1);
+            break;
+        case M_ME_TF_1:
+            handleASDU(labels, datapoints, mclient, asdu, handleM_ME_TF_1);
+            break;
+        case M_EI_NA_1:
+            Logger::getLogger()->info("Received end of initialization");
+            break;
+        case C_IC_NA_1:
+            Logger::getLogger()->info("General interrogation command");
+            break;
+        case C_TS_TA_1:
+            Logger::getLogger()->info("Test command with time tag CP56Time2a");
+            break;
+        case C_SC_TA_1:
+            Logger::getLogger()->info(
+                "Single command with time tag CP56Time2a");
+            break;
+        case C_DC_TA_1:
+            Logger::getLogger()->info(
+                "Double command with time tag CP56Time2a");
+            break;
+        default:
+            Logger::getLogger()->error("Type of message not supported");
+            return false;
+    }
+    if (!datapoints.empty()) mclient->sendData(asdu, datapoints, labels);
+
+    return true;
+}
+
+/**
+ * @brief Generic function that will handle information related to the received
+ * ASDU and call the callback function that is dependent of a specific type
+ *
+ * @param labels reference to a vector that will contain label for each handled
+ * information object the asdu passed in parameter
+ * @param datapoints reference to a vector of datapoints
+ * @param mclient IEC104 client
+ * @param asdu the asdu to handle
+ * @param callback the prefered function to handle a specific ASDU type
+ */
 void IEC104::handleASDU(vector<string>& labels, vector<Datapoint*>& datapoints,
-                        string& label, IEC104Client* mclient, unsigned int& ca,
-                        CS101_ASDU& asdu, IEC104_ASDUHandler callback)
+                        IEC104Client* mclient, CS101_ASDU& asdu,
+                        IEC104_ASDUHandler callback)
 {
     IEC60870_5_TypeID asduID = CS101_ASDU_getTypeID(asdu);
     Logger::getLogger()->debug("Received " + mapOfAsdu[asduID]);
+    unsigned int ca = CS101_ASDU_getCA(asdu);
+    string label;
 
     for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
     {
@@ -132,6 +232,9 @@ void IEC104::handleASDU(vector<string>& labels, vector<Datapoint*>& datapoints,
     }
 }
 
+// Each of the following function handle a specific type of ASDU. They cast the
+// contained IO into a specific object that is strictly linked to the type
+// for example a MeasuredValueScaled is type M_ME_NB_1
 void IEC104::handleM_ME_NB_1(vector<Datapoint*>& datapoints, string& label,
                              IEC104Client* mclient, unsigned int& ca,
                              CS101_ASDU& asdu, InformationObject& io,
@@ -358,101 +461,6 @@ void IEC104::handleM_ME_TF_1(vector<Datapoint*>& datapoints, string& label,
         mclient->addData(datapoints, ioa, label, value, qd);
 
     MeasuredValueShortWithCP56Time2a_destroy(io_casted);
-}
-
-/** Handle ASDU message
- *  For CS104 the address parameter has to be ignored
- */
-bool IEC104::m_asduReceivedHandlerP(void* parameter, int address,
-                                    CS101_ASDU asdu)
-{
-    return m_asduReceivedHandler(parameter, address, asdu);
-}
-
-bool IEC104::m_asduReceivedHandler(void* parameter, int address,
-                                   CS101_ASDU asdu)
-{
-    vector<Datapoint*> datapoints;
-    vector<string> labels;
-    auto mclient = static_cast<IEC104Client*>(parameter);
-
-    unsigned int ca = CS101_ASDU_getCA(asdu);
-    string label;
-
-    switch (CS101_ASDU_getTypeID(asdu))
-    {
-        case M_ME_NB_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_ME_NB_1);
-            break;
-        case M_SP_NA_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_SP_NA_1);
-            break;
-        case M_SP_TB_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_SP_TB_1);
-            break;
-        case M_DP_NA_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_DP_NA_1);
-            break;
-        case M_DP_TB_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_DP_TB_1);
-            break;
-        case M_ST_NA_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_ST_NA_1);
-            break;
-        case M_ST_TB_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_ST_TB_1);
-            break;
-        case M_ME_NA_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_ME_NA_1);
-            break;
-        case M_ME_TD_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_ME_TD_1);
-            break;
-        case M_ME_TE_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_ME_TE_1);
-            break;
-        case M_ME_NC_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_ME_NC_1);
-            break;
-        case M_ME_TF_1:
-            handleASDU(labels, datapoints, label, mclient, ca, asdu,
-                       handleM_ME_TF_1);
-            break;
-        case M_EI_NA_1:
-            Logger::getLogger()->info("Received end of initialization");
-            break;
-        case C_IC_NA_1:
-            Logger::getLogger()->info("General interrogation command");
-            break;
-        case C_TS_TA_1:
-            Logger::getLogger()->info("Test command with time tag CP56Time2a");
-            break;
-        case C_SC_TA_1:
-            Logger::getLogger()->info(
-                "Single command with time tag CP56Time2a");
-            break;
-        case C_DC_TA_1:
-            Logger::getLogger()->info(
-                "Double command with time tag CP56Time2a");
-            break;
-        default:
-            Logger::getLogger()->error("Type of message not supported");
-            return false;
-    }
-    if (!datapoints.empty()) mclient->sendData(asdu, datapoints, labels);
-
-    return true;
 }
 
 void IEC104::restart()
