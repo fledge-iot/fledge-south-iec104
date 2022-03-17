@@ -65,6 +65,12 @@ public:
     static bool m_asduReceivedHandlerP(void* parameter, int address,
                                        CS101_ASDU asdu);
 
+    static bool getCommWttag() { return m_comm_wttag; };
+    static void setCommWttag(bool comm_wttag) { m_comm_wttag = comm_wttag; };
+
+    static std::string getTsiv() { return m_tsiv; };
+    static void setTsiv(std::string tsiv) { m_tsiv = tsiv; };
+
 private:
     typedef void (*IEC104_ASDUHandler)(std::vector<Datapoint*>& datapoints,
                                        std::string& label,
@@ -98,8 +104,7 @@ private:
 
     static void handleASDU(std::vector<std::string>&,
                            std::vector<Datapoint*>& datapoints,
-                           std::string& label, IEC104Client* mclient,
-                           unsigned int& ca, CS101_ASDU& asdu,
+                           IEC104Client* mclient, CS101_ASDU& asdu,
                            IEC104_ASDUHandler callback);
 
     bool m_startup_done;
