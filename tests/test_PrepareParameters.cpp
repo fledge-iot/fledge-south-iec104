@@ -127,7 +127,6 @@ using namespace nlohmann;
 TEST(IEC104, PluginASDUSizeTest)
 {
     IEC104 iec104;
-
     const int PORT = 2404;
     string ip_adress("127.0.0.1");
     CS104_Connection connection =
@@ -147,7 +146,6 @@ TEST(IEC104, PluginASDUSizeTest)
  */
 TEST(IEC104, PluginAPCIParametersTestsNoThrow)
 {
-    struct jc conf;
     IEC104 iec104;
 
     const int PORT = 2404;
@@ -174,9 +172,7 @@ TEST(IEC104, PluginAPCIParametersTestsNoThrow)
 
 TEST(IEC104, PluginAppLayerParametersTestsNoThrow)
 {
-    struct jc conf;
     IEC104 iec104;
-
     const int PORT = 2404;
     string ip_adress("127.0.0.1");
     CS104_Connection connection =
