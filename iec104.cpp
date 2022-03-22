@@ -463,6 +463,67 @@ void IEC104::handleM_ME_TF_1(vector<Datapoint*>& datapoints, string& label,
     MeasuredValueShortWithCP56Time2a_destroy(io_casted);
 }
 
+// TC & TVC
+// SingleCommandWithCP56Time2a
+void IEC104::handleC_SC_TA_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (SingleCommandWithCP56Time2a)io;
+    bool state = SingleCommand_getState((SingleCommand)io_casted);
+    // qu qualifier of command
+    QualifierOfCommand qu = SingleCommand_getQU((SingleCommand)io_casted);
+
+    if (m_comm_wttag)
+    {
+        CP56Time2a ts = SingleCommandWithCP56Time2a_getTimestamp(io_casted);
+        bool is_invalid = CP56Time2a_isInvalid(ts);
+        if (m_tsiv == "PROCESS" || !is_invalid)
+            mclient->addData(datapoints, ioa, label, state, qu, ts);
+    }
+    else
+        mclient->addData(datapoints, ioa, label, state, qu);
+
+    SingleCommandWithCP56Time2a_destroy(io_casted);
+}
+
+// DoubleCommandWithCP56Time2a
+void IEC104::handleC_DC_TA_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    // TODO
+}
+
+// SetpointCommandScaledWithCP56Time2a
+void IEC104::handleC_SE_TB_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    // TODO
+}
+
+// SetpointCommandShortWithCP56Time2a
+void IEC104::handleC_SE_TC_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    // TODO
+}
+
+// StepCommandWithCP56Time2a
+void IEC104::handleC_RC_TA_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    // TODO
+}
+
 void IEC104::restart()
 {
     stop();
