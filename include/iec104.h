@@ -53,6 +53,7 @@ public:
     void restart();
     void start();
     void stop();
+    void prepareParameters(CS104_Connection& connection);
     void connect(unsigned int connection_index);
 
     // void ingest(Reading& reading);
