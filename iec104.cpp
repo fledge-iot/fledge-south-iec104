@@ -585,6 +585,7 @@ void IEC104::start()
                               "/application_layer/startup_time"_json_pointer),
         1000, &m_startup_done, "Startup");
     startupWatchdog.detach();
+    m_client = new IEC104Client(this, &m_pivot_configuration);
 
     for (auto& path_element :
          m_stack_configuration["transport_layer"]["connection"]["path"])
