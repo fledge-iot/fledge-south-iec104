@@ -177,7 +177,7 @@ protected:
     {
         // Get only the mapping part
         m_pivot_configuration =
-            json::parse(config.protocol_translation)["mapping"];
+        json::parse(config.protocol_translation)["exchanged_data"];
 
         // Init iec object with dummy ingest callback and json configuration
         iec104 = new IEC104();
