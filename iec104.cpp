@@ -560,7 +560,6 @@ void IEC104::start()
 {
     Logger::getLogger()->info("Starting iec104");
 
-    // Fledge logging level setting
     switch (m_getConfigValue<int>(m_stack_configuration,
                                   "/transport_layer/llevel"_json_pointer))
     {
@@ -654,8 +653,11 @@ void IEC104::start()
 /** Disconnect from the iec104 servers */
 void IEC104::stop()
 {
-    delete m_client;
-    m_client = nullptr;
+    if (m_client != nullptr)
+    {
+        delete m_client;
+        m_client = nullptr;
+    }
 
     for (auto& connection : m_connections)
     {
@@ -909,7 +911,6 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
                             const vector<std::string> labels)
 {
     auto* data_header = new vector<Datapoint*>;
-
     for (auto& feature :
          (*m_pivot_configuration)["mapping"]["data_object_header"].items())
     {
@@ -1066,4 +1067,14 @@ bool IEC104::operation(const std::string& operation, int count,
                                    operation.c_str());
         return false;
     }
+    Logger::getLogger()->error("No current connections");
+    return false;
+}
+
+void IEC104::sendInterrogationCommmands() { m_sendInterrogationCommmands(); }
+
+void IEC104::sendInterrogationCommmandToCA(unsigned int ca, int gi_repeat_count,
+                                           int gi_time)
+{
+    m_sendInterrogationCommmandToCA(ca, gi_repeat_count, gi_time);
 }
