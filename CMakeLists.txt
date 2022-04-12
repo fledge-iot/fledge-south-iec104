@@ -53,6 +53,7 @@ endif()
 include_directories(include)
 # Add Fledge include dir(s)
 include_directories(${FLEDGE_INCLUDE_DIRS})
+include_directories(lib60870/lib60870-C/src/hal/inc)
 
 # Add Fledge lib path
 link_directories(${FLEDGE_LIB_DIRS})
