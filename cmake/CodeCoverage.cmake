@@ -513,8 +513,9 @@ function(setup_target_for_coverage_gcovr_sonar)
         ${Coverage_EXECUTABLE} ${Coverage_EXECUTABLE_ARGS}
     )
     # Running gcovr
+    # Add options to reduce unwanted branches
     set(GCOVR_XML_CMD
-        ${GCOVR_PATH} --sonarqube -r ${BASEDIR} ${GCOVR_ADDITIONAL_ARGS} ${GCOVR_EXCLUDE_ARGS} 
+        ${GCOVR_PATH} --exclude-unreachable-branches --exclude-throw-branches --sonarqube -r ${BASEDIR} ${GCOVR_ADDITIONAL_ARGS} ${GCOVR_EXCLUDE_ARGS} 
         --object-directory=${PROJECT_BINARY_DIR} -o ${Coverage_NAME}-sonarqube.xml
     )
     
