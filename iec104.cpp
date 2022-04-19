@@ -18,6 +18,17 @@
 #include <iostream>
 #include <utility>
 
+// Qualifier of command
+#define NoAddDefinition 0
+#define ShortPulse 1
+#define LongPulse 2
+#define PersistentOutput 3
+#define Reserved 4  // > 3 value
+
+// (S/E bit) select command
+#define Execute false
+#define Select true
+
 using namespace std;
 using namespace nlohmann;
 
@@ -38,7 +49,8 @@ map<int, string> mapOfAsdu = {
     {M_DP_TB_1, "M_DP_TB_1"}, {M_ST_NA_1, "M_ST_NA_1"},
     {M_ST_TB_1, "M_ST_TB_1"}, {M_ME_NA_1, "M_ME_NA_1"},
     {M_ME_TD_1, "M_ME_TD_1"}, {M_ME_TE_1, "M_ME_TE_1"},
-    {M_ME_NC_1, "M_ME_NC_1"}, {M_ME_TF_1, "M_ME_TF_1"}};
+    {M_ME_NC_1, "M_ME_NC_1"}, {M_ME_TF_1, "M_ME_TF_1"},
+    {C_SC_TA_1, "C_SC_TA_1"}, {C_DC_TA_1, "C_DC_TA_1"}};
 
 void IEC104::setJsonConfig(const std::string& stack_configuration,
                            const std::string& msg_configuration,
@@ -182,12 +194,10 @@ bool IEC104::m_asduReceivedHandler(void* parameter, int address,
             Logger::getLogger()->info("Test command with time tag CP56Time2a");
             break;
         case C_SC_TA_1:
-            Logger::getLogger()->info(
-                "Single command with time tag CP56Time2a");
+            handleASDU(labels, datapoints, mclient, asdu, handleC_SC_TA_1);
             break;
         case C_DC_TA_1:
-            Logger::getLogger()->info(
-                "Double command with time tag CP56Time2a");
+            handleASDU(labels, datapoints, mclient, asdu, handleC_DC_TA_1);
             break;
         default:
             Logger::getLogger()->error("Type of message not supported");
@@ -461,6 +471,52 @@ void IEC104::handleM_ME_TF_1(vector<Datapoint*>& datapoints, string& label,
         mclient->addData(datapoints, ioa, label, value, qd);
 
     MeasuredValueShortWithCP56Time2a_destroy(io_casted);
+}
+
+void IEC104::handleC_SC_TA_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (SingleCommandWithCP56Time2a)io;
+    int64_t state = SingleCommand_getState((SingleCommand)io_casted);
+
+    QualifierOfCommand qu = SingleCommand_getQU((SingleCommand)io_casted);
+
+    if (m_comm_wttag)
+    {
+        CP56Time2a ts = SingleCommandWithCP56Time2a_getTimestamp(io_casted);
+        bool is_invalid = CP56Time2a_isInvalid(ts);
+        if (m_tsiv == "PROCESS" || !is_invalid)
+            mclient->addData(datapoints, ioa, label, state, qu, ts);
+    }
+    else
+        mclient->addData(datapoints, ioa, label, state, qu);
+
+    SingleCommandWithCP56Time2a_destroy(io_casted);
+}
+
+void IEC104::handleC_DC_TA_1(vector<Datapoint*>& datapoints, string& label,
+                             IEC104Client* mclient, unsigned int& ca,
+                             CS101_ASDU& asdu, InformationObject& io,
+                             uint64_t& ioa)
+{
+    auto io_casted = (DoubleCommandWithCP56Time2a)io;
+    int64_t state = DoubleCommand_getState((DoubleCommand)io_casted);
+
+    QualifierOfCommand qu = DoubleCommand_getQU((DoubleCommand)io_casted);
+
+    if (m_comm_wttag)
+    {
+        CP56Time2a ts = DoubleCommandWithCP56Time2a_getTimestamp(io_casted);
+        bool is_invalid = CP56Time2a_isInvalid(ts);
+        if (m_tsiv == "PROCESS" || !is_invalid)
+            mclient->addData(datapoints, ioa, label, state, qu, ts);
+    }
+    else
+        mclient->addData(datapoints, ioa, label, state, qu);
+
+    DoubleCommandWithCP56Time2a_destroy(io_casted);
 }
 
 void IEC104::restart()
@@ -936,8 +992,8 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
 
     DatapointValue header_dpv(data_header, true);
 
-    // We send as many pivot format objects as information objects in the source
-    // ASDU
+    // We send as many pivot format objects as information objects in the
+    // source ASDU
     int i = 0;
 
     for (Datapoint* item_dp : datapoints)
@@ -962,9 +1018,24 @@ void IEC104Client::m_addData(vector<Datapoint*>& datapoints, int64_t ioa,
     {
         if (feature.value() == "ioa")
             measure_features->push_back(m_createDatapoint(feature.key(), ioa));
+
         else if (feature.value() == "value")
             measure_features->push_back(
                 m_createDatapoint(feature.key(), value));
+
+        // else if (feature.value() == "value")
+        // {
+        //     if (typeid(value) == typeid(bool))
+        //     {
+        //         measure_features->push_back(m_createDatapoint(
+        //             feature.key(), static_cast<long>(value)));
+        //     }
+        //     else
+        //     {
+        //         measure_features->push_back(
+        //             m_createDatapoint(feature.key(), value));
+        //     }
+        // }
         else if (feature.value() == "quality_desc")
             measure_features->push_back(
                 m_createDatapoint(feature.key(), (int64_t)qd));
@@ -984,19 +1055,6 @@ void IEC104Client::m_addData(vector<Datapoint*>& datapoints, int64_t ioa,
             measure_features->push_back(m_createDatapoint(
                 feature.key(),
                 (ts != nullptr ? (int64_t)CP56Time2a_isSubstituted(ts) : -1)));
-        /*else if (feature.value() == "time_marker")
-            measure_features->push_back(m_createDatapoint(feature.key(), (ts
-        != nullptr ? CP56Time2aToString(ts) : "not_populated"))); else if
-        (feature.value() == "isinvalid")
-            measure_features->push_back(m_createDatapoint(feature.key(), (ts
-        != nullptr ? to_string(CP56Time2a_isInvalid(ts)) :
-        "not_populated"))); else if (feature.value() == "isSummerTime")
-            measure_features->push_back(m_createDatapoint(feature.key(), (ts
-        != nullptr ? to_string(CP56Time2a_isSummerTime(ts)) :
-        "not_populated"))); else if (feature.value() == "isSubstituted")
-            measure_features->push_back(m_createDatapoint(feature.key(), (ts
-        != nullptr ? to_string(CP56Time2a_isSubstituted(ts)) :
-        "not_populated")));*/
     }
 
     DatapointValue dpv(measure_features, true);
@@ -1006,6 +1064,11 @@ void IEC104Client::m_addData(vector<Datapoint*>& datapoints, int64_t ioa,
 
 /**
  * SetPoint operation.
+ * This is the function used to send an ASDU to the control station
+ * @param operation     name of the command asdu
+ * @param params        data object items of the command to send, composed of a
+ * name and a value
+ * @param count         number of parameters
  */
 bool IEC104::operation(const std::string& operation, int count,
                        PLUGIN_PARAMETER** params)
@@ -1033,17 +1096,30 @@ bool IEC104::operation(const std::string& operation, int count,
         }
         else if (operation.compare("SingleCommandWithCP56Time2a") == 0)
         {
+            // common adress of the asdu
             int casdu = atoi(params[0]->value.c_str());
+            // information object adress
             int64_t ioa = atoi(params[1]->value.c_str());
+            // command state to send, must be a boolean
+            // 0 = off, 1 otherwise
             bool value = static_cast<bool>(atoi(params[2]->value.c_str()));
             struct sCP56Time2a testTimestamp;
+
             CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
+
             InformationObject sc =
                 (InformationObject)SingleCommandWithCP56Time2a_create(
-                    NULL, ioa, value, false, 0, &testTimestamp);
-            CS104_Connection_sendProcessCommandEx(
+                    NULL, ioa, value, Execute, NoAddDefinition, &testTimestamp);
+
+            bool isSent = CS104_Connection_sendProcessCommandEx(
                 connection, CS101_COT_ACTIVATION, casdu, sc);
-            Logger::getLogger()->info("SingleCommandWithCP56Time2a send");
+
+            if (isSent)
+                Logger::getLogger()->info("SingleCommandWithCP56Time2a sent");
+            else
+                Logger::getLogger()->info(
+                    "SingleCommandWithCP56Time2a not sent");
+
             InformationObject_destroy(sc);
             return true;
         }
@@ -1051,18 +1127,59 @@ bool IEC104::operation(const std::string& operation, int count,
         {
             int casdu = atoi(params[0]->value.c_str());
             int64_t ioa = atoi(params[1]->value.c_str());
+            // the command state to send, 4 possible values
+            // (0 = not permitted, 1 = off, 2 = on, 3 = not permitted)
             int value = atoi(params[2]->value.c_str());
+
             struct sCP56Time2a testTimestamp;
+
             CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
+
             InformationObject dc =
                 (InformationObject)DoubleCommandWithCP56Time2a_create(
-                    NULL, ioa, value, false, 0, &testTimestamp);
-            CS104_Connection_sendProcessCommandEx(
+                    NULL, ioa, value, Execute, NoAddDefinition, &testTimestamp);
+
+            bool isSent = CS104_Connection_sendProcessCommandEx(
                 connection, CS101_COT_ACTIVATION, casdu, dc);
-            Logger::getLogger()->info("DoubleCommandWithCP56Time2a send");
+
+            if (isSent)
+                Logger::getLogger()->info("DoubleCommandWithCP56Time2a sent");
+            else
+                Logger::getLogger()->info(
+                    "DoubleCommandWithCP56Time2a not sent");
             InformationObject_destroy(dc);
+
             return true;
         }
+        else if (operation.compare("StepCommandWithCP56Time2a") == 0)
+        {
+            int casdu = atoi(params[0]->value.c_str());
+            int64_t ioa = atoi(params[1]->value.c_str());
+            // the command state to send, 4 possible values
+            // (0 = invalid_0, 1 = lower, 2 = higher, 3 = invalid_3)
+            StepCommandValue value =
+                static_cast<StepCommandValue>(atoi(params[2]->value.c_str()));
+
+            struct sCP56Time2a testTimestamp;
+
+            CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
+
+            InformationObject stpc =
+                (InformationObject)StepCommandWithCP56Time2a_create(
+                    NULL, ioa, value, Execute, NoAddDefinition, &testTimestamp);
+
+            bool isSent = CS104_Connection_sendProcessCommandEx(
+                connection, CS101_COT_ACTIVATION, casdu, stpc);
+
+            if (isSent)
+                Logger::getLogger()->info("StepCommandWithCP56Time2a sent");
+            else
+                Logger::getLogger()->info("StepCommandWithCP56Time2a not sent");
+            InformationObject_destroy(stpc);
+
+            return true;
+        }
+
         Logger::getLogger()->error("Unrecognised operation %s",
                                    operation.c_str());
         return false;

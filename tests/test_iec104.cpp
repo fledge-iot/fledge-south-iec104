@@ -110,7 +110,7 @@ TEST_F(IEC104Test, IEC104_operation)
     operations.push_back("CS104_Connection_sendTestCommandWithTimestamp");
     operations.push_back("SingleCommandWithCP56Time2a");
     operations.push_back("DoubleCommandWithCP56Time2a");
-    string operation = "CS104_Connection_sendInterrogationCommand";
+    operations.push_back("StepCommandWithCP56Time2a");
 
     for (const string& operation : operations)
     {

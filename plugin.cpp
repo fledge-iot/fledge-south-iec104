@@ -107,7 +107,7 @@ typedef void (*INGEST_CB)(void *, Reading);
         }                                    \
     })
 
-// PLUGIN DEFAULT PROTOCOL TRANSLATION CONF
+// PLUGIN DEFAULT PROTOCOL TRANSLATION FROM IEC104 TO PIVOT
 #define PROTOCOL_TRANSLATION_DEF                     \
     QUOTE({                                          \
         "protocol_translation" : {                   \
@@ -133,6 +133,33 @@ typedef void (*INGEST_CB)(void *, Reading);
                 }                                    \
             }                                        \
         }                                            \
+    })
+
+// PLUGIN PROTOCOL TRANSLATION FROM PIVOT TO IEC104 ASDU
+#define PROTOCOL_TRANSLATION_PIVOT_TO_IEC104           \
+    QUOTE({                                            \
+        "protocol_translation" : {                     \
+            "name" : "pivot_to_iec104",                \
+            "version" : "1.0",                         \
+            "mapping" : {                              \
+                "data_object_header" : {               \
+                    "type_id" : "doh_type",            \
+                    "ca" : "doh_ca",                   \
+                    "oa" : "doh_oa",                   \
+                    "cot" : "doh_cot",                 \
+                    "istest" : "doh_test",             \
+                    "isnegative" : "doh_negative"      \
+                },                                     \
+                "data_object_item" : {                 \
+                    "ioa" : "doi_ioa",                 \
+                    "value" : "doi_value",             \
+                    "quality_desc" : "doi_quality",    \
+                    "time_marker" : "doi_ts",          \
+                    "isinvalid" : "doi_ts_qual",       \
+                    "isSummerTime" : "doi_ts_sum_time" \
+                }                                      \
+            }                                          \
+        }                                              \
     })
 
 // PLUGIN DEFAULT TLS CONF

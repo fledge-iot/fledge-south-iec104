@@ -177,7 +177,7 @@ protected:
     {
         // Get only the mapping part
         m_pivot_configuration =
-        json::parse(config.protocol_translation)["exchanged_data"];
+            json::parse(config.protocol_translation)["exchanged_data"];
 
         // Init iec object with dummy ingest callback and json configuration
         iec104 = new IEC104();
@@ -386,13 +386,25 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerC_TS_TA_1)
 TEST_F(AsduHandlerTest, AsduReceivedHandlerC_SC_TA_1)
 {
     // C_SC_TA_1
-    CS101_ASDU_setTypeID(asdu, C_SC_TA_1);
+    io = (InformationObject)SingleCommandWithCP56Time2a_create(
+        NULL, 4202832, true, true, 1, &testTimestamp);
+    ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
 
 TEST_F(AsduHandlerTest, AsduReceivedHandlerC_DC_TA_1)
 {
     // C_DC_TA_1
-    CS101_ASDU_setTypeID(asdu, C_DC_TA_1);
+    io = (InformationObject)DoubleCommandWithCP56Time2a_create(
+        NULL, 4202832, 10, true, 1, &testTimestamp);
+    ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
