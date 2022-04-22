@@ -20,14 +20,28 @@
 ## Author: Mark Riddoch
 ##
 
-git clone https://github.com/mz-automation/lib60870.git
-cd lib60870/lib60870-C
-cd dependencies
-wget https://tls.mbed.org/download/mbedtls-2.6.0-apache.tgz
-tar xf mbedtls-2.6.0-apache.tgz
-cd ..
-mkdir build
-cd build
-cmake -DBUILD_TESTS=NO -DBUILD_EXAMPLES=NO ..
-make
-sudo make install
+directory=$1
+if [ ! -d $directory ]; then
+  mkdir -p $directory
+else
+  directory=~
+fi
+
+if [ ! -d $directory/lib60870 ]; then
+  cd $directory
+  echo Fetching MZA lib60870 library
+  git clone https://github.com/mz-automation/lib60870.git
+  cd lib60870/lib60870-C
+  cd dependencies
+  wget https://tls.mbed.org/download/mbedtls-2.6.0-apache.tgz
+  tar xf mbedtls-2.6.0-apache.tgz
+  cd ..
+  mkdir build
+  cd build
+  cmake -DBUILD_TESTS=NO -DBUILD_EXAMPLES=NO ..
+  make
+  sudo make install
+  cd ..
+  echo Set the environment variable LIB_104 to `pwd`
+  echo export LIB_104=`pwd`
+fi

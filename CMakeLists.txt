@@ -34,6 +34,9 @@ set(NEEDED_FLEDGE_LIBS common-lib)
 # Find source files
 file(GLOB SOURCES *.cpp)
 
+# Set lib60870 home directory
+set(LIB60870 "$ENV{HOME}/lib60870/lib60870-C")
+
 # Find Fledge includes and libs, by including FindFledge.cmak file
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
 find_package(Fledge)
@@ -53,7 +56,8 @@ endif()
 include_directories(include)
 # Add Fledge include dir(s)
 include_directories(${FLEDGE_INCLUDE_DIRS})
-include_directories(lib60870/lib60870-C/src/hal/inc)
+# Add lib60870 include path
+include_directories(${LIB60870}/src/hal/inc)
 
 # Add Fledge lib path
 link_directories(${FLEDGE_LIB_DIRS})
