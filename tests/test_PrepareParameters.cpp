@@ -148,7 +148,7 @@ TEST(IEC104, PluginASDUSizeTest)
         CS104_Connection_getAppLayerParameters(connection);
 
     ASSERT_EQ(params->maxSizeOfASDU, 249);
-    // ASSERT_NE(params->maxSizeOfASDU, 249);
+    ASSERT_NE(params->maxSizeOfASDU, 0);
 }
 
 /**

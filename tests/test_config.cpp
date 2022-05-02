@@ -1,10 +1,59 @@
+#include <config_category.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <iec104.h>
 #include <plugin_api.h>
 #include <string.h>
 
+#include <boost/thread.hpp>
+#include <utility>
+#include <vector>
+
 using namespace std;
 using namespace nlohmann;
+
+#include "conf_init.h"
+struct json_config
+{
+    string protocol_stack = PROTOCOL_STACK_DEF;
+
+    string protocol_translation = PROTOCOL_TRANSLATION_DEF;
+
+    string exchanged_data = EXCHANGED_DATA_DEF;
+
+    string tls = TLS_DEF;
+
+    string protocol_stack_info = PROTOCOL_STACK_DEF_INFO;
+
+    string protocol_stack_warning = PROTOCOL_STACK_DEF_WARNING;
+
+    string protocol_stack_debug = PROTOCOL_STACK_DEF_DEBUG;
+};
+
+TEST(IEC104, JsonConfig_DEF)
+{
+    json_config config;
+    IEC104* iec104 = new IEC104();
+
+    ASSERT_NO_THROW(
+        iec104->setJsonConfig(config.protocol_stack, config.exchanged_data,
+                              config.protocol_translation, config.tls));
+
+    ASSERT_NO_THROW(
+        iec104->setJsonConfig(config.protocol_stack_info, config.exchanged_data,
+                              config.protocol_translation, config.tls));
+
+    ASSERT_NO_THROW(iec104->setJsonConfig(
+        config.protocol_stack_warning, config.exchanged_data,
+        config.protocol_translation, config.tls));
+
+    ASSERT_NO_THROW(iec104->setJsonConfig(
+        config.protocol_stack_debug, config.exchanged_data,
+        config.protocol_translation, config.tls));
+
+    delete iec104;
+    iec104 = nullptr;
+}
 
 struct jc
 {

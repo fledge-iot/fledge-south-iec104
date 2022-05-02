@@ -255,7 +255,13 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_SP_TB_1)
     ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 
-    // Test other part of the handle callback
+    iec104->setCommWttag(true);
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    iec104->setCommWttag(false);
+    iec104->setTsiv("Invalid");
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
     iec104->setCommWttag(true);
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
@@ -276,6 +282,14 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_DP_TB_1)
         NULL, 4202832, IEC60870_DOUBLE_POINT_ON, IEC60870_QUALITY_GOOD,
         &testTimestamp);
     ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    iec104->setCommWttag(false);
+    iec104->setTsiv("Invalid");
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 
     // Test other part of the handle callback
@@ -303,6 +317,14 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ST_TB_1)
     // Test other part of the handle callback
     iec104->setCommWttag(true);
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    iec104->setCommWttag(false);
+    iec104->setTsiv("Invalid");
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
 
 TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ME_NA_1)
@@ -325,6 +347,14 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ME_TD_1)
     // Test other part of the handle callback
     iec104->setCommWttag(true);
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    iec104->setCommWttag(false);
+    iec104->setTsiv("Invalid");
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
 
 TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ME_TE_1)
@@ -333,6 +363,14 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ME_TE_1)
     io = (InformationObject)MeasuredValueScaledWithCP56Time2a_create(
         NULL, 4202832, 10, IEC60870_QUALITY_GOOD, &testTimestamp);
     ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    iec104->setCommWttag(false);
+    iec104->setTsiv("Invalid");
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 
     // Test other part of the handle callback
@@ -355,6 +393,14 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerM_ME_TF_1)
     io = (InformationObject)MeasuredValueShortWithCP56Time2a_create(
         NULL, 4202832, 10.0, IEC60870_QUALITY_GOOD, &testTimestamp);
     ASSERT_TRUE(CS101_ASDU_addInformationObject(asdu, io));
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    // Test other part of the handle callback
+    iec104->setCommWttag(true);
+    ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
+
+    iec104->setCommWttag(false);
+    iec104->setTsiv("Invalid");
     ASSERT_TRUE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 
     // Test other part of the handle callback
