@@ -55,6 +55,7 @@ jobs:
           unzip -o fledge-pkg.zip -d $HOME
           mv $HOME/fledge-develop $HOME/fledge
           cd $HOME/fledge
+          sudo apt-get update
           sudo apt-get install libcurl4-openssl-dev
           sudo $HOME/fledge/requirements.sh
           sudo make install
