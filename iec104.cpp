@@ -586,34 +586,41 @@ void IEC104::connect(unsigned int connection_index)
         m_getConfigValue<bool>(m_stack_configuration,
                                "/transport_layer/conn_passv"_json_pointer))
     {
-        while (!CS104_Connection_connect(connection))
-        {
+        if (CS104_Connection_connect(connection)) {
+
+            Logger::getLogger()->info("Connection started");
+
+            // If conn_all = false, only start dt with the first connection
+            if (connection_index == 0 ||
+                m_getConfigValue<bool>(m_stack_configuration,
+                                    "/transport_layer/conn_all"_json_pointer))
+                CS104_Connection_sendStartDT(connection);
+
+            m_sendInterrogationCommmands();
+
+            if (m_getConfigValue<bool>(m_stack_configuration,
+                                    "/application_layer/time_sync"_json_pointer))
+            {
+                Logger::getLogger()->info("Sending clock sync command");
+                sCP56Time2a currentTime{};
+                CP56Time2a_createFromMsTimestamp(&currentTime, Hal_getTimeInMs());
+                CS104_Connection_sendClockSyncCommand(
+                    connection, m_getBroadcastCA(), &currentTime);
+            }
+        }
+        else {
+            Logger::getLogger()->warn("Failed to connect");
         }
 
-        Logger::getLogger()->info("Connection started");
 
-        // If conn_all = false, only start dt with the first connection
-        if (connection_index == 0 ||
-            m_getConfigValue<bool>(m_stack_configuration,
-                                   "/transport_layer/conn_all"_json_pointer))
-            CS104_Connection_sendStartDT(connection);
-
-        m_sendInterrogationCommmands();
-
-        if (m_getConfigValue<bool>(m_stack_configuration,
-                                   "/application_layer/time_sync"_json_pointer))
-        {
-            Logger::getLogger()->info("Sending clock sync command");
-            sCP56Time2a currentTime{};
-            CP56Time2a_createFromMsTimestamp(&currentTime, Hal_getTimeInMs());
-            CS104_Connection_sendClockSyncCommand(
-                connection, m_getBroadcastCA(), &currentTime);
-        }
     }
 }
 
 void IEC104::start()
 {
+    m_isRunning = true;
+    printf("IEC104::start()\n");
+
     Logger::getLogger()->info("Starting iec104");
 
     switch (m_getConfigValue<int>(m_stack_configuration,
@@ -634,13 +641,17 @@ void IEC104::start()
     }
 
     m_startup_done = false;
-    std::thread startupWatchdog(
-        m_watchdog,
-        m_getConfigValue<int>(m_stack_configuration,
-                              "/application_layer/startup_time"_json_pointer),
-        1000, &m_startup_done, "Startup");
-    startupWatchdog.detach();
-    m_client = new IEC104Client(this, &m_pivot_configuration);
+    // std::thread startupWatchdog(
+    //     m_watchdog,
+    //     m_getConfigValue<int>(m_stack_configuration,
+    //                           "/application_layer/startup_time"_json_pointer),
+    //     1000, &m_startup_done, "Startup");
+    // startupWatchdog.detach();
+
+    m_client = new IEC104Client(this, &m_pivot_configuration, &m_stack_configuration);
+
+    m_client->start();
+#if 0
 
     for (auto& path_element :
          m_stack_configuration["transport_layer"]["connection"]["path"])
@@ -663,15 +674,17 @@ void IEC104::start()
             Logger::getLogger()->info("Connection created");
         }
 
-        CS104_Connection_setConnectionHandler(
-            new_connection, m_connectionHandler, static_cast<void*>(this));
-        CS104_Connection_setASDUReceivedHandler(new_connection,
-                                                m_asduReceivedHandler,
-                                                static_cast<void*>(m_client));
+        if (new_connection) {
+            CS104_Connection_setConnectionHandler(
+                new_connection, m_connectionHandler, static_cast<void*>(this));
+            CS104_Connection_setASDUReceivedHandler(new_connection,
+                                                    m_asduReceivedHandler,
+                                                    static_cast<void*>(m_client));
 
-        m_connections.push_back(new_connection);
+            m_connections.push_back(new_connection);
 
-        connect(m_connections.size() - 1);
+            connect(m_connections.size() - 1);
+        }
 
         // If conn_all == false, only use the first path
         if (!m_getConfigValue<bool>(m_stack_configuration,
@@ -692,40 +705,55 @@ void IEC104::start()
         "/application_layer/exec_cycl_test"_json_pointer);
     // Test commands are sent at same rate as gi, with default of
     //"cycl_test_delay" if gi is not activated
-    while (true)
-    {
-        if (exec_cycl_test) m_sendTestCommmands();
 
+    while (m_isRunning == true)
+    {
         if (gi_cycle)
         {
             m_sendInterrogationCommmands();
             Thread_sleep(1000 * gi_time);
         }
 
-        Thread_sleep(1000);
+        printf("IEC104::start() SLEEP\n");
+        Thread_sleep(100);
     }
+#endif
+
+
+    printf("IEC104::start() FINISHED\n");
 }
 
 /** Disconnect from the iec104 servers */
 void IEC104::stop()
 {
+    m_isRunning = false;
+
+    Thread_sleep(1000);
+
+
+
     if (m_client != nullptr)
     {
+        m_client->stop();
+
         delete m_client;
         m_client = nullptr;
     }
 
+#if 0
     for (auto& connection : m_connections)
     {
         // if the connection has already ended, we don't send another close
         // request
         if (connection)
         {
+            printf("Connection: %p\n", connection);
             CS104_Connection_destroy(connection);
             connection = nullptr;
             Logger::getLogger()->info("Connection stopped");
         }
     }
+#endif
 }
 
 /**
@@ -827,31 +855,6 @@ void IEC104::m_sendInterrogationCommmandToCA(unsigned int ca,
         }
         if (sentWithSuccess) break;
     }
-}
-
-void IEC104::m_sendTestCommmands()
-{
-    Logger::getLogger()->info("Sending interrogation command...");
-
-    // For every ca
-    for (auto& element : m_msg_configuration["asdu_list"])
-    {
-        int ca = m_getConfigValue<unsigned int>(element, "/ca"_json_pointer);
-        for (auto connection : m_connections)
-        {
-            if (m_comm_wttag)
-            {
-                uint16_t tsc = 0;  // Test sequence counter
-                CP56Time2a currentTime = CP56Time2a_createFromMsTimestamp(
-                    nullptr, Hal_getTimeInMs());
-                CS104_Connection_sendTestCommandWithTimestamp(connection, ca,
-                                                              tsc, currentTime);
-            }
-            else
-                CS104_Connection_sendTestCommand(connection, ca);
-        }
-    }
-    Logger::getLogger()->info("Test command sent");
 }
 
 int IEC104::m_getBroadcastCA()
@@ -963,105 +966,6 @@ int IEC104::m_watchdog(int delay, int checkRes, bool* flag, std::string id)
     }
 }
 
-void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
-                            const vector<std::string> labels)
-{
-    auto* data_header = new vector<Datapoint*>;
-    for (auto& feature :
-         (*m_pivot_configuration)["mapping"]["data_object_header"].items())
-    {
-        if (feature.value() == "type_id")
-            data_header->push_back(m_createDatapoint(
-                feature.key(), (int64_t)CS101_ASDU_getTypeID(asdu)));
-        else if (feature.value() == "ca")
-            data_header->push_back(m_createDatapoint(
-                feature.key(), (int64_t)CS101_ASDU_getCA(asdu)));
-        else if (feature.value() == "oa")
-            data_header->push_back(m_createDatapoint(
-                feature.key(), (int64_t)CS101_ASDU_getOA(asdu)));
-        else if (feature.value() == "cot")
-            data_header->push_back(m_createDatapoint(
-                feature.key(), (int64_t)CS101_ASDU_getCOT(asdu)));
-        else if (feature.value() == "istest")
-            data_header->push_back(m_createDatapoint(
-                feature.key(), (int64_t)CS101_ASDU_isTest(asdu)));
-        else if (feature.value() == "isnegative")
-            data_header->push_back(m_createDatapoint(
-                feature.key(), (int64_t)CS101_ASDU_isNegative(asdu)));
-    }
-
-    DatapointValue header_dpv(data_header, true);
-
-    // We send as many pivot format objects as information objects in the
-    // source ASDU
-    int i = 0;
-
-    for (Datapoint* item_dp : datapoints)
-    {
-        std::vector<Datapoint*> points;
-        points.push_back(new Datapoint("data_object_header", header_dpv));
-        points.push_back(item_dp);
-        m_iec104->ingest(labels.at(i), points);
-        i++;
-    }
-}
-
-template <class T>
-void IEC104Client::m_addData(vector<Datapoint*>& datapoints, int64_t ioa,
-                             const std::string& dataname, const T value,
-                             QualityDescriptor qd, CP56Time2a ts)
-{
-    auto* measure_features = new vector<Datapoint*>;
-
-    for (auto& feature :
-         (*m_pivot_configuration)["mapping"]["data_object_item"].items())
-    {
-        if (feature.value() == "ioa")
-            measure_features->push_back(m_createDatapoint(feature.key(), ioa));
-
-        else if (feature.value() == "value")
-            measure_features->push_back(
-                m_createDatapoint(feature.key(), value));
-
-        // else if (feature.value() == "value")
-        // {
-        //     if (typeid(value) == typeid(bool))
-        //     {
-        //         measure_features->push_back(m_createDatapoint(
-        //             feature.key(), static_cast<long>(value)));
-        //     }
-        //     else
-        //     {
-        //         measure_features->push_back(
-        //             m_createDatapoint(feature.key(), value));
-        //     }
-        // }
-        else if (feature.value() == "quality_desc")
-            measure_features->push_back(
-                m_createDatapoint(feature.key(), (int64_t)qd));
-        else if (feature.value() == "time_marker")
-            measure_features->push_back(m_createDatapoint(
-                feature.key(),
-                (ts != nullptr ? CP56Time2aToString(ts) : "not_populated")));
-        else if (feature.value() == "isinvalid")
-            measure_features->push_back(m_createDatapoint(
-                feature.key(),
-                (ts != nullptr ? (int64_t)CP56Time2a_isInvalid(ts) : -1)));
-        else if (feature.value() == "isSummerTime")
-            measure_features->push_back(m_createDatapoint(
-                feature.key(),
-                (ts != nullptr ? (int64_t)CP56Time2a_isSummerTime(ts) : -1)));
-        else if (feature.value() == "isSubstituted")
-            measure_features->push_back(m_createDatapoint(
-                feature.key(),
-                (ts != nullptr ? (int64_t)CP56Time2a_isSubstituted(ts) : -1)));
-    }
-
-    DatapointValue dpv(measure_features, true);
-
-    datapoints.push_back(new Datapoint("data_object_item", dpv));
-}
-
 /**
  * SetPoint operation.
  * This is the function used to send an ASDU to the control station
@@ -1073,118 +977,83 @@ void IEC104Client::m_addData(vector<Datapoint*>& datapoints, int64_t ioa,
 bool IEC104::operation(const std::string& operation, int count,
                        PLUGIN_PARAMETER** params)
 {
-    for (auto connection : m_connections)
+    if (operation.compare("CS104_Connection_sendInterrogationCommand") == 0)
     {
-        if (operation.compare("CS104_Connection_sendInterrogationCommand") == 0)
-        {
-            int casdu = atoi(params[0]->value.c_str());
-            CS104_Connection_sendInterrogationCommand(
-                connection, CS101_COT_ACTIVATION, casdu, IEC60870_QOI_STATION);
-            Logger::getLogger()->info("InterrogationCommand send");
-            return true;
-        }
-        else if (operation.compare(
-                     "CS104_Connection_sendTestCommandWithTimestamp") == 0)
-        {
-            int casdu = atoi(params[0]->value.c_str());
-            struct sCP56Time2a testTimestamp;
-            CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
-            CS104_Connection_sendTestCommandWithTimestamp(
-                connection, casdu, 0x4938, &testTimestamp);
-            Logger::getLogger()->info("TestCommandWithTimestamp send");
-            return true;
-        }
-        else if (operation.compare("SingleCommandWithCP56Time2a") == 0)
-        {
-            // common adress of the asdu
-            int casdu = atoi(params[0]->value.c_str());
-            // information object adress
-            int64_t ioa = atoi(params[1]->value.c_str());
+        int ca = atoi(params[0]->value.c_str());
+
+        return m_client->sendInterrogationCommand(ca);
+    }
+    else if (operation.compare(
+                    "CS104_Connection_sendTestCommandWithTimestamp") == 0)
+    {
+        int casdu = atoi(params[0]->value.c_str());
+
+        //TODO implement?
+
+        return true;
+    }
+    else if (operation.compare("SingleCommandWithCP56Time2a") == 0)
+    {
+        if (count > 2) {
+            // common address of the asdu
+            int ca = atoi(params[0]->value.c_str());
+
+            // information object address
+            int32_t ioa = atoi(params[1]->value.c_str());
+
             // command state to send, must be a boolean
             // 0 = off, 1 otherwise
             bool value = static_cast<bool>(atoi(params[2]->value.c_str()));
-            struct sCP56Time2a testTimestamp;
 
-            CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
-
-            InformationObject sc =
-                (InformationObject)SingleCommandWithCP56Time2a_create(
-                    NULL, ioa, value, Execute, NoAddDefinition, &testTimestamp);
-
-            bool isSent = CS104_Connection_sendProcessCommandEx(
-                connection, CS101_COT_ACTIVATION, casdu, sc);
-
-            if (isSent)
-                Logger::getLogger()->info("SingleCommandWithCP56Time2a sent");
-            else
-                Logger::getLogger()->info(
-                    "SingleCommandWithCP56Time2a not sent");
-
-            InformationObject_destroy(sc);
-            return true;
+            return m_client->sendSingleCommand(ca, ioa, value, true);
         }
-        else if (operation.compare("DoubleCommandWithCP56Time2a") == 0)
-        {
-            int casdu = atoi(params[0]->value.c_str());
-            int64_t ioa = atoi(params[1]->value.c_str());
+        else {
+            Logger::getLogger()->error("SingleCommandWithCP56Time2a operation parameter missing");
+            return false;
+        }
+    }
+    else if (operation.compare("DoubleCommandWithCP56Time2a") == 0)
+    {
+        if (count > 2) {
+            // common address of the asdu
+            int ca = atoi(params[0]->value.c_str());
+
+            // information object address
+            int32_t ioa = atoi(params[1]->value.c_str());
+
             // the command state to send, 4 possible values
             // (0 = not permitted, 1 = off, 2 = on, 3 = not permitted)
             int value = atoi(params[2]->value.c_str());
 
-            struct sCP56Time2a testTimestamp;
-
-            CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
-
-            InformationObject dc =
-                (InformationObject)DoubleCommandWithCP56Time2a_create(
-                    NULL, ioa, value, Execute, NoAddDefinition, &testTimestamp);
-
-            bool isSent = CS104_Connection_sendProcessCommandEx(
-                connection, CS101_COT_ACTIVATION, casdu, dc);
-
-            if (isSent)
-                Logger::getLogger()->info("DoubleCommandWithCP56Time2a sent");
-            else
-                Logger::getLogger()->info(
-                    "DoubleCommandWithCP56Time2a not sent");
-            InformationObject_destroy(dc);
-
-            return true;
+            return m_client->sendDoubleCommand(ca, ioa, value, true);
         }
-        else if (operation.compare("StepCommandWithCP56Time2a") == 0)
-        {
-            int casdu = atoi(params[0]->value.c_str());
-            int64_t ioa = atoi(params[1]->value.c_str());
+        else {
+            Logger::getLogger()->error("DoubleCommandWithCP56Time2a operation parameter missing");
+            return false;
+        }
+    }
+    else if (operation.compare("StepCommandWithCP56Time2a") == 0)
+    {
+        if (count > 2) {
+            // common address of the asdu
+            int ca = atoi(params[0]->value.c_str());
+
+            // information object address
+            int32_t ioa = atoi(params[1]->value.c_str());
+
             // the command state to send, 4 possible values
             // (0 = invalid_0, 1 = lower, 2 = higher, 3 = invalid_3)
-            StepCommandValue value =
-                static_cast<StepCommandValue>(atoi(params[2]->value.c_str()));
+            int value = atoi(params[2]->value.c_str());
 
-            struct sCP56Time2a testTimestamp;
-
-            CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
-
-            InformationObject stpc =
-                (InformationObject)StepCommandWithCP56Time2a_create(
-                    NULL, ioa, value, Execute, NoAddDefinition, &testTimestamp);
-
-            bool isSent = CS104_Connection_sendProcessCommandEx(
-                connection, CS101_COT_ACTIVATION, casdu, stpc);
-
-            if (isSent)
-                Logger::getLogger()->info("StepCommandWithCP56Time2a sent");
-            else
-                Logger::getLogger()->info("StepCommandWithCP56Time2a not sent");
-            InformationObject_destroy(stpc);
-
-            return true;
+            return m_client->sendStepCommand(ca, ioa, value, true);
         }
-
-        Logger::getLogger()->error("Unrecognised operation %s",
-                                   operation.c_str());
-        return false;
+        else {
+            Logger::getLogger()->error("StepCommandWithCP56Time2a operation parameter missing");
+            return false;
+        }
     }
-    Logger::getLogger()->error("No current connections");
+
+    Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
     return false;
 }
 

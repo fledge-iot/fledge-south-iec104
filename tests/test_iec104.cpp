@@ -77,7 +77,7 @@ protected:
         thread_.interrupt();
         // delete iec104;
         // iec104 = nullptr;
-        // thread_.join();
+        thread_.join();
     }
 
     static void startIEC104() { iec104->start(); }

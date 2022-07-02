@@ -82,6 +82,7 @@ private:
                                        IEC104Client* mclient, unsigned int& ca,
                                        CS101_ASDU& asdu, InformationObject& io,
                                        uint64_t& ioa);
+
     template <class T>
     static T m_getConfigValue(nlohmann::json configuration,
                               nlohmann::json_pointer<nlohmann::json> path);
@@ -89,7 +90,6 @@ private:
     void m_sendInterrogationCommmands();
     void m_sendInterrogationCommmandToCA(unsigned int ca, int gi_repeat_count,
                                          int gi_time);
-    void m_sendTestCommmands();
 
     static std::string m_checkExchangedDataLayer(unsigned int ca,
                                                  const std::string& type_id,
@@ -202,15 +202,18 @@ private:
     INGEST_CB m_ingest;  // Callback function used to send data to south service
     void* m_data;        // Ingest function data
     IEC104Client* m_client;
+    bool m_isRunning = false;
 };
 
 class IEC104Client
 {
 public:
-    explicit IEC104Client(IEC104* iec104, nlohmann::json* pivot_configuration)
-        : m_iec104(iec104), m_pivot_configuration(pivot_configuration)
-    {
-    }
+    // explicit IEC104Client(IEC104* iec104, nlohmann::json* pivot_configuration, nlohmann::json* stack_configuration)
+    //     : m_iec104(iec104), m_pivot_configuration(pivot_configuration), m_stack_configuration(stack_configuration)
+    // {
+    // }
+
+    explicit IEC104Client(IEC104* iec104, nlohmann::json* pivot_configuration, nlohmann::json* stack_configuration);
 
     // ==================================================================== //
     // Note : The overloaded method addData is used to prevent the user from
@@ -219,24 +222,63 @@ public:
 
     void addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
                  const std::string& dataname, const int64_t value,
-                 QualityDescriptor qd, CP56Time2a ts = nullptr)
-    {
-        m_addData(datapoints, ioa, dataname, value, qd, ts);
-    }
+                 QualityDescriptor qd, CP56Time2a ts = nullptr);
+
 
     void addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
                  const std::string& dataname, const float value,
-                 QualityDescriptor qd, CP56Time2a ts = nullptr)
-    {
-        m_addData(datapoints, ioa, dataname, value, qd, ts);
-    }
+                 QualityDescriptor qd, CP56Time2a ts = nullptr);
+
     // ==================================================================== //
 
     // Sends the datapoints passed as Reading to Fledge
     void sendData(CS101_ASDU asdu, std::vector<Datapoint*> data,
                   const std::vector<std::string> labels);
 
+
+    bool sendInterrogationCommand(int ca);
+
+    bool sendSingleCommand(int ca, int ioa, bool value, bool withTime);
+
+    bool sendDoubleCommand(int ca, int ioa, int value, bool withTime);
+
+    bool sendStepCommand(int ca, int ioa, int value, bool withTime);
+
+    void start();
+
+    void stop();
+
 private:
+
+    typedef enum {
+        CON_STATE_IDLE,
+        CON_STATE_CONNECTING,
+        CON_STATE_CONNECTED_INACTIVE,
+        CON_STATE_CONNECTED_ACTIVE,
+        CON_STATE_CLOSED,
+        CON_STATE_FATAL_ERROR
+    } ConState;
+
+    ConState m_connectionState = CON_STATE_IDLE;
+    bool m_started = false;
+
+    CS104_Connection m_connection = nullptr;
+
+    std::thread* m_conThread = nullptr;
+    void _conThread();
+
+    bool prepareConnection();
+
+    static void m_connectionHandler(void* parameter, CS104_Connection connection,
+                                 CS104_ConnectionEvent event);
+
+    static bool m_asduReceivedHandler(void* parameter, int address,
+        CS101_ASDU asdu);
+
+    template <class T>
+    static T m_getConfigValue(nlohmann::json configuration,
+                              nlohmann::json_pointer<nlohmann::json> path);
+
     template <class T>
     void m_addData(std::vector<Datapoint*>& datapoints, int64_t ioa,
                    const std::string& dataname, const T value,
@@ -276,6 +318,7 @@ private:
 
     IEC104* m_iec104;
     nlohmann::json* m_pivot_configuration;
+    nlohmann::json* m_stack_configuration;
 };
 
 #endif  // INCLUDE_IEC104_H_
