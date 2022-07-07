@@ -4,6 +4,7 @@
 #include <iec104.h>
 #include <plugin_api.h>
 #include <string.h>
+#include "cs104_slave.h"
 
 #include <boost/thread.hpp>
 #include <utility>
@@ -13,6 +14,8 @@
 
 using namespace std;
 using namespace nlohmann;
+
+#define TEST_PORT 2404
 
 // Define configuration, important part is the exchanged_data
 // It contains all asdu to take into account
@@ -32,19 +35,25 @@ class IEC104TestComp : public IEC104
 public:
     IEC104TestComp() : IEC104()
     {
-        CS104_Connection new_connection =
-            CS104_Connection_create("127.0.0.1", 2404);
-        if (new_connection != nullptr)
-        {
-            cout << "Connexion initialisée" << endl;
-        }
-        m_connections.push_back(new_connection);
+        // CS104_Connection new_connection =
+        //     CS104_Connection_create("127.0.0.1", TEST_PORT);
+        // if (new_connection != nullptr)
+        // {
+        //     cout << "Connexion initialisée" << endl;
+        // }
+        // m_connections.push_back(new_connection);
     }
 };
 
 class IEC104Test : public testing::Test
 {
 protected:
+
+    struct sTestInfo {
+        int callbackCalled;
+        Reading* storedReading;
+    };
+
     static void SetConfig()
     {
         cout << "[IEC104BaseTest] setJsonConfig." << endl;
@@ -64,7 +73,11 @@ protected:
             iec104 = new IEC104TestComp();
             iec104->setJsonConfig(PROTOCOL_STACK_DEF_INFO, EXCHANGED_DATA_DEF,
                                   PROTOCOL_TRANSLATION_DEF, TLS_DEF);
-            thread_ = boost::thread(&IEC104Test::startIEC104);
+
+            iec104->registerIngest(NULL, ingestCallback);
+
+            //startIEC104();
+            //thread_ = boost::thread(&IEC104Test::startIEC104);
         }
     }
 
@@ -74,25 +87,50 @@ protected:
     static void TearDownTestSuite()
     {
         iec104->stop();
-        thread_.interrupt();
+        //thread_.interrupt();
         // delete iec104;
         // iec104 = nullptr;
-        thread_.join();
+        //thread_.join();
     }
 
     static void startIEC104() { iec104->start(); }
 
+    static void ingestCallback(void* parameter, Reading reading)
+    {
+        printf("ingestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
+
+        std::vector<Datapoint*> dataPoints = reading.getReadingData();
+
+        printf("  number of readings: %i\n", dataPoints.size());
+
+        for (Datapoint* dp : dataPoints) 
+        {
+             printf("  DP: (%s)\n", dp->getName().c_str());
+        }
+
+        storedReading = new Reading(reading);
+
+        ingestCallbackCalled++;
+    }
+
     static boost::thread thread_;
     static IEC104TestComp* iec104;
     static json_config config;
+    static int ingestCallbackCalled;
+    static Reading* storedReading;
 };
 
 boost::thread IEC104Test::thread_;
 IEC104TestComp* IEC104Test::iec104;
 json_config IEC104Test::config;
+int IEC104Test::ingestCallbackCalled;
+Reading* IEC104Test::storedReading;
 
-TEST_F(IEC104Test, IEC104_operation)
+#if 0
+TEST_F(IEC104Test, IEC104_operation_notConnected)
 {
+    startIEC104();
+
     PLUGIN_PARAMETER* params[3];
     vector<string> operations;
     PLUGIN_PARAMETER iec104client = {"iec104client", "4"};
@@ -114,10 +152,52 @@ TEST_F(IEC104Test, IEC104_operation)
 
     for (const string& operation : operations)
     {
-        ASSERT_TRUE(iec104->operation(operation, 3, params));
+        ASSERT_FALSE(iec104->operation(operation, 3, params));
     }
 
     ASSERT_FALSE(IEC104Test::iec104->operation("NULL", 0, params));
+}
+#endif
+
+TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
+{
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_PERIODIC, 0, 41025, false, false);
+
+    struct sCP56Time2a ts;
+            
+    CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
+
+    InformationObject io = (InformationObject) SinglePointWithCP56Time2a_create(NULL, 4206948, true, IEC60870_QUALITY_GOOD, &ts);
+
+    CS101_ASDU_addInformationObject(newAsdu, io);
+
+    InformationObject_destroy(io);
+
+    /* Add ASDU to slave event queue */
+    CS104_Slave_enqueueASDU(slave, newAsdu);
+
+    CS101_ASDU_destroy(newAsdu);
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(ingestCallbackCalled, 1);
+    ASSERT_EQ("TS-1", storedReading->getAssetName());
+
+    delete storedReading;
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
 }
 
 TEST_F(IEC104Test, IEC104_setJsonConfig_Test)

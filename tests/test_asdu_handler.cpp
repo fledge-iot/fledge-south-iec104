@@ -199,7 +199,7 @@ protected:
         // Get current timestamp (used in tests)
         CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
 
-        m_client = new IEC104Client(iec104, &m_pivot_configuration, &m_stack_configuration);
+        m_client = new IEC104Client(iec104, &m_pivot_configuration, &m_stack_configuration, &m_pivot_configuration);
 
         // Default base ASDU
         asdu = CS101_ASDU_create(alParams, false, CS101_COT_INITIALIZED, 0, 1,
@@ -221,6 +221,8 @@ protected:
     }
 };
 
+#if 0
+
 // Test the default case of m_asduReceivedHandler() in iec104
 // Should return false
 TEST_F(AsduHandlerTest, AsduReceivedHandlerDefault)
@@ -230,7 +232,6 @@ TEST_F(AsduHandlerTest, AsduReceivedHandlerDefault)
     ASSERT_FALSE(iec104->m_asduReceivedHandlerP(m_client, 0, asdu));
 }
 
-#if 0
 
 // For all the following
 // Tests all cases where we handle the type in m_asduReceivedHandler() in iec104

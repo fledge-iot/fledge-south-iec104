@@ -113,12 +113,12 @@ typedef struct
     });
 } json_config;
 
-TEST(IEC104, PluginsendInterrogationCommmandsTest)
-{
-    IEC104 iec104;
-    json_config a;
+// TEST(IEC104, PluginsendInterrogationCommmandsTest)
+// {
+//     IEC104 iec104;
+//     json_config a;
 
-    iec104.setJsonConfig(a.protocol_stack, a.exchanged_data,
-                         a.protocol_translation, a.tls);
-    ASSERT_NO_THROW(iec104.sendInterrogationCommmands());
-}
+//     iec104.setJsonConfig(a.protocol_stack, a.exchanged_data,
+//                          a.protocol_translation, a.tls);
+//     ASSERT_NO_THROW(iec104.sendInterrogationCommmands());
+// }
