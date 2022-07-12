@@ -17,8 +17,6 @@ struct json_config
 {
     string protocol_stack = PROTOCOL_STACK_DEF;
 
-    string protocol_translation = PROTOCOL_TRANSLATION_DEF;
-
     string exchanged_data = EXCHANGED_DATA_DEF;
 
     string tls = TLS_DEF;
@@ -36,20 +34,16 @@ TEST(IEC104, JsonConfig_DEF)
     IEC104* iec104 = new IEC104();
 
     ASSERT_NO_THROW(
-        iec104->setJsonConfig(config.protocol_stack, config.exchanged_data,
-                              config.protocol_translation, config.tls));
+        iec104->setJsonConfig(config.protocol_stack, config.exchanged_data, config.tls));
 
     ASSERT_NO_THROW(
-        iec104->setJsonConfig(config.protocol_stack_info, config.exchanged_data,
-                              config.protocol_translation, config.tls));
+        iec104->setJsonConfig(config.protocol_stack_info, config.exchanged_data, config.tls));
 
     ASSERT_NO_THROW(iec104->setJsonConfig(
-        config.protocol_stack_warning, config.exchanged_data,
-        config.protocol_translation, config.tls));
+        config.protocol_stack_warning, config.exchanged_data, config.tls));
 
     ASSERT_NO_THROW(iec104->setJsonConfig(
-        config.protocol_stack_debug, config.exchanged_data,
-        config.protocol_translation, config.tls));
+        config.protocol_stack_debug, config.exchanged_data, config.tls));
 
     delete iec104;
     iec104 = nullptr;
@@ -87,19 +81,6 @@ struct jc
         "\"TM-2\",\"ioa\":4202852},{\"ca\":41025,\"type_id\":\"M_SP_TB_1\","
         "\"label\":\"TS-1\",\"ioa\":4206948}]}}}";
 
-    string protocol_translation =
-        "{\"description\":\"protocoltranslationmapping\",\"type\":\"string\","
-        "\"displayName\":\"Protocoltranslationmapping\",\"order\":\"4\","
-        "\"default\":{\"protocol_translation\":{\"name\":\"iec104_to_pivot\","
-        "\"version\":\"1.0\",\"mapping\":{\"data_object_header\":{\"doh_type\":"
-        "\"type_id\",\"doh_ca\":\"ca\",\"doh_oa\":\"oa\",\"doh_cot\":\"cot\","
-        "\"doh_test\":\"istest\",\"doh_negative\":\"isnegative\"},\"data_"
-        "object_"
-        "item\":{\"doi_ioa\":\"ioa\",\"doi_value\":\"value\",\"doi_quality\":"
-        "\"quality_desc\",\"doi_ts\":\"time_marker\",\"doi_ts_flag1\":"
-        "\"isinvalid\",\"doi_ts_flag2\":\"isSummerTime\",\"doi_ts_flag3\":"
-        "\"isSubstituted\"}}}}}";
-
     string tls =
         "{\"description\":\"tlsparameters\",\"type\":\"string\","
         "\"displayName\":"
@@ -114,8 +95,7 @@ TEST(IEC104, PluginConfigNoThrow)
     jc a;
     IEC104* iec104 = new IEC104();
 
-    ASSERT_NO_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
-                                          a.protocol_translation, a.tls));
+    ASSERT_NO_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data, a.tls));
 
     delete iec104;
     iec104 = nullptr;
@@ -129,35 +109,7 @@ TEST(IEC104, PluginConfigThrowTLS)
 
     IEC104* iec104 = new IEC104();
 
-    ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
-                                       a.protocol_translation, a.tls),
-                 string);
-
-    delete iec104;
-    iec104 = nullptr;
-}
-
-TEST(IEC104, PluginConfigThrowProtTrans)
-{
-    jc a;
-    // : forgotten after description
-    a.protocol_translation =
-        "{\"description\"\"protocoltranslationmapping\",\"type\":\"string\","
-        "\"displayName\":\"Protocoltranslationmapping\",\"order\":\"4\","
-        "\"default\":{\"protocol_translation\":{\"name\":\"iec104_to_pivot\","
-        "\"version\":\"1.0\",\"mapping\":{\"data_object_header\":{\"doh_type\":"
-        "\"type_id\",\"doh_ca\":\"ca\",\"doh_oa\":\"oa\",\"doh_cot\":\"cot\","
-        "\"doh_test\":\"istest\",\"doh_negative\":\"isnegative\"},\"data_"
-        "object_"
-        "item\":{\"doi_ioa\":\"ioa\",\"doi_value\":\"value\",\"doi_quality\":"
-        "\"quality_desc\",\"doi_ts\":\"time_marker\",\"doi_ts_flag1\":"
-        "\"isinvalid\",\"doi_ts_flag2\":\"isSummerTime\",\"doi_ts_flag3\":"
-        "\"isSubstituted\"}}}}}";
-
-    IEC104* iec104 = new IEC104();
-
-    ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
-                                       a.protocol_translation, a.tls),
+    ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data, a.tls),
                  string);
 
     delete iec104;
@@ -180,8 +132,7 @@ TEST(IEC104, PluginConfigThrowExchData)
 
     IEC104* iec104 = new IEC104();
 
-    ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
-                                       a.protocol_translation, a.tls),
+    ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data, a.tls),
                  string);
 
     delete iec104;
@@ -202,8 +153,7 @@ TEST(IEC104, PluginConfigThrowProtStack)
 
     IEC104* iec104 = new IEC104();
 
-    ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data,
-                                       a.protocol_translation, a.tls),
+    ASSERT_THROW(iec104->setJsonConfig(a.protocol_stack, a.exchanged_data, a.tls),
                  string);
 
     delete iec104;

@@ -107,61 +107,6 @@ typedef void (*INGEST_CB)(void *, Reading);
         }                                    \
     })
 
-// PLUGIN DEFAULT PROTOCOL TRANSLATION FROM IEC104 TO PIVOT
-#define PROTOCOL_TRANSLATION_DEF                     \
-    QUOTE({                                          \
-        "protocol_translation" : {                   \
-            "name" : "iec104_to_pivot",              \
-            "version" : "1.0",                       \
-            "mapping" : {                            \
-                "data_object_header" : {             \
-                    "doh_type" : "type_id",          \
-                    "doh_ca" : "ca",                 \
-                    "doh_oa" : "oa",                 \
-                    "doh_cot" : "cot",               \
-                    "doh_test" : "istest",           \
-                    "doh_negative" : "isnegative"    \
-                },                                   \
-                "data_object_item" : {               \
-                    "doi_ioa" : "ioa",               \
-                    "doi_value" : "value",           \
-                    "doi_quality" : "quality_desc",  \
-                    "doi_ts" : "time_marker",        \
-                    "doi_ts_flag1" : "isinvalid",    \
-                    "doi_ts_flag2" : "isSummerTime", \
-                    "doi_ts_flag3" : "isSubstituted" \
-                }                                    \
-            }                                        \
-        }                                            \
-    })
-
-// PLUGIN PROTOCOL TRANSLATION FROM PIVOT TO IEC104 ASDU
-#define PROTOCOL_TRANSLATION_PIVOT_TO_IEC104           \
-    QUOTE({                                            \
-        "protocol_translation" : {                     \
-            "name" : "pivot_to_iec104",                \
-            "version" : "1.0",                         \
-            "mapping" : {                              \
-                "data_object_header" : {               \
-                    "type_id" : "doh_type",            \
-                    "ca" : "doh_ca",                   \
-                    "oa" : "doh_oa",                   \
-                    "cot" : "doh_cot",                 \
-                    "istest" : "doh_test",             \
-                    "isnegative" : "doh_negative"      \
-                },                                     \
-                "data_object_item" : {                 \
-                    "ioa" : "doi_ioa",                 \
-                    "value" : "doi_value",             \
-                    "quality_desc" : "doi_quality",    \
-                    "time_marker" : "doi_ts",          \
-                    "isinvalid" : "doi_ts_qual",       \
-                    "isSummerTime" : "doi_ts_sum_time" \
-                }                                      \
-            }                                          \
-        }                                              \
-    })
-
 // PLUGIN DEFAULT TLS CONF
 #define TLS_DEF                               \
     QUOTE({                                   \
@@ -208,13 +153,6 @@ static const char *default_config = QUOTE({
         "default" : EXCHANGED_DATA_DEF
     },
 
-    "protocol_translation" : {
-        "description" : "protocol translation mapping",
-        "type" : "string",
-        "displayName" : "Protocol translation mapping",
-        "order" : "4",
-        "default" : PROTOCOL_TRANSLATION_DEF
-    },
 
     "tls" : {
         "description" : "tls parameters",
@@ -265,11 +203,9 @@ extern "C"
 
         if (config->itemExists("protocol_stack") &&
             config->itemExists("exchanged_data") &&
-            config->itemExists("protocol_translation") &&
             config->itemExists("tls"))
             iec104->setJsonConfig(config->getValue("protocol_stack"),
                                   config->getValue("exchanged_data"),
-                                  config->getValue("protocol_translation"),
                                   config->getValue("tls"));
 
         return (PLUGIN_HANDLE)iec104;
@@ -318,11 +254,9 @@ extern "C"
 
         if (config.itemExists("protocol_stack") &&
             config.itemExists("exchanged_data") &&
-            config.itemExists("protocol_translation") &&
             config.itemExists("tls"))
             iec104->setJsonConfig(config.getValue("protocol_stack"),
                                   config.getValue("exchanged_data"),
-                                  config.getValue("protocol_translation"),
                                   config.getValue("tls"));
 
         if (config.itemExists("asset"))

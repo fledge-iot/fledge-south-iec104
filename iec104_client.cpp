@@ -21,6 +21,19 @@
 using namespace std;
 using namespace nlohmann;
 
+static uint64_t getMonotonicTimeInMs()
+{
+    uint64_t timeVal = 0;
+
+    struct timespec ts;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
+        timeVal = ((uint64_t) ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000);
+    }
+
+    return timeVal;
+}
+
 // Map of all handled ASDU types by the plugin
 static map<string, int> mapAsduTypeId = {
     {"M_ME_NB_1", M_ME_NB_1},
@@ -35,8 +48,18 @@ static map<string, int> mapAsduTypeId = {
     {"M_ME_TE_1", M_ME_TE_1},
     {"M_ME_NC_1", M_ME_NC_1},
     {"M_ME_TF_1", M_ME_TF_1},
+    {"C_SC_NA_1", C_SC_NA_1},
     {"C_SC_TA_1", C_SC_TA_1},
-    {"C_DC_TA_1", C_DC_TA_1}
+    {"C_DC_NA_1", C_DC_NA_1},
+    {"C_DC_TA_1", C_DC_TA_1},
+    {"C_RC_NA_1", C_RC_NA_1},
+    {"C_RC_TA_1", C_RC_TA_1},
+    {"C_SE_NA_1", C_SE_NA_1},
+    {"C_SE_TA_1", C_SE_TA_1},
+    {"C_SE_NB_1", C_SE_NB_1},
+    {"C_SE_TB_1", C_SE_TB_1},
+    {"C_SE_NC_1", C_SE_NC_1},
+    {"C_SE_TC_1", C_SE_TC_1}
 };
 
 static map<int, string> mapAsduTypeIdStr = {
@@ -53,9 +76,221 @@ static map<int, string> mapAsduTypeIdStr = {
     {M_ME_NC_1, "M_ME_NC_1"},
     {M_ME_TF_1, "M_ME_TF_1"},
     {C_SC_TA_1, "C_SC_TA_1"},
-    {C_DC_TA_1, "C_DC_TA_1"}
+    {C_SC_NA_1, "C_SC_NA_1"},
+    {C_DC_TA_1, "C_DC_TA_1"},
+    {C_DC_NA_1, "C_DC_NA_1"},
+    {C_RC_TA_1, "C_RC_TA_1"},
+    {C_RC_NA_1, "C_RC_NA_1"},
+    {C_SE_TA_1, "C_SE_TA_1"},
+    {C_SE_NA_1, "C_SE_NA_1"},
+    {C_SE_TB_1, "C_SE_TB_1"},
+    {C_SE_NB_1, "C_SE_NB_1"},
+    {C_SE_TC_1, "C_SE_TC_1"},
+    {C_SE_NC_1, "C_SE_NC_1"}
 };
 
+int IEC104Client::broadcastCA()
+{
+    int caSize = m_getConfigValueDefault<int>(
+        *m_stack_configuration,
+        "/application_layer/ca_asdu_size"_json_pointer, 2);
+
+    if (caSize == 1)
+        return 0xff;
+
+    return 0xffff;
+}
+
+int IEC104Client::defaultCA()
+{
+    return m_getConfigValueDefault<int>(
+        *m_stack_configuration,
+        "/application_layer/default_ca"_json_pointer, -1);
+}
+
+int IEC104Client::timeSyncCA()
+{
+    return m_getConfigValueDefault<int>(
+        *m_stack_configuration,
+        "/application_layer/time_sync_ca"_json_pointer, -1);
+}
+
+
+bool IEC104Client::isMessageTypeMatching(int expectedType, int rcvdType)
+{
+    printf("isMessageTypeMatching(%i,%i)\n", expectedType, rcvdType);
+
+    if (expectedType == rcvdType) {
+        return true; /* direct match */
+    }
+
+    switch (expectedType) {
+
+        case M_SP_NA_1:
+            if ((rcvdType == M_SP_TA_1) || (rcvdType == M_SP_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_SP_TA_1:
+            if ((rcvdType == M_SP_NA_1) || (rcvdType == M_SP_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_SP_TB_1:
+            if ((rcvdType == M_SP_NA_1) || (rcvdType == M_SP_TA_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_DP_NA_1:
+            if ((rcvdType == M_DP_TA_1) || (rcvdType == M_DP_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_DP_TA_1:
+            if ((rcvdType == M_DP_NA_1) || (rcvdType == M_DP_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_DP_TB_1:
+            if ((rcvdType == M_DP_NA_1) || (rcvdType == M_DP_TA_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_NA_1:
+            if ((rcvdType == M_ME_TA_1) || (rcvdType == M_ME_TD_1) || (rcvdType == M_ME_ND_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TA_1:
+            if ((rcvdType == M_ME_NA_1) || (rcvdType == M_ME_TD_1) || (rcvdType == M_ME_ND_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TD_1:
+            if ((rcvdType == M_ME_TA_1) || (rcvdType == M_ME_NA_1) || (rcvdType == M_ME_ND_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_ND_1:
+            if ((rcvdType == M_ME_TA_1) || (rcvdType == M_ME_TD_1) || (rcvdType == M_ME_NA_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_NB_1:
+            if ((rcvdType == M_ME_TB_1) || (rcvdType == M_ME_TE_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TB_1:
+            if ((rcvdType == M_ME_NB_1) || (rcvdType == M_ME_TE_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TE_1:
+            if ((rcvdType == M_ME_TB_1) || (rcvdType == M_ME_NB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_NC_1:
+            if ((rcvdType == M_ME_TC_1) || (rcvdType == M_ME_TF_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TC_1:
+            if ((rcvdType == M_ME_NC_1) || (rcvdType == M_ME_TF_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TF_1:
+            if ((rcvdType == M_ME_TC_1) || (rcvdType == M_ME_NC_1)) {
+                return true;
+            }
+
+            break;
+
+
+        case M_ST_NA_1:
+            if ((rcvdType == M_ST_TA_1) || (rcvdType == M_ST_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ST_TA_1:
+            if ((rcvdType == M_ST_NA_1) || (rcvdType == M_ST_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ST_TB_1:
+            if ((rcvdType == M_ST_TA_1) || (rcvdType == M_ST_NA_1)) {
+                return true;
+            }
+
+            break;
+
+
+        default:
+            //Type not supported
+            break;
+    }   
+
+    return false;
+}
+
+template <class T>
+T  IEC104Client::m_getConfigValueDefault(json configuration, json_pointer<json> path, T defaultValue)
+{
+    T typed_value = defaultValue;
+
+    try
+    {
+        typed_value = configuration.at(path);
+    }
+    catch (json::parse_error& e)
+    {
+        Logger::getLogger()->fatal("Couldn't parse value " + path.to_string() +
+                                   " : " + e.what());
+    }
+    catch (json::out_of_range& e)
+    {
+        Logger::getLogger()->fatal("Couldn't reach value " + path.to_string() +
+                                   " : " + e.what());
+    }
+
+    return typed_value;
+}
 
 template <class T>
 T IEC104Client::m_getConfigValue(json configuration, json_pointer<json> path)
@@ -142,9 +377,9 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
     }
 }
 
-IEC104Client::IEC104Client(IEC104* iec104, nlohmann::json* pivot_configuration, nlohmann::json* stack_configuration,
+IEC104Client::IEC104Client(IEC104* iec104, nlohmann::json* stack_configuration,
                 nlohmann::json* msg_configuration)
-        : m_iec104(iec104), m_pivot_configuration(pivot_configuration), 
+        : m_iec104(iec104),
             m_stack_configuration(stack_configuration),
             m_msg_configuration(msg_configuration)
 {
@@ -190,16 +425,14 @@ std::string IEC104Client::m_checkExchangedDataLayer(int ca,
 {
     auto& def = exchangeDefinitions[ca][ioa];
 
-    //TODO implement type check
+    if (def) {
+        // check if message type is matching the exchange definition
+        if (isMessageTypeMatching(def->typeId, type_id)) {
+            return def->label;
+        }
+    }
 
-    if (!def) {
-        //printf("Exchange definition for %i:%i not found!\n", ca, ioa);
-        return "";
-    }
-    else {
-        //printf("exchange definition found for %i:%i: %s\n", ca, ioa, def->label.c_str());
-        return def->label;
-    }
+    return "";
 }
 
 /**
@@ -278,15 +511,11 @@ void IEC104Client::handleM_SP_TB_1(vector<Datapoint*>& datapoints, string& label
     QualityDescriptor qd =
         SinglePointInformation_getQuality((SinglePointInformation)io_casted);
 
-    if (mclient->m_comm_wttag)
-    {
-        CP56Time2a ts = SinglePointWithCP56Time2a_getTimestamp(io_casted);
-        bool is_invalid = CP56Time2a_isInvalid(ts);
-        //if (m_tsiv == "PROCESS" || !is_invalid)
-            mclient->m_addData(asdu, datapoints, ioa, label, value, qd, ts);
-    }
-    else
-        mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+
+    CP56Time2a ts = SinglePointWithCP56Time2a_getTimestamp(io_casted);
+    bool is_invalid = CP56Time2a_isInvalid(ts);
+    //if (m_tsiv == "PROCESS" || !is_invalid)
+        mclient->m_addData(asdu, datapoints, ioa, label, value, qd, ts);
 
     SinglePointWithCP56Time2a_destroy(io_casted);
 }
@@ -316,15 +545,11 @@ void IEC104Client::handleM_DP_TB_1(vector<Datapoint*>& datapoints, string& label
         DoublePointInformation_getValue((DoublePointInformation)io_casted);
     QualityDescriptor qd =
         DoublePointInformation_getQuality((DoublePointInformation)io_casted);
-    if (mclient->m_comm_wttag)
-    {
-        CP56Time2a ts = DoublePointWithCP56Time2a_getTimestamp(io_casted);
-        bool is_invalid = CP56Time2a_isInvalid(ts);
-        //if (m_tsiv == "PROCESS" || !is_invalid)
-            mclient->m_addData(asdu, datapoints, ioa, label, value, qd, ts);
-    }
-    else
-        mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+
+    CP56Time2a ts = DoublePointWithCP56Time2a_getTimestamp(io_casted);
+    bool is_invalid = CP56Time2a_isInvalid(ts);
+    //if (m_tsiv == "PROCESS" || !is_invalid)
+        mclient->m_addData(asdu, datapoints, ioa, label, value, qd, ts);
 
     DoublePointWithCP56Time2a_destroy(io_casted);
 }
@@ -562,6 +787,56 @@ bool IEC104Client::m_asduReceivedHandler(void* parameter, int address,
         case M_EI_NA_1:
             Logger::getLogger()->info("Received end of initialization");
             break;
+
+        case C_CS_NA_1:
+            Logger::getLogger()->info("Received time sync response");
+            printf("Received time sync response\n");
+
+            if (self->m_timeSyncCommandSent == true) {
+
+                if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+                    if (CS101_ASDU_isNegative(asdu) == false) {
+                        self->m_timeSyncCommandSent = false;
+                        self->m_timeSynchronized = true;
+
+                        printf("time synchronized\n");
+
+                        if (self->m_timeSyncPeriod > 0) {
+                            self->m_nextTimeSync = getMonotonicTimeInMs() + (self->m_timeSyncPeriod * 1000);
+                        }
+                    }
+                    else {
+                        printf("time synchonizatation failed\n");
+                    }
+                }
+                else if (CS101_ASDU_getCOT(asdu) == CS101_COT_UNKNOWN_TYPE_ID) {
+
+                    Logger::getLogger()->warn("Time synchronization not supported by remote");
+
+                    printf("Time synchronization not supported by remote\n");
+
+                    self->m_timeSyncCommandSent = false;
+                    self->m_timeSynchronized = true;
+                }
+
+            }
+            else {
+                if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+                    Logger::getLogger()->warn("Unexpected time sync response");
+                    printf("Unexpected time sync response!\n");
+                }
+                else if (CS101_ASDU_getCOT(asdu) == CS101_COT_SPONTANEOUS) {
+                    Logger::getLogger()->warn("Received remote clock time");
+                    printf("Received remote clock time\n");
+                }
+                else {
+                    Logger::getLogger()->warn("Unexpected time sync message");
+                    printf("Unexpected time sync message\n");
+                }
+            }
+
+            break;
+
         case C_IC_NA_1:
             Logger::getLogger()->info("General interrogation command");
             break;
@@ -604,6 +879,10 @@ void IEC104Client::m_connectionHandler(void* parameter, CS104_Connection connect
     }
     else if (event == CS104_CONNECTION_STARTDT_CON_RECEIVED)
     {
+        self->m_nextTimeSync = getMonotonicTimeInMs();
+        self->m_timeSynchronized = false;
+        self->m_timeSyncCommandSent = false;
+
         self->m_connectionState = CON_STATE_CONNECTED_ACTIVE;
     }
     else if (event == CS104_CONNECTION_STOPDT_CON_RECEIVED)
@@ -636,6 +915,9 @@ bool IEC104Client::prepareConnection()
         }
 
         if (new_connection) {
+
+            m_iec104->prepareParameters(new_connection);
+
             CS104_Connection_setConnectionHandler(
                 new_connection, m_connectionHandler, static_cast<void*>(this));
             CS104_Connection_setASDUReceivedHandler(new_connection,
@@ -656,6 +938,13 @@ bool IEC104Client::prepareConnection()
         break;
     }
 
+    auto& appLayerConfig = (*m_stack_configuration)["application_layer"];
+
+    m_timeSyncEnabled = m_getConfigValueDefault<bool>(appLayerConfig, "/time_sync"_json_pointer, false);
+    m_timeSyncPeriod = m_getConfigValueDefault<int>(appLayerConfig, "/time_sync_period"_json_pointer, 0);
+
+    printf("timessync_period: %i\n", m_timeSyncPeriod);
+
     if (new_connection) {
         m_connection = new_connection;
         return true;
@@ -664,6 +953,56 @@ bool IEC104Client::prepareConnection()
         m_connection = nullptr;
         return false;
     }
+}
+
+void IEC104Client::performPeriodicTasks()
+{
+    /* do time synchroniation when enabled */
+    if (m_timeSyncEnabled) {
+
+        bool sendTimeSyncCommand = false;
+
+        /* send first time sync after connection was activated */
+        if ((m_timeSynchronized == false) && (m_timeSyncCommandSent == false)) {
+            sendTimeSyncCommand = true;
+        }
+        
+        /* send periodic time sync command when configured */
+        if ((m_timeSynchronized == true) && (m_timeSyncCommandSent == false)) {
+            if (m_timeSyncPeriod > 0) {
+                if (getMonotonicTimeInMs() >= m_nextTimeSync) {
+                    sendTimeSyncCommand = true;
+                }
+            }
+        }
+
+        if (sendTimeSyncCommand) {
+            struct sCP56Time2a ts;
+            
+            CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
+
+            int ca = timeSyncCA();
+
+            if (ca == -1)
+                ca = defaultCA();
+
+            if (ca == -1)
+                ca = broadcastCA();
+
+            if (CS104_Connection_sendClockSyncCommand(m_connection, ca, &ts)) {
+                Logger::getLogger()->info("Sent clock sync command ...");
+                printf("Sent clock sync command ...\n");
+
+                m_timeSyncCommandSent = true;
+            }
+            else {
+                printf("Failed to send clock sync command!\n");
+            }
+        }
+    }
+
+    
+    
 }
 
 void IEC104Client::_conThread()
@@ -712,6 +1051,7 @@ void IEC104Client::_conThread()
 
             case CON_STATE_CONNECTED_ACTIVE:
 
+                performPeriodicTasks();
                 //TODO periodic tasks
 
                 break;
@@ -720,7 +1060,7 @@ void IEC104Client::_conThread()
 
                 // start delay timer for reconnect
                 
-                m_delayExpirationTime = clock() + (10 * CLOCKS_PER_SEC);
+                m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
                 m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
 
                 break;
@@ -729,7 +1069,7 @@ void IEC104Client::_conThread()
 
                 // when timeout expired switch to idle state
 
-                if (clock() >= m_delayExpirationTime) {
+                if (getMonotonicTimeInMs() >= m_delayExpirationTime) {
                     m_connectionState = CON_STATE_IDLE;
                 }
 
@@ -786,10 +1126,23 @@ bool IEC104Client::sendInterrogationCommand(int ca)
     return success;
 }
 
-bool IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime)
+bool IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select)
 {
     // send single command over active connection
     bool success = false;
+
+    int typeID = C_SC_NA_1;
+
+    if (withTime)
+        typeID = C_SC_TA_1;
+
+    // check if the data point is in the exchange configuration
+    if (m_checkExchangedDataLayer(ca, typeID, ioa) == "") {
+        Logger::getLogger()->error("Failed to send command - no such data point");
+        printf("Failed to send command - no such data point");
+
+        return false;
+    }
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
@@ -800,10 +1153,10 @@ bool IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime)
             
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
-            sc = (InformationObject)SingleCommandWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
+            sc = (InformationObject)SingleCommandWithCP56Time2a_create(NULL, ioa, value, select, 0, &ts);
         }
         else {
-            sc = (InformationObject)SingleCommand_create(NULL, ioa, value, false, 0);
+            sc = (InformationObject)SingleCommand_create(NULL, ioa, value, select, 0);
         }
 
         if (sc) {
@@ -819,16 +1172,234 @@ bool IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime)
     return success;
 }
 
-bool IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime)
+bool IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select)
 {
-    //TODO send double command over active connection
-    return false;
+    // send double command over active connection
+    bool success = false;
+
+    int typeID = C_DC_NA_1;
+
+    if (withTime)
+        typeID = C_DC_TA_1;
+
+    // check if the data point is in the exchange configuration
+    if (m_checkExchangedDataLayer(ca, typeID, ioa) == "") {
+        Logger::getLogger()->error("Failed to send command - no such data point");
+        printf("Failed to send command - no such data point");
+
+        return false;
+    }
+
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    {
+        InformationObject sc = nullptr;
+
+        if (withTime) {
+            struct sCP56Time2a ts;
+            
+            CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
+
+            sc = (InformationObject)DoubleCommandWithCP56Time2a_create(NULL, ioa, value, select, 0, &ts);
+        }
+        else {
+            sc = (InformationObject)DoubleCommand_create(NULL, ioa, value, select, 0);
+        }
+
+        if (sc) {
+            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, sc)) {
+                Logger::getLogger()->info("double command sent");
+                success = true;
+            }
+        }  
+    }
+
+    if (!success) Logger::getLogger()->warn("Failed to send double command");
+
+    return success;
 }
 
-bool IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime)
+bool IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool select)
 {
-    //TODO send double command over active connection
-    return false;
+    // send step command over active connection
+    bool success = false;
+
+    int typeID = C_RC_NA_1;
+
+    if (withTime)
+        typeID = C_RC_TA_1;
+
+    // check if the data point is in the exchange configuration
+    if (m_checkExchangedDataLayer(ca, typeID, ioa) == "") {
+        Logger::getLogger()->error("Failed to send command - no such data point");
+        printf("Failed to send command - no such data point");
+
+        return false;
+    }
+
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    {
+        InformationObject sc = nullptr;
+
+        if (withTime) {
+            struct sCP56Time2a ts;
+            
+            CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
+
+            sc = (InformationObject)StepCommandWithCP56Time2a_create(NULL, ioa, (StepCommandValue)value, select, 0, &ts);
+        }
+        else {
+            sc = (InformationObject)StepCommand_create(NULL, ioa, (StepCommandValue)value, select, 0);
+        }
+
+        if (sc) {
+            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, sc)) {
+                Logger::getLogger()->info("step command sent");
+                success = true;
+            }
+        }  
+    }
+
+    if (!success) Logger::getLogger()->warn("Failed to send step command");
+
+    return success;
+}
+
+bool IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime)
+{
+    // send setpoint command normalized over active connection
+    bool success = false;
+
+    int typeID = C_SE_NA_1;
+
+    if (withTime)
+        typeID = C_SE_TA_1;
+
+    // check if the data point is in the exchange configuration
+    if (m_checkExchangedDataLayer(ca, typeID, ioa) == "") {
+        Logger::getLogger()->error("Failed to send command - no such data point");
+        printf("Failed to send command - no such data point");
+
+        return false;
+    }
+
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    {
+        InformationObject sc = nullptr;
+
+        if (withTime) {
+            struct sCP56Time2a ts;
+            
+            CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
+
+            sc = (InformationObject)SetpointCommandNormalizedWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
+        }
+        else {
+            sc = (InformationObject)SetpointCommandNormalized_create(NULL, ioa, value, false, 0);
+        }
+
+        if (sc) {
+            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, sc)) {
+                Logger::getLogger()->info("setpoint(normalized) sent");
+                success = true;
+            }
+        }  
+    }
+
+    if (!success) Logger::getLogger()->warn("Failed to send setpoint(normalized)");
+
+    return success;
+}
+
+bool IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime)
+{
+    // send setpoint command scaled over active connection
+    bool success = false;
+
+    int typeID = C_SE_NB_1;
+
+    if (withTime)
+        typeID = C_SE_TB_1;
+
+    // check if the data point is in the exchange configuration
+    if (m_checkExchangedDataLayer(ca, typeID, ioa) == "") {
+        Logger::getLogger()->error("Failed to send command - no such data point");
+        printf("Failed to send command - no such data point");
+
+        return false;
+    }
+
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    {
+        InformationObject sc = nullptr;
+
+        if (withTime) {
+            struct sCP56Time2a ts;
+            
+            CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
+
+            sc = (InformationObject)SetpointCommandScaledWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
+        }
+        else {
+            sc = (InformationObject)SetpointCommandScaled_create(NULL, ioa, value, false, 0);
+        }
+
+        if (sc) {
+            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, sc)) {
+                Logger::getLogger()->info("setpoint(scaled) sent");
+                success = true;
+            }
+        }  
+    }
+
+    if (!success) Logger::getLogger()->warn("Failed to send setpoint(scaled)");
+
+    return success;
+}
+
+bool IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime)
+{
+    // send setpoint command short over active connection
+    bool success = false;
+
+    int typeID = C_SE_NC_1;
+
+    if (withTime)
+        typeID = C_SE_TC_1;
+
+    // check if the data point is in the exchange configuration
+    if (m_checkExchangedDataLayer(ca, typeID, ioa) == "") {
+        Logger::getLogger()->error("Failed to send command - no such data point");
+        printf("Failed to send command - no such data point");
+
+        return false;
+    }
+
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    {
+        InformationObject sc = nullptr;
+
+        if (withTime) {
+            struct sCP56Time2a ts;
+            
+            CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
+
+            sc = (InformationObject)SetpointCommandShortWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
+        }
+        else {
+            sc = (InformationObject)SetpointCommandShort_create(NULL, ioa, value, false, 0);
+        }
+
+        if (sc) {
+            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, sc)) {
+                Logger::getLogger()->info("setpoint(short) sent");
+                success = true;
+            }
+        }  
+    }
+
+    if (!success) Logger::getLogger()->warn("Failed to send setpoint(short)");
+
+    return success;
 }
 
 

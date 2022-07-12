@@ -19,32 +19,6 @@ struct json_config
     string tls = "{\"description\":\"tlsparameters\"}";
     string protocol_stack = "{\"description\":\"protocolstackparameters\"}";
 
-    string protocol_translation = QUOTE({
-        "exchanged_data" : {
-            "name" : "iec104client",
-            "version" : "1.0",
-            "mapping" : {
-                "data_object_header" : {
-                    "doh_type" : "type_id",
-                    "doh_ca" : "ca",
-                    "doh_oa" : "oa",
-                    "doh_cot" : "cot",
-                    "doh_test" : "istest",
-                    "doh_negative" : "isnegative"
-                },
-                "data_object_item" : {
-                    "doi_ioa" : "ioa",
-                    "doi_value" : "value",
-                    "doi_quality" : "quality_desc",
-                    "doi_ts" : "time_marker",
-                    "doi_ts_flag1" : "isinvalid",
-                    "doi_ts_flag2" : "isSummerTime",
-                    "doi_ts_flag3" : "isSubstituted"
-                }
-            }
-        }
-    });
-
     string exchanged_data = QUOTE({
         "exchanged_data" : {
             "name" : "iec104client",
@@ -168,7 +142,6 @@ protected:
     IEC104* iec104;        // Object on which we call for tests
     json_config config;    // Will contain JSON defined above
     InformationObject io;  // Contain information object for asdu
-    json m_pivot_configuration;
     json m_stack_configuration;
     struct sCP56Time2a testTimestamp;
     IEC104Client* m_client;
@@ -176,10 +149,6 @@ protected:
     // Setup is ran for every tests, so each variable are reinitialised
     void SetUp() override
     {
-        // Get only the mapping part
-        m_pivot_configuration =
-            json::parse(config.protocol_translation)["exchanged_data"];
-
         m_stack_configuration =
             json::parse(config.protocol_stack);
 
@@ -188,8 +157,7 @@ protected:
         iec104->setTsiv("PROCESS");
         iec104->setCommWttag(false);
         iec104->registerIngest(NULL, ingest_cb);
-        iec104->setJsonConfig(config.protocol_stack, config.exchanged_data,
-                              config.protocol_translation, config.tls);
+        iec104->setJsonConfig(config.protocol_stack, config.exchanged_data, config.tls);
 
         // Init used parameters to define create ASDU
         CS104_Slave slave = CS104_Slave_create(100, 100);
@@ -199,7 +167,7 @@ protected:
         // Get current timestamp (used in tests)
         CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
 
-        m_client = new IEC104Client(iec104, &m_pivot_configuration, &m_stack_configuration, &m_pivot_configuration);
+        m_client = new IEC104Client(iec104, &m_stack_configuration, NULL);
 
         // Default base ASDU
         asdu = CS101_ASDU_create(alParams, false, CS101_COT_INITIALIZED, 0, 1,

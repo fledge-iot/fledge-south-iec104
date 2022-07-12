@@ -45,21 +45,23 @@ public:
     ~IEC104() = default;
 
     void setAssetName(const std::string& asset) { m_asset = asset; }
-    static void setJsonConfig(const std::string& stack_configuration,
+    void setJsonConfig(const std::string& stack_configuration,
                               const std::string& msg_configuration,
-                              const std::string& pivot_configuration,
                               const std::string& tls_configuration);
 
     void restart();
     void start();
     void stop();
-    void prepareParameters(CS104_Connection& connection);
 
     // void ingest(Reading& reading);
     void ingest(std::string assetName, std::vector<Datapoint*>& points);
     void registerIngest(void* data, void (*cb)(void*, Reading));
     bool operation(const std::string& operation, int count,
                    PLUGIN_PARAMETER** params);
+
+
+    void prepareParameters(CS104_Connection connection);  
+
     // For test purpose
     void sendInterrogationCommmands();
     void sendInterrogationCommmandToCA(unsigned int ca, int gi_repeat_count,
@@ -85,14 +87,20 @@ private:
 
     static int m_watchdog(int delay, int checkRes, bool* flag, std::string id);
 
-    static int m_getBroadcastCA();
+    int m_getBroadcastCA();
+
+    bool m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime);
+    bool m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime);
+    bool m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime);
+    bool m_setpointNormalized(int count, PLUGIN_PARAMETER** params, bool withTime);
+    bool m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime);
+    bool m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime);
 
     bool m_startup_done;
 
-    static nlohmann::json m_stack_configuration;
-    static nlohmann::json m_msg_configuration;
-    static nlohmann::json m_pivot_configuration;
-    static nlohmann::json m_tls_configuration;
+    nlohmann::json m_stack_configuration;
+    nlohmann::json m_msg_configuration;
+    nlohmann::json m_tls_configuration;
 
     std::string m_asset;
 
@@ -112,12 +120,8 @@ private:
 class IEC104Client
 {
 public:
-    // explicit IEC104Client(IEC104* iec104, nlohmann::json* pivot_configuration, nlohmann::json* stack_configuration)
-    //     : m_iec104(iec104), m_pivot_configuration(pivot_configuration), m_stack_configuration(stack_configuration)
-    // {
-    // }
 
-    explicit IEC104Client(IEC104* iec104, nlohmann::json* pivot_configuration, 
+    explicit IEC104Client(IEC104* iec104,
                     nlohmann::json* stack_configuration,
                     nlohmann::json* msg_configuration);
 
@@ -132,15 +136,23 @@ public:
 
     bool sendInterrogationCommand(int ca);
 
-    bool sendSingleCommand(int ca, int ioa, bool value, bool withTime);
+    bool sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select);
 
-    bool sendDoubleCommand(int ca, int ioa, int value, bool withTime);
+    bool sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select);
 
-    bool sendStepCommand(int ca, int ioa, int value, bool withTime);
+    bool sendStepCommand(int ca, int ioa, int value, bool withTime, bool select);
+
+    bool sendSetpointNormalized(int ca, int ioa, float value, bool withTime);
+
+    bool sendSetpointScaled(int ca, int ioa, int value, bool withTime);
+
+    bool sendSetpointShort(int ca, int ioa, float value, bool withTime);
 
     void start();
 
     void stop();
+
+    static bool isMessageTypeMatching(int expectedType, int rcvdType);
 
 private:
 
@@ -168,17 +180,28 @@ private:
     ConState m_connectionState = CON_STATE_IDLE;
     bool m_started = false;
     bool m_startDtSent = false;
+    bool m_timeSyncEnabled = false;
+    bool m_timeSynchronized = false;
+    bool m_timeSyncCommandSent = false;
+    bool m_timeSyncPeriod = 0;
+    uint64_t m_nextTimeSync;
 
     CS104_Connection m_connection = nullptr;
 
-    clock_t m_delayExpirationTime;
+    uint64_t m_delayExpirationTime;
 
     std::thread* m_conThread = nullptr;
     void _conThread();
 
+    int broadcastCA();
+    int defaultCA();
+    int timeSyncCA();
     void createDataExchangeDefinitions();
 
+    void prepareParameters(CS104_Connection connection);
+
     bool prepareConnection();
+    void performPeriodicTasks();
 
     std::string m_checkExchangedDataLayer(int ca, int type_id, int ioa);
 
@@ -191,6 +214,10 @@ private:
     template <class T>
     static T m_getConfigValue(nlohmann::json configuration,
                               nlohmann::json_pointer<nlohmann::json> path);
+
+    template <class T>
+    static T m_getConfigValueDefault(nlohmann::json configuration, 
+                                nlohmann::json_pointer<nlohmann::json> path, T defaultValue);
 
     template <class T>
     void m_addData(CS101_ASDU asdu, std::vector<Datapoint*>& datapoints, int64_t ioa,
@@ -312,7 +339,6 @@ private:
     }
 
     IEC104* m_iec104;
-    nlohmann::json* m_pivot_configuration;
     nlohmann::json* m_stack_configuration;
     nlohmann::json* m_msg_configuration;
 
