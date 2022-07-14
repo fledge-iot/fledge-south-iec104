@@ -196,6 +196,8 @@ private:
     int broadcastCA();
     int defaultCA();
     int timeSyncCA();
+    int getOrigAddr();
+
     void createDataExchangeDefinitions();
 
     void prepareParameters(CS104_Connection connection);
@@ -222,7 +224,7 @@ private:
     template <class T>
     void m_addData(CS101_ASDU asdu, std::vector<Datapoint*>& datapoints, int64_t ioa,
                    const std::string& dataname, const T value,
-                   QualityDescriptor qd, CP56Time2a ts = nullptr);
+                   QualityDescriptor* qd, CP56Time2a ts = nullptr);
 
     template <class T>
     static Datapoint* m_createDatapoint(const std::string& dataname,

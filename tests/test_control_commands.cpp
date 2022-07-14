@@ -44,7 +44,7 @@ using namespace nlohmann;
                 "conn_passv" : false                                           \
             },                                                                 \
             "application_layer" : {                                            \
-                "orig_addr" : 0,                                               \
+                "orig_addr" : 10,                                               \
                 "ca_asdu_size" : 2,                                            \
                 "ioaddr_size" : 3,                                             \
                 "startup_time" : 180,                                          \
@@ -270,12 +270,61 @@ protected:
         ingestCallbackCalled++;
     }
 
+    static bool clockSynchronizationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
+    {
+        clockSyncHandlerCalled++;
+
+        return true;
+    }
+
+    static bool asduHandler (void* parameter, IMasterConnection connection, CS101_ASDU asdu)
+    {
+        ControlCommandsTest* self = (ControlCommandsTest*)parameter;
+
+        printf("asduHandler: type: %i\n", CS101_ASDU_getTypeID(asdu));
+
+        lastConnection = NULL;
+        lastOA = CS101_ASDU_getOA(asdu);
+
+        int ca = CS101_ASDU_getCA(asdu);
+
+        InformationObject io = CS101_ASDU_getElement(asdu, 0);
+
+        int ioa = InformationObject_getObjectAddress(io);
+
+        if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1) {
+            printf("  C_SC_NA_1 (single-command)\n");
+
+            if (ca == 41025 && ioa == 2000) {
+                IMasterConnection_sendACT_CON(connection, asdu, false);
+                lastConnection = connection;
+            }
+
+            
+        }
+        else if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1) {
+            printf("  C_SC_TA_1 (single-command w/timetag)\n");
+
+            if (ca == 41025 && ioa == 2001) {
+                IMasterConnection_sendACT_CON(connection, asdu, false);
+                lastConnection = connection;
+            }
+        }
+
+        asduHandlerCalled++;
+
+        return true;
+    }
+
     static boost::thread thread_;
     static IEC104TestComp* iec104;
     static json_config config;
     static int ingestCallbackCalled;
     static Reading* storedReading;
     static int clockSyncHandlerCalled;
+    static int asduHandlerCalled;
+    static IMasterConnection lastConnection;
+    static int lastOA;
 };
 
 boost::thread ControlCommandsTest::thread_;
@@ -283,16 +332,25 @@ IEC104TestComp* ControlCommandsTest::iec104;
 json_config ControlCommandsTest::config;
 int ControlCommandsTest::ingestCallbackCalled;
 Reading* ControlCommandsTest::storedReading;
+int ControlCommandsTest::asduHandlerCalled;
 int ControlCommandsTest::clockSyncHandlerCalled;
+IMasterConnection ControlCommandsTest::lastConnection;
+int ControlCommandsTest::lastOA;
 
 
 TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommand)
 {
+    asduHandlerCalled = 0;
     clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
     CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
 
     CS104_Slave_start(slave);
 
@@ -322,6 +380,28 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommand)
     bool operationResult = iec104->operation("SingleCommand", 4, params);
 
     ASSERT_TRUE(operationResult);
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(1, asduHandlerCalled);
+
+    CS101_ASDU ctAsdu = CS101_ASDU_create(IMasterConnection_getApplicationLayerParameters(lastConnection),
+        false, CS101_COT_ACTIVATION_TERMINATION,lastOA, 41025, false, false);
+
+    InformationObject io = (InformationObject)SingleCommand_create(NULL, 2000, true, false, 0);
+
+    CS101_ASDU_addInformationObject(ctAsdu, io);
+
+    IMasterConnection_sendASDU(lastConnection, ctAsdu);
+
+    ASSERT_EQ(10, lastOA);
+
+    Thread_sleep(500);
+
+    // expect ingest callback called two timees:
+    //  1. ACT_CON for single command
+    //  2. ACT_TERM for single command
+    ASSERT_EQ(2, ingestCallbackCalled);
 
     CS104_Slave_stop(slave);
 

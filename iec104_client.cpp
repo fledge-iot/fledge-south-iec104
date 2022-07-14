@@ -115,6 +115,12 @@ int IEC104Client::timeSyncCA()
         "/application_layer/time_sync_ca"_json_pointer, -1);
 }
 
+int IEC104Client::getOrigAddr()
+{
+    return m_getConfigValueDefault<int>(
+        *m_stack_configuration,
+        "/application_layer/orig_addr"_json_pointer, 0);
+}
 
 bool IEC104Client::isMessageTypeMatching(int expectedType, int rcvdType)
 {
@@ -318,7 +324,7 @@ T IEC104Client::m_getConfigValue(json configuration, json_pointer<json> path)
 template <class T>
 void IEC104Client::m_addData(CS101_ASDU asdu, vector<Datapoint*>& datapoints, int64_t ioa,
                              const std::string& dataname, const T value,
-                             QualityDescriptor qd, CP56Time2a ts)
+                             QualityDescriptor* qd, CP56Time2a ts)
 {
     auto* measure_features = new vector<Datapoint*>;
 
@@ -338,15 +344,17 @@ void IEC104Client::m_addData(CS101_ASDU asdu, vector<Datapoint*>& datapoints, in
 
     measure_features->push_back(m_createDatapoint("do_value", value));
 
-    measure_features->push_back(m_createDatapoint("do_quality_iv", (qd & IEC60870_QUALITY_INVALID) ? 1L : 0L));
+    if (qd) {
+        measure_features->push_back(m_createDatapoint("do_quality_iv", (*qd & IEC60870_QUALITY_INVALID) ? 1L : 0L));
 
-    measure_features->push_back(m_createDatapoint("do_quality_bl", (qd & IEC60870_QUALITY_BLOCKED) ? 1L : 0L));
+        measure_features->push_back(m_createDatapoint("do_quality_bl", (*qd & IEC60870_QUALITY_BLOCKED) ? 1L : 0L));
 
-    measure_features->push_back(m_createDatapoint("do_quality_ov", (qd & IEC60870_QUALITY_OVERFLOW) ? 1L : 0L));
+        measure_features->push_back(m_createDatapoint("do_quality_ov", (*qd & IEC60870_QUALITY_OVERFLOW) ? 1L : 0L));
 
-    measure_features->push_back(m_createDatapoint("do_quality_sb", (qd & IEC60870_QUALITY_SUBSTITUTED) ? 1L : 0L));
+        measure_features->push_back(m_createDatapoint("do_quality_sb", (*qd & IEC60870_QUALITY_SUBSTITUTED) ? 1L : 0L));
 
-    measure_features->push_back(m_createDatapoint("do_quality_nt", (qd & IEC60870_QUALITY_NON_TOPICAL) ? 1L : 0L));
+        measure_features->push_back(m_createDatapoint("do_quality_nt", (*qd & IEC60870_QUALITY_NON_TOPICAL) ? 1L : 0L));
+    }
 
     if (ts) {
          measure_features->push_back(m_createDatapoint("do_ts", (int64_t)CP56Time2a_toMsTimestamp(ts)));
@@ -480,7 +488,7 @@ void IEC104Client::handleM_ME_NB_1(vector<Datapoint*>& datapoints, string& label
     int64_t value =
         MeasuredValueScaled_getValue((MeasuredValueScaled)io_casted);
     QualityDescriptor qd = MeasuredValueScaled_getQuality(io_casted);
-    mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+    mclient->m_addData(asdu, datapoints, ioa, label, value, &qd);
 
     MeasuredValueScaled_destroy(io_casted);
 }
@@ -495,7 +503,7 @@ void IEC104Client::handleM_SP_NA_1(vector<Datapoint*>& datapoints, string& label
         SinglePointInformation_getValue((SinglePointInformation)io_casted);
     QualityDescriptor qd =
         SinglePointInformation_getQuality((SinglePointInformation)io_casted);
-    mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+    mclient->m_addData(asdu, datapoints, ioa, label, value, &qd);
 
     SinglePointInformation_destroy(io_casted);
 }
@@ -515,7 +523,7 @@ void IEC104Client::handleM_SP_TB_1(vector<Datapoint*>& datapoints, string& label
     CP56Time2a ts = SinglePointWithCP56Time2a_getTimestamp(io_casted);
     bool is_invalid = CP56Time2a_isInvalid(ts);
     //if (m_tsiv == "PROCESS" || !is_invalid)
-        mclient->m_addData(asdu, datapoints, ioa, label, value, qd, ts);
+        mclient->m_addData(asdu, datapoints, ioa, label, value, &qd, ts);
 
     SinglePointWithCP56Time2a_destroy(io_casted);
 }
@@ -530,7 +538,7 @@ void IEC104Client::handleM_DP_NA_1(vector<Datapoint*>& datapoints, string& label
         DoublePointInformation_getValue((DoublePointInformation)io_casted);
     QualityDescriptor qd =
         DoublePointInformation_getQuality((DoublePointInformation)io_casted);
-    mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+    mclient->m_addData(asdu, datapoints, ioa, label, value, &qd);
 
     DoublePointInformation_destroy(io_casted);
 }
@@ -549,7 +557,7 @@ void IEC104Client::handleM_DP_TB_1(vector<Datapoint*>& datapoints, string& label
     CP56Time2a ts = DoublePointWithCP56Time2a_getTimestamp(io_casted);
     bool is_invalid = CP56Time2a_isInvalid(ts);
     //if (m_tsiv == "PROCESS" || !is_invalid)
-        mclient->m_addData(asdu, datapoints, ioa, label, value, qd, ts);
+        mclient->m_addData(asdu, datapoints, ioa, label, value, &qd, ts);
 
     DoublePointWithCP56Time2a_destroy(io_casted);
 }
@@ -564,7 +572,7 @@ void IEC104Client::handleM_ST_NA_1(vector<Datapoint*>& datapoints, string& label
         StepPositionInformation_getValue((StepPositionInformation)io_casted);
     QualityDescriptor qd =
         StepPositionInformation_getQuality((StepPositionInformation)io_casted);
-    mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+    mclient->m_addData(asdu, datapoints, ioa, label, value, &qd);
 
     StepPositionInformation_destroy(io_casted);
 }
@@ -584,10 +592,10 @@ void IEC104Client::handleM_ST_TB_1(vector<Datapoint*>& datapoints, string& label
         CP56Time2a ts = StepPositionWithCP56Time2a_getTimestamp(io_casted);
         bool is_invalid = CP56Time2a_isInvalid(ts);
         //if (m_tsiv == "PROCESS" || !is_invalid)
-            mclient->m_addData(asdu, datapoints, ioa, label, value, qd, ts);
+            mclient->m_addData(asdu, datapoints, ioa, label, value, &qd, ts);
     }
     else
-        mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+        mclient->m_addData(asdu, datapoints, ioa, label, value, &qd);
 
     StepPositionWithCP56Time2a_destroy(io_casted);
 }
@@ -602,7 +610,7 @@ void IEC104Client::handleM_ME_NA_1(vector<Datapoint*>& datapoints, string& label
         MeasuredValueNormalized_getValue((MeasuredValueNormalized)io_casted);
     QualityDescriptor qd =
         MeasuredValueNormalized_getQuality((MeasuredValueNormalized)io_casted);
-    mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+    mclient->m_addData(asdu, datapoints, ioa, label, value, &qd);
 
     MeasuredValueNormalized_destroy(io_casted);
 }
@@ -623,10 +631,10 @@ void IEC104Client::handleM_ME_TD_1(vector<Datapoint*>& datapoints, string& label
             MeasuredValueNormalizedWithCP56Time2a_getTimestamp(io_casted);
         bool is_invalid = CP56Time2a_isInvalid(ts);
         //if (m_tsiv == "PROCESS" || !is_invalid)
-            mclient->m_addData(asdu, datapoints, ioa, label, value, qd, ts);
+            mclient->m_addData(asdu, datapoints, ioa, label, value, &qd, ts);
     }
     else
-        mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+        mclient->m_addData(asdu, datapoints, ioa, label, value, &qd);
 
     MeasuredValueNormalizedWithCP56Time2a_destroy(io_casted);
 }
@@ -647,10 +655,10 @@ void IEC104Client::handleM_ME_TE_1(vector<Datapoint*>& datapoints, string& label
             MeasuredValueScaledWithCP56Time2a_getTimestamp(io_casted);
         bool is_invalid = CP56Time2a_isInvalid(ts);
         //if (m_tsiv == "PROCESS" || !is_invalid)
-            mclient->m_addData(asdu, datapoints, ioa, label, value, qd, ts);
+            mclient->m_addData(asdu, datapoints, ioa, label, value, &qd, ts);
     }
     else
-        mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+        mclient->m_addData(asdu, datapoints, ioa, label, value, &qd);
 
     MeasuredValueScaledWithCP56Time2a_destroy(io_casted);
 }
@@ -664,7 +672,7 @@ void IEC104Client::handleM_ME_NC_1(vector<Datapoint*>& datapoints, string& label
     float value = MeasuredValueShort_getValue((MeasuredValueShort)io_casted);
     QualityDescriptor qd =
         MeasuredValueShort_getQuality((MeasuredValueShort)io_casted);
-    mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+    mclient->m_addData(asdu, datapoints, ioa, label, value, &qd);
 
     MeasuredValueShort_destroy(io_casted);
 }
@@ -684,10 +692,10 @@ void IEC104Client::handleM_ME_TF_1(vector<Datapoint*>& datapoints, string& label
             MeasuredValueShortWithCP56Time2a_getTimestamp(io_casted);
         bool is_invalid = CP56Time2a_isInvalid(ts);
         //if (m_tsiv == "PROCESS" || !is_invalid)
-            mclient->m_addData(asdu, datapoints, ioa, label, value, qd, ts);
+            mclient->m_addData(asdu, datapoints, ioa, label, value, &qd, ts);
     }
     else
-        mclient->m_addData(asdu, datapoints, ioa, label, value, qd);
+        mclient->m_addData(asdu, datapoints, ioa, label, value, &qd);
 
     MeasuredValueShortWithCP56Time2a_destroy(io_casted);
 }
@@ -707,10 +715,10 @@ void IEC104Client::handleC_SC_TA_1(vector<Datapoint*>& datapoints, string& label
         CP56Time2a ts = SingleCommandWithCP56Time2a_getTimestamp(io_casted);
         bool is_invalid = CP56Time2a_isInvalid(ts);
         //if (m_tsiv == "PROCESS" || !is_invalid)
-            mclient->m_addData(asdu, datapoints, ioa, label, state, qu, ts);
+            mclient->m_addData(asdu, datapoints, ioa, label, state, NULL, ts);
     }
     else
-        mclient->m_addData(asdu, datapoints, ioa, label, state, qu);
+        mclient->m_addData(asdu, datapoints, ioa, label, state, NULL);
 
     SingleCommandWithCP56Time2a_destroy(io_casted);
 }
@@ -730,10 +738,10 @@ void IEC104Client::handleC_DC_TA_1(vector<Datapoint*>& datapoints, string& label
         CP56Time2a ts = DoubleCommandWithCP56Time2a_getTimestamp(io_casted);
         bool is_invalid = CP56Time2a_isInvalid(ts);
         //if (m_tsiv == "PROCESS" || !is_invalid)
-            mclient->m_addData(asdu, datapoints, ioa, label, state, qu, ts);
+            mclient->m_addData(asdu, datapoints, ioa, label, state, NULL, ts);
     }
     else
-        mclient->m_addData(asdu, datapoints, ioa, label, state, qu);
+        mclient->m_addData(asdu, datapoints, ioa, label, state, NULL);
 
     DoubleCommandWithCP56Time2a_destroy(io_casted);
 }
@@ -840,15 +848,21 @@ bool IEC104Client::m_asduReceivedHandler(void* parameter, int address,
         case C_IC_NA_1:
             Logger::getLogger()->info("General interrogation command");
             break;
+
         case C_TS_TA_1:
             Logger::getLogger()->info("Test command with time tag CP56Time2a");
             break;
+
         case C_SC_TA_1:
+        case C_SC_NA_1:
             handleASDU(labels, datapoints, self, asdu, handleC_SC_TA_1);
             break;
+
         case C_DC_TA_1:
+        case C_DC_NA_1:
             handleASDU(labels, datapoints, self, asdu, handleC_DC_TA_1);
             break;
+
         default:
             Logger::getLogger()->error("Type of message not supported");
             return false;
