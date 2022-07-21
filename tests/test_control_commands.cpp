@@ -101,9 +101,15 @@ using namespace nlohmann;
                 },                           \
                 {                            \
                     "ca" : 41025,            \
-                    "type_id" : "C_DC_NA_1", \
+                    "type_id" : "C_SC_TA_1", \
                     "label" : "C-2",         \
                     "ioa" : 2001             \
+                },                           \
+                {                            \
+                    "ca" : 41025,            \
+                    "type_id" : "C_DC_NA_1", \
+                    "label" : "C-3",         \
+                    "ioa" : 2002            \
                 }                            \
             ]                                \
         }                                    \
@@ -310,6 +316,15 @@ protected:
                 lastConnection = connection;
             }
         }
+        else if (CS101_ASDU_getTypeID(asdu) == C_DC_NA_1) {
+            printf("  C_DC_NA_1 (double-command)\n");
+
+            if (ca == 41025 && ioa == 2002) {
+                IMasterConnection_sendACT_CON(connection, asdu, false);
+                lastConnection = connection;
+            }
+        }
+
 
         asduHandlerCalled++;
 
@@ -404,6 +419,225 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommand)
     ASSERT_EQ(2, ingestCallbackCalled);
 
     CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+}
+
+TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommandNotInExchangeConfig)
+{
+    asduHandlerCalled = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    PLUGIN_PARAMETER* params[4];
+
+    PLUGIN_PARAMETER ca = {"ca", "41025"};
+    params[0] = &ca;
+
+    // ioa
+    PLUGIN_PARAMETER ioa = {"ioa", "2022"};
+    params[1] = &ioa;
+
+    // Third value
+    PLUGIN_PARAMETER value = {"", "1"};
+    params[2] = &value;
+
+    // Third value
+    PLUGIN_PARAMETER select = {"", "0"};
+    params[3] = &select;
+
+    bool operationResult = iec104->operation("SingleCommand", 4, params);
+
+    ASSERT_FALSE(operationResult);
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(0, asduHandlerCalled);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+}
+
+TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommandButConfiguredAsDoubleCommand)
+{
+    asduHandlerCalled = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    PLUGIN_PARAMETER* params[4];
+
+    PLUGIN_PARAMETER ca = {"ca", "41025"};
+    params[0] = &ca;
+
+    // ioa
+    PLUGIN_PARAMETER ioa = {"ioa", "2021"};
+    params[1] = &ioa;
+
+    // Third value
+    PLUGIN_PARAMETER value = {"", "1"};
+    params[2] = &value;
+
+    // Third value
+    PLUGIN_PARAMETER select = {"", "0"};
+    params[3] = &select;
+
+    bool operationResult = iec104->operation("SingleCommand", 4, params);
+
+    ASSERT_FALSE(operationResult);
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(0, asduHandlerCalled);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+}
+
+TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommand)
+{
+    asduHandlerCalled = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    PLUGIN_PARAMETER* params[4];
+
+    PLUGIN_PARAMETER ca = {"ca", "41025"};
+    params[0] = &ca;
+
+    // ioa
+    PLUGIN_PARAMETER ioa = {"ioa", "2002"};
+    params[1] = &ioa;
+
+    // Third value
+    PLUGIN_PARAMETER value = {"", "2"};
+    params[2] = &value;
+
+    // Third value
+    PLUGIN_PARAMETER select = {"", "0"};
+    params[3] = &select;
+
+    bool operationResult = iec104->operation("DoubleCommand", 4, params);
+
+    ASSERT_TRUE(operationResult);
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(1, asduHandlerCalled);
+
+    CS101_ASDU ctAsdu = CS101_ASDU_create(IMasterConnection_getApplicationLayerParameters(lastConnection),
+        false, CS101_COT_ACTIVATION_TERMINATION,lastOA, 41025, false, false);
+
+    InformationObject io = (InformationObject)DoubleCommand_create(NULL, 2002, 2, false, 0);
+
+    CS101_ASDU_addInformationObject(ctAsdu, io);
+
+    IMasterConnection_sendASDU(lastConnection, ctAsdu);
+
+    ASSERT_EQ(10, lastOA);
+
+    Thread_sleep(500);
+
+    // expect ingest callback called two timees:
+    //  1. ACT_CON for single command
+    //  2. ACT_TERM for single command
+    ASSERT_EQ(2, ingestCallbackCalled);
+
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+}
+
+TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommandNotConnected)
+{
+    asduHandlerCalled = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    PLUGIN_PARAMETER* params[4];
+
+    PLUGIN_PARAMETER ca = {"ca", "41025"};
+    params[0] = &ca;
+
+    // ioa
+    PLUGIN_PARAMETER ioa = {"ioa", "2002"};
+    params[1] = &ioa;
+
+    // Third value
+    PLUGIN_PARAMETER value = {"", "2"};
+    params[2] = &value;
+
+    // Third value
+    PLUGIN_PARAMETER select = {"", "0"};
+    params[3] = &select;
+
+    bool operationResult = iec104->operation("DoubleCommand", 4, params);
+
+    ASSERT_FALSE(operationResult);
 
     CS104_Slave_destroy(slave);
 }

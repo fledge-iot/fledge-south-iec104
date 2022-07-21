@@ -124,8 +124,6 @@ int IEC104Client::getOrigAddr()
 
 bool IEC104Client::isMessageTypeMatching(int expectedType, int rcvdType)
 {
-    printf("isMessageTypeMatching(%i,%i)\n", expectedType, rcvdType);
-
     if (expectedType == rcvdType) {
         return true; /* direct match */
     }
@@ -881,8 +879,6 @@ void IEC104Client::m_connectionHandler(void* parameter, CS104_Connection connect
 
     Logger::getLogger()->info("Connection state changed: " + std::to_string(event));
 
-    printf("\nConnection state changed: %i\n", event);
-
     if (event == CS104_CONNECTION_CLOSED)
     {
         self->m_connectionState = CON_STATE_CLOSED;
@@ -957,8 +953,6 @@ bool IEC104Client::prepareConnection()
     m_timeSyncEnabled = m_getConfigValueDefault<bool>(appLayerConfig, "/time_sync"_json_pointer, false);
     m_timeSyncPeriod = m_getConfigValueDefault<int>(appLayerConfig, "/time_sync_period"_json_pointer, 0);
 
-    printf("timessync_period: %i\n", m_timeSyncPeriod);
-
     if (new_connection) {
         m_connection = new_connection;
         return true;
@@ -1005,18 +999,15 @@ void IEC104Client::performPeriodicTasks()
 
             if (CS104_Connection_sendClockSyncCommand(m_connection, ca, &ts)) {
                 Logger::getLogger()->info("Sent clock sync command ...");
-                printf("Sent clock sync command ...\n");
 
                 m_timeSyncCommandSent = true;
             }
             else {
+                Logger::getLogger()->error("Failed to send clock sync command");
                 printf("Failed to send clock sync command!\n");
             }
         }
     }
-
-    
-    
 }
 
 void IEC104Client::_conThread()
@@ -1050,8 +1041,6 @@ void IEC104Client::_conThread()
             case CON_STATE_CONNECTING:
                 /* wait for connected event or timeout */
 
-                
-
                 break;
 
             case CON_STATE_CONNECTED_INACTIVE:
@@ -1066,7 +1055,6 @@ void IEC104Client::_conThread()
             case CON_STATE_CONNECTED_ACTIVE:
 
                 performPeriodicTasks();
-                //TODO periodic tasks
 
                 break;
 

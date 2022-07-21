@@ -18,17 +18,6 @@
 #include <iostream>
 #include <utility>
 
-// Qualifier of command
-#define NoAddDefinition 0
-#define ShortPulse 1
-#define LongPulse 2
-#define PersistentOutput 3
-#define Reserved 4  // > 3 value
-
-// (S/E bit) select command
-#define Execute false
-#define Select true
-
 using namespace std;
 using namespace nlohmann;
 
@@ -139,8 +128,6 @@ void IEC104::restart()
 
 void IEC104::start()
 {
-    m_isRunning = true;
-
     Logger::getLogger()->info("Starting iec104");
 
     switch (m_getConfigValue<int>(m_stack_configuration,
@@ -160,14 +147,6 @@ void IEC104::start()
             break;
     }
 
-    m_startup_done = false;
-    // std::thread startupWatchdog(
-    //     m_watchdog,
-    //     m_getConfigValue<int>(m_stack_configuration,
-    //                           "/application_layer/startup_time"_json_pointer),
-    //     1000, &m_startup_done, "Startup");
-    // startupWatchdog.detach();
-
     m_client = new IEC104Client(this, &m_stack_configuration, &m_msg_configuration);
 
     m_client->start();
@@ -176,9 +155,7 @@ void IEC104::start()
 /** Disconnect from the iec104 servers */
 void IEC104::stop()
 {
-    m_isRunning = false;
-
-    if (m_client != nullptr)
+     if (m_client != nullptr)
     {
         m_client->stop();
 

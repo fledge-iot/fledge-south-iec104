@@ -96,8 +96,6 @@ private:
     bool m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime);
     bool m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime);
 
-    bool m_startup_done;
-
     nlohmann::json m_stack_configuration;
     nlohmann::json m_msg_configuration;
     nlohmann::json m_tls_configuration;
@@ -114,7 +112,6 @@ private:
     INGEST_CB m_ingest = nullptr;  // Callback function used to send data to south service
     void* m_data;        // Ingest function data
     IEC104Client* m_client = nullptr;
-    bool m_isRunning = false;
 };
 
 class IEC104Client
