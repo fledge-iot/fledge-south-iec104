@@ -333,7 +333,7 @@ TEST_F(TimeSyncTest, IEC104Client_checkPeriodicTimesyncDenied)
 
     startIEC104();
 
-    Thread_sleep(500);
+    Thread_sleep(800);
 
     ASSERT_EQ(1, clockSyncHandlerCalled);
 

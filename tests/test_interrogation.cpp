@@ -63,7 +63,7 @@ using namespace nlohmann;
                 "startup_state" : true,                                        \
                 "reverse" : false,                                             \
                 "time_sync_period" : 100,                                      \
-                "time_sync_enabled" : true                                    \
+                "time_sync" : true                                    \
             }                                                                  \
         }                                                                      \
     })
@@ -115,7 +115,7 @@ using namespace nlohmann;
                 "startup_state" : true,                                        \
                 "reverse" : false,                                             \
                 "time_sync_period" : 100,                                      \
-                "time_sync_enabled" : true                                    \
+                "time_sync" : true                                    \
             }                                                                  \
         }                                                                      \
     })

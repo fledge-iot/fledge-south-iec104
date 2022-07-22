@@ -994,7 +994,7 @@ bool IEC104Client::prepareConnection()
 
     auto& appLayerConfig = (*m_stack_configuration)["application_layer"];
 
-    m_timeSyncEnabled = m_getConfigValueDefault<bool>(appLayerConfig, "/time_sync_enabled"_json_pointer, false);
+    m_timeSyncEnabled = m_getConfigValueDefault<bool>(appLayerConfig, "/time_sync"_json_pointer, false);
     m_timeSyncPeriod = m_getConfigValueDefault<int>(appLayerConfig, "/time_sync_period"_json_pointer, 0);
     
     m_giAllCA = m_getConfigValueDefault<bool>(appLayerConfig, "/gi_all_ca"_json_pointer, true);
