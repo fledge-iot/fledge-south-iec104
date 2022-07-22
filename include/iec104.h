@@ -177,11 +177,22 @@ private:
     ConState m_connectionState = CON_STATE_IDLE;
     bool m_started = false;
     bool m_startDtSent = false;
+
     bool m_timeSyncEnabled = false;
     bool m_timeSynchronized = false;
     bool m_timeSyncCommandSent = false;
-    bool m_timeSyncPeriod = 0;
+    bool m_firstTimeSyncOperationCompleted = false;
+    int m_timeSyncPeriod = 0;
+    bool m_giAllCA = true;
     uint64_t m_nextTimeSync;
+
+    bool m_firstGISent = false;
+    bool m_interrogationInProgress = false;
+    int m_interrogationRequestState = 0; /* 0 - idle, 1 - waiting for ACT_CON, 2 - waiting for ACT_TERM */
+    uint64_t m_interrogationRequestSent;
+    std::map<int, int>::iterator m_listOfCA_it;
+
+    std::map<int, int> m_listOfCA;
 
     CS104_Connection m_connection = nullptr;
 
@@ -201,6 +212,8 @@ private:
 
     bool prepareConnection();
     void performPeriodicTasks();
+
+    void createListOfCAs();
 
     std::string m_checkExchangedDataLayer(int ca, int type_id, int ioa);
 

@@ -325,8 +325,8 @@ protected:
             }
         }
 
-
-        asduHandlerCalled++;
+        if (CS101_ASDU_getTypeID(asdu) != C_IC_NA_1)
+            asduHandlerCalled++;
 
         return true;
     }

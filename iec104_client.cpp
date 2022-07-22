@@ -407,6 +407,7 @@ void IEC104Client::createDataExchangeDefinitions()
     {
         int ca = m_getConfigValue<unsigned int>(element, "/ca"_json_pointer);
         int ioa = m_getConfigValue<unsigned int>(element, "/ioa"_json_pointer);
+
         std::string typeIdStr = m_getConfigValue<string>(element,
                                                    "/type_id"_json_pointer);
 
@@ -422,6 +423,16 @@ void IEC104Client::createDataExchangeDefinitions()
         def->typeId = mapAsduTypeId[typeIdStr];
 
         exchangeDefinitions[ca][ioa] = def;
+    }
+}
+
+void IEC104Client::createListOfCAs()
+{
+    for (auto& element : (*m_msg_configuration)["asdu_list"])
+    {
+        int ca = m_getConfigValue<unsigned int>(element, "/ca"_json_pointer);
+
+        m_listOfCA[ca] = ca;
     }
 }
 
@@ -752,6 +763,17 @@ bool IEC104Client::m_asduReceivedHandler(void* parameter, int address,
     vector<Datapoint*> datapoints;
     vector<string> labels;
 
+    CS101_CauseOfTransmission cot = CS101_ASDU_getCOT(asdu);
+
+    if (cot == CS101_COT_INTERROGATED_BY_STATION) {
+        if (self->m_interrogationRequestState == 2) {
+            self->m_interrogationRequestSent = getMonotonicTimeInMs();
+        }
+        else {
+            printf("Unexpected interrogation response\n");
+        }
+    }
+
     switch (CS101_ASDU_getTypeID(asdu))
     {
         case M_ME_NB_1:
@@ -796,7 +818,6 @@ bool IEC104Client::m_asduReceivedHandler(void* parameter, int address,
 
         case C_CS_NA_1:
             Logger::getLogger()->info("Received time sync response");
-            printf("Received time sync response\n");
 
             if (self->m_timeSyncCommandSent == true) {
 
@@ -804,8 +825,6 @@ bool IEC104Client::m_asduReceivedHandler(void* parameter, int address,
                     if (CS101_ASDU_isNegative(asdu) == false) {
                         self->m_timeSyncCommandSent = false;
                         self->m_timeSynchronized = true;
-
-                        printf("time synchronized\n");
 
                         if (self->m_timeSyncPeriod > 0) {
                             self->m_nextTimeSync = getMonotonicTimeInMs() + (self->m_timeSyncPeriod * 1000);
@@ -841,10 +860,33 @@ bool IEC104Client::m_asduReceivedHandler(void* parameter, int address,
                 }
             }
 
+            self->m_firstTimeSyncOperationCompleted = true;
+
             break;
 
         case C_IC_NA_1:
-            Logger::getLogger()->info("General interrogation command");
+            { 
+                Logger::getLogger()->info("General interrogation response");
+                printf("Receivd C_IC_NA_1 with COT=%i\n", cot);
+
+                if (cot == CS101_COT_ACTIVATION_CON) {
+                    if (self->m_interrogationRequestState == 1) {
+                        self->m_interrogationRequestSent = getMonotonicTimeInMs();
+                        self->m_interrogationRequestState = 2;
+                    }
+                    else {
+                        printf("Unexpected ACT_CON\n");
+                    }
+                }
+                else if (cot == CS101_COT_ACTIVATION_TERMINATION) {
+                    if (self->m_interrogationRequestState == 2) {
+                        self->m_interrogationRequestState = 0;
+                    }
+                    else {
+                        printf("Unexpected ACT_TERM\n");
+                    }
+                }
+            }
             break;
 
         case C_TS_TA_1:
@@ -892,6 +934,8 @@ void IEC104Client::m_connectionHandler(void* parameter, CS104_Connection connect
         self->m_nextTimeSync = getMonotonicTimeInMs();
         self->m_timeSynchronized = false;
         self->m_timeSyncCommandSent = false;
+        self->m_firstTimeSyncOperationCompleted = false;
+        self->m_firstGISent = false;
 
         self->m_connectionState = CON_STATE_CONNECTED_ACTIVE;
     }
@@ -950,8 +994,12 @@ bool IEC104Client::prepareConnection()
 
     auto& appLayerConfig = (*m_stack_configuration)["application_layer"];
 
-    m_timeSyncEnabled = m_getConfigValueDefault<bool>(appLayerConfig, "/time_sync"_json_pointer, false);
+    m_timeSyncEnabled = m_getConfigValueDefault<bool>(appLayerConfig, "/time_sync_enabled"_json_pointer, false);
     m_timeSyncPeriod = m_getConfigValueDefault<int>(appLayerConfig, "/time_sync_period"_json_pointer, 0);
+    
+    m_giAllCA = m_getConfigValueDefault<bool>(appLayerConfig, "/gi_all_ca"_json_pointer, true);
+
+    createListOfCAs();
 
     if (new_connection) {
         m_connection = new_connection;
@@ -1005,6 +1053,81 @@ void IEC104Client::performPeriodicTasks()
             else {
                 Logger::getLogger()->error("Failed to send clock sync command");
                 printf("Failed to send clock sync command!\n");
+            }
+        }
+    }
+
+    if ((m_timeSyncEnabled == false) || (m_firstTimeSyncOperationCompleted == true)) 
+    {
+        if (m_firstGISent == false) {
+
+            if (m_giAllCA == false) {
+                if (sendInterrogationCommand(broadcastCA())) {
+                    m_firstGISent = true;
+                    m_interrogationInProgress = true;
+                    m_interrogationRequestState = 1;
+                    m_interrogationRequestSent = getMonotonicTimeInMs();
+                }
+                else {
+                    Logger::getLogger()->error("Failed to send interrogation command to broadcast address");
+                    printf("Failed to send interrogation command to broadcast address!\n");
+                }
+            }
+            else {
+                m_listOfCA_it = m_listOfCA.begin();
+
+                m_firstGISent = true;
+
+                if (m_listOfCA_it != m_listOfCA.end()) {
+                    m_interrogationInProgress = true;
+                }
+            }
+        }
+        else {
+
+            if (m_interrogationInProgress) {
+
+                if (m_interrogationRequestState != 0) {
+
+                    uint64_t currentTime = getMonotonicTimeInMs();
+
+                    if (m_interrogationRequestState == 1) { /* wait for ACT_CON */
+                        if (currentTime > m_interrogationRequestSent + 1000) {
+                            printf("Interrogation request timed out (no ACT_CON)!\n");
+                            m_interrogationRequestState = 0;
+                        }
+                    }
+                    else if (m_interrogationRequestState == 2) { /* wait for ACT_TERM */
+                        if (currentTime > m_interrogationRequestSent + 1000) {
+                            printf("Interrogation request timed out!\n");
+                            m_interrogationRequestState = 0;
+                        }
+                    }
+                }
+                else {
+
+                    if (m_giAllCA == true) {
+
+                        if (m_listOfCA_it != m_listOfCA.end()) {
+                            if (sendInterrogationCommand(m_listOfCA_it->first)) {
+                                printf("Sent GI request to CA=%i\n", m_listOfCA_it->first);
+                                m_interrogationRequestState = 1;
+                            }
+                            else {
+                                Logger::getLogger()->error("Failed to send interrogation command");
+                                printf("Failed to send interrogation command to CA=%i!\n", m_listOfCA_it->first);
+                            }
+
+                            m_listOfCA_it++;
+                        }
+                        else {
+                            m_interrogationInProgress = false;
+                        }
+                    }
+                    else {
+                        m_interrogationInProgress = false;
+                    }
+                }
             }
         }
     }
