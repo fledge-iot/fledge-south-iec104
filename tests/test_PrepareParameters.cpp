@@ -67,31 +67,6 @@ typedef struct
             }
         }
     });
-    string protocol_translation = QUOTE({
-        "protocol_translation" : {
-            "name" : "iec104_to_pivot",
-            "version" : "1.0",
-            "mapping" : {
-                "data_object_header" : {
-                    "doh_type" : "type_id",
-                    "doh_ca" : "ca",
-                    "doh_oa" : "oa",
-                    "doh_cot" : "cot",
-                    "doh_test" : "istest",
-                    "doh_negative" : "isnegative"
-                },
-                "data_object_item" : {
-                    "doi_ioa" : "ioa",
-                    "doi_value" : "value",
-                    "doi_quality" : "quality_desc",
-                    "doi_ts" : "time_marker",
-                    "doi_ts_flag1" : "isinvalid",
-                    "doi_ts_flag2" : "isSummerTime",
-                    "doi_ts_flag3" : "isSubstituted"
-                }
-            }
-        }
-    });
     string tls = QUOTE({
         "tls_conf:" : {
             "private_key" : "server-key.pem",
@@ -136,8 +111,7 @@ TEST(IEC104, PluginASDUSizeTest)
 {
     IEC104 iec104;
     json_config config;
-    iec104.setJsonConfig(config.protocol_stack, config.exchanged_data,
-                         config.protocol_translation, config.tls);
+    iec104.setJsonConfig(config.protocol_stack, config.exchanged_data, config.tls);
     const int PORT = 2404;
     string ip_adress("127.0.0.1");
     CS104_Connection connection =
@@ -159,8 +133,7 @@ TEST(IEC104, PluginAPCIParametersTestsNoThrow)
 {
     IEC104 iec104;
     json_config config;
-    iec104.setJsonConfig(config.protocol_stack, config.exchanged_data,
-                         config.protocol_translation, config.tls);
+    iec104.setJsonConfig(config.protocol_stack, config.exchanged_data, config.tls);
     const int PORT = 2404;
     string ip_adress("127.0.0.1");
     CS104_Connection connection =
@@ -187,8 +160,7 @@ TEST(IEC104, PluginAppLayerParametersTestsNoThrow)
 {
     IEC104 iec104;
     json_config config;
-    iec104.setJsonConfig(config.protocol_stack, config.exchanged_data,
-                         config.protocol_translation, config.tls);
+    iec104.setJsonConfig(config.protocol_stack, config.exchanged_data, config.tls);
     const int PORT = 2404;
     string ip_adress("127.0.0.1");
     CS104_Connection connection =

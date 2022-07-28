@@ -83,34 +83,6 @@
         }                                    \
     })
 
-// PLUGIN DEFAULT PROTOCOL TRANSLATION CONF
-#define PROTOCOL_TRANSLATION_DEF                     \
-    QUOTE({                                          \
-        "protocol_translation" : {                   \
-            "name" : "iec104_to_pivot",              \
-            "version" : "1.0",                       \
-            "mapping" : {                            \
-                "data_object_header" : {             \
-                    "doh_type" : "type_id",          \
-                    "doh_ca" : "ca",                 \
-                    "doh_oa" : "oa",                 \
-                    "doh_cot" : "cot",               \
-                    "doh_test" : "istest",           \
-                    "doh_negative" : "isnegative"    \
-                },                                   \
-                "data_object_item" : {               \
-                    "doi_ioa" : "ioa",               \
-                    "doi_value" : "value",           \
-                    "doi_quality" : "quality_desc",  \
-                    "doi_ts" : "time_marker",        \
-                    "doi_ts_flag1" : "isinvalid",    \
-                    "doi_ts_flag2" : "isSummerTime", \
-                    "doi_ts_flag3" : "isSubstituted" \
-                }                                    \
-            }                                        \
-        }                                            \
-    })
-
 // PLUGIN DEFAULT TLS CONF
 #define TLS_DEF                               \
     QUOTE({                                   \
@@ -171,34 +143,6 @@
                 "time_sync" : false                                            \
             }                                                                  \
         }                                                                      \
-    })
-
-// PLUGIN DEFAULT PROTOCOL TRANSLATION CONF
-#define PROTOCOL_TRANSLATION_DEF                     \
-    QUOTE({                                          \
-        "protocol_translation" : {                   \
-            "name" : "iec104_to_pivot",              \
-            "version" : "1.0",                       \
-            "mapping" : {                            \
-                "data_object_header" : {             \
-                    "doh_type" : "type_id",          \
-                    "doh_ca" : "ca",                 \
-                    "doh_oa" : "oa",                 \
-                    "doh_cot" : "cot",               \
-                    "doh_test" : "istest",           \
-                    "doh_negative" : "isnegative"    \
-                },                                   \
-                "data_object_item" : {               \
-                    "doi_ioa" : "ioa",               \
-                    "doi_value" : "value",           \
-                    "doi_quality" : "quality_desc",  \
-                    "doi_ts" : "time_marker",        \
-                    "doi_ts_flag1" : "isinvalid",    \
-                    "doi_ts_flag2" : "isSummerTime", \
-                    "doi_ts_flag3" : "isSubstituted" \
-                }                                    \
-            }                                        \
-        }                                            \
     })
 
 // PLUGIN DEFAULT TLS CONF

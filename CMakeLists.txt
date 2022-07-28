@@ -42,6 +42,7 @@ if (${CMAKE_BUILD_TYPE} STREQUAL Coverage)
   )
 else()
   message("Build without Coverage") 
+
   set(CMAKE_CXX_FLAGS "-std=c++11 -O3")
 endif()
 

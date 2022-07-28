@@ -53,31 +53,6 @@ typedef struct
             }
         }
     });
-    string protocol_translation = QUOTE({
-        "protocol_translation" : {
-            "name" : "iec104_to_pivot",
-            "version" : "1.0",
-            "mapping" : {
-                "data_object_header" : {
-                    "doh_type" : "type_id",
-                    "doh_ca" : "ca",
-                    "doh_oa" : "oa",
-                    "doh_cot" : "cot",
-                    "doh_test" : "istest",
-                    "doh_negative" : "isnegative"
-                },
-                "data_object_item" : {
-                    "doi_ioa" : "ioa",
-                    "doi_value" : "value",
-                    "doi_quality" : "quality_desc",
-                    "doi_ts" : "time_marker",
-                    "doi_ts_flag1" : "isinvalid",
-                    "doi_ts_flag2" : "isSummerTime",
-                    "doi_ts_flag3" : "isSubstituted"
-                }
-            }
-        }
-    });
     string tls = QUOTE({
         "tls_conf:" : {
             "private_key" : "server-key.pem",
@@ -113,12 +88,12 @@ typedef struct
     });
 } json_config;
 
-TEST(IEC104, PluginsendInterrogationCommmandsTest)
-{
-    IEC104 iec104;
-    json_config a;
+// TEST(IEC104, PluginsendInterrogationCommmandsTest)
+// {
+//     IEC104 iec104;
+//     json_config a;
 
-    iec104.setJsonConfig(a.protocol_stack, a.exchanged_data,
-                         a.protocol_translation, a.tls);
-    ASSERT_NO_THROW(iec104.sendInterrogationCommmands());
-}
+//     iec104.setJsonConfig(a.protocol_stack, a.exchanged_data,
+//                          a.protocol_translation, a.tls);
+//     ASSERT_NO_THROW(iec104.sendInterrogationCommmands());
+// }
