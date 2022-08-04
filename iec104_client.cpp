@@ -1138,6 +1138,7 @@ void IEC104Client::_conThread()
     while (m_started) 
     {
         switch (m_connectionState) {
+
             case CON_STATE_IDLE:
                 {
                     m_startDtSent = false;
