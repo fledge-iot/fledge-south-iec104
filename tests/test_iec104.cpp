@@ -355,6 +355,84 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
     CS104_Slave_destroy(slave);
 }
 
+static void test_ConnectionEventHandler (void* parameter, IMasterConnection connection, CS104_PeerConnectionEvent event)
+{
+    int* connectEventCounter = (int*)parameter;
+
+    printf("event: %i\n", event);
+
+    if (event == CS104_CON_EVENT_CONNECTION_OPENED) {
+        *connectEventCounter = *connectEventCounter + 1;
+    }
+}
+
+TEST_F(IEC104Test, IEC104_reconnectAfterConnectionLoss)
+{
+    int connectionEventCounter = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+    
+    CS104_Slave_setConnectionEventHandler(slave, test_ConnectionEventHandler, &connectionEventCounter);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(2000);
+
+    ASSERT_EQ(1, connectionEventCounter);
+
+    CS104_Slave_stop(slave);
+    CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
+
+    slave = CS104_Slave_create(10, 10);
+    
+    CS104_Slave_setConnectionEventHandler(slave, test_ConnectionEventHandler, &connectionEventCounter);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_start(slave);
+
+    Thread_sleep(13000);
+
+    ASSERT_EQ(2, connectionEventCounter);
+
+    CS104_Slave_destroy(slave);
+}
+
+TEST_F(IEC104Test, IEC104_connectionFails)
+{
+    int connectionEventCounter = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+    
+    CS104_Slave_setConnectionEventHandler(slave, test_ConnectionEventHandler, &connectionEventCounter);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(8000);
+
+    ASSERT_EQ(0, connectionEventCounter);
+
+    CS104_Slave_start(slave);
+
+    Thread_sleep(4000);
+
+    ASSERT_EQ(1, connectionEventCounter);
+
+    CS104_Slave_destroy(slave);
+}
+
 TEST_F(IEC104Test, IEC104_setJsonConfig_Test)
 {
     ASSERT_NO_THROW(
