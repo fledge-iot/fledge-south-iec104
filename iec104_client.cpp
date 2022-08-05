@@ -978,6 +978,7 @@ bool IEC104Client::prepareConnection()
                                                     m_asduReceivedHandler,
                                                     static_cast<void*>(this));
 
+
             m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
 
             CS104_Connection_connectAsync(new_connection);
@@ -1166,6 +1167,7 @@ void IEC104Client::_conThread()
 
             case CON_STATE_CONNECTING:
                 /* wait for connected event or timeout */
+
 
                 if (getMonotonicTimeInMs() > m_delayExpirationTime) {
                     Logger::getLogger()->warn("Timeout while connecting");
