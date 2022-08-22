@@ -328,17 +328,17 @@ void IEC104Client::m_addData(CS101_ASDU asdu, vector<Datapoint*>& datapoints, in
 
     measure_features->push_back(m_createDatapoint("do_type", mapAsduTypeIdStr[CS101_ASDU_getTypeID(asdu)]));
 
-    measure_features->push_back(m_createDatapoint("do_ca", (int64_t)CS101_ASDU_getCA(asdu)));
+    measure_features->push_back(m_createDatapoint("do_ca", (long)CS101_ASDU_getCA(asdu)));
 
-    measure_features->push_back(m_createDatapoint("do_oa", (int64_t)CS101_ASDU_getOA(asdu)));
+    measure_features->push_back(m_createDatapoint("do_oa", (long)CS101_ASDU_getOA(asdu)));
 
-    measure_features->push_back(m_createDatapoint("do_cot", (int64_t)CS101_ASDU_getCOT(asdu)));
+    measure_features->push_back(m_createDatapoint("do_cot", (long)CS101_ASDU_getCOT(asdu)));
 
-    measure_features->push_back(m_createDatapoint("do_test", (int64_t)CS101_ASDU_isTest(asdu)));
+    measure_features->push_back(m_createDatapoint("do_test", (long)CS101_ASDU_isTest(asdu)));
 
-    measure_features->push_back(m_createDatapoint("do_negative", (int64_t)CS101_ASDU_isNegative(asdu)));
+    measure_features->push_back(m_createDatapoint("do_negative", (long)CS101_ASDU_isNegative(asdu)));
 
-    measure_features->push_back(m_createDatapoint("do_ioa", (int64_t)ioa));
+    measure_features->push_back(m_createDatapoint("do_ioa", (long)ioa));
 
     measure_features->push_back(m_createDatapoint("do_value", value));
 
@@ -355,7 +355,7 @@ void IEC104Client::m_addData(CS101_ASDU asdu, vector<Datapoint*>& datapoints, in
     }
 
     if (ts) {
-         measure_features->push_back(m_createDatapoint("do_ts", (int64_t)CP56Time2a_toMsTimestamp(ts)));
+         measure_features->push_back(m_createDatapoint("do_ts", (long)CP56Time2a_toMsTimestamp(ts)));
 
          measure_features->push_back(m_createDatapoint("do_ts_iv", (CP56Time2a_isInvalid(ts)) ? 1L : 0L));
 
