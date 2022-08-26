@@ -351,7 +351,7 @@ bool IEC104::m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool
 
         // select or execute, must be a boolean
         // 0 = execute, otherwise = select
-        bool select = static_cast<bool>(atoi(params[2]->value.c_str()));
+        bool select = static_cast<bool>(atoi(params[3]->value.c_str()));
 
         return m_client->sendSingleCommand(ca, ioa, value, withTime, select);
     }
@@ -376,7 +376,7 @@ bool IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool
 
         // select or execute, must be a boolean
         // 0 = execute, otherwise = select
-        bool select = static_cast<bool>(atoi(params[2]->value.c_str()));
+        bool select = static_cast<bool>(atoi(params[3]->value.c_str()));
 
         return m_client->sendDoubleCommand(ca, ioa, value, withTime, select);
     }
@@ -401,7 +401,7 @@ bool IEC104::m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool w
 
         // select or execute, must be a boolean
         // 0 = execute, otherwise = select
-        bool select = static_cast<bool>(atoi(params[2]->value.c_str()));
+        bool select = static_cast<bool>(atoi(params[3]->value.c_str()));
 
         return m_client->sendStepCommand(ca, ioa, value, withTime, select);
     }
