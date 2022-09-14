@@ -10,6 +10,7 @@
  */
 
 #include <iec104.h>
+#include <iec104_client_redgroup.h>
 #include <logger.h>
 #include <reading.h>
 
@@ -19,105 +20,19 @@
 #include <utility>
 
 using namespace std;
-using namespace nlohmann;
-
-bool IEC104::m_comm_wttag = false;
-string IEC104::m_tsiv;
 
 /** Constructor for the iec104 plugin */
-IEC104::IEC104() : m_client(nullptr) {}
+IEC104::IEC104() : m_client(nullptr) 
+{
+    m_config = new IEC104ClientConfig();
+}
 
 void IEC104::setJsonConfig(const std::string& stack_configuration,
                            const std::string& msg_configuration,
                            const std::string& tls_configuration)
 {
-    Logger::getLogger()->info("Reading json config string...");
-
-    try
-    {
-        m_stack_configuration =
-            json::parse(stack_configuration)["protocol_stack"];
-    }
-    catch (json::parse_error& e)
-    {
-        Logger::getLogger()->fatal(
-            "Couldn't read protocol_stack json config string : " +
-            string(e.what()));
-        throw(string("json config error"));
-    }
-
-    try
-    {
-        m_msg_configuration = json::parse(msg_configuration)["exchanged_data"];
-    }
-    catch (json::parse_error& e)
-    {
-        Logger::getLogger()->fatal(
-            "Couldn't read exchanged_data json config string : " +
-            string(e.what()));
-        throw(string("json config error"));
-    }
-
-    try
-    {
-        m_tls_configuration = json::parse(tls_configuration)["tls_conf"];
-    }
-    catch (json::parse_error& e)
-    {
-        Logger::getLogger()->fatal(
-            "Couldn't read tls_conf json config string : " + string(e.what()));
-        throw(string("json config error"));
-    }
-}
-
-void IEC104::prepareParameters(CS104_Connection connection)
-{
-    // Transport layer initialization
-    sCS104_APCIParameters apci_parameters = {12, 8,  10,
-                                             15, 10, 20};  // default values
-    apci_parameters.k = m_getConfigValue<int>(
-        m_stack_configuration, "/transport_layer/k_value"_json_pointer);
-    apci_parameters.w = m_getConfigValue<int>(
-        m_stack_configuration, "/transport_layer/w_value"_json_pointer);
-    apci_parameters.t0 = m_getConfigValue<int>(
-        m_stack_configuration, "/transport_layer/t0_timeout"_json_pointer);
-    apci_parameters.t1 = m_getConfigValue<int>(
-        m_stack_configuration, "/transport_layer/t1_timeout"_json_pointer);
-    apci_parameters.t2 = m_getConfigValue<int>(
-        m_stack_configuration, "/transport_layer/t2_timeout"_json_pointer);
-    apci_parameters.t3 = m_getConfigValue<int>(
-        m_stack_configuration, "/transport_layer/t3_timeout"_json_pointer);
-
-    CS104_Connection_setAPCIParameters(connection, &apci_parameters);
-
-    int asdu_size = m_getConfigValue<int>(
-        m_stack_configuration, "/application_layer/asdu_size"_json_pointer);
-
-    // If 0 is set in the configuration file, use the maximum value (249 for
-    // IEC104)
-    if (asdu_size == 0) asdu_size = 249;
-
-    // Application layer initialization
-    sCS101_AppLayerParameters app_layer_parameters = {
-        1, 1, 2, 0, 2, 3, 249};  // default values
-    app_layer_parameters.originatorAddress = m_getConfigValue<int>(
-        m_stack_configuration, "/application_layer/orig_addr"_json_pointer);
-    app_layer_parameters.sizeOfCA = m_getConfigValue<int>(
-        m_stack_configuration,
-        "/application_layer/ca_asdu_size"_json_pointer);  // 2
-    app_layer_parameters.sizeOfIOA = m_getConfigValue<int>(
-        m_stack_configuration,
-        "/application_layer/ioaddr_size"_json_pointer);  // 3
-    app_layer_parameters.maxSizeOfASDU = asdu_size;
-
-    CS104_Connection_setAppLayerParameters(connection, &app_layer_parameters);
-
-    // m_comm_wttag = m_getConfigValue<bool>(
-    //     *m_stack_configuration, "/application_layer/comm_wttag"_json_pointer);
-    // m_tsiv = m_getConfigValue<string>(m_stack_configuration,
-    //                                   "/application_layer/tsiv"_json_pointer);
-
-    Logger::getLogger()->info("Connection initialized");
+    m_config->importProtocolConfig(stack_configuration);
+    m_config->importExchangeConfig(msg_configuration);
 }
 
 void IEC104::restart()
@@ -130,8 +45,7 @@ void IEC104::start()
 {
     Logger::getLogger()->info("Starting iec104");
 
-    switch (m_getConfigValue<int>(m_stack_configuration,
-                                  "/transport_layer/llevel"_json_pointer))
+    switch (m_config->LogLevel())
     {
         case 1:
             Logger::getLogger()->setMinLevel("debug");
@@ -147,7 +61,7 @@ void IEC104::start()
             break;
     }
 
-    m_client = new IEC104Client(this, &m_stack_configuration, &m_msg_configuration);
+    m_client = new IEC104Client(this, m_config);
 
     m_client->start();
 }
@@ -187,124 +101,6 @@ void IEC104::registerIngest(void* data, INGEST_CB cb)
     m_ingest = cb;
     m_data = data;
 }
-
-template <class T>
-T IEC104::m_getConfigValue(json configuration, json_pointer<json> path)
-{
-    T typed_value;
-
-    try
-    {
-        typed_value = configuration.at(path);
-    }
-    catch (json::parse_error& e)
-    {
-        Logger::getLogger()->fatal("Couldn't parse value " + path.to_string() +
-                                   " : " + e.what());
-    }
-    catch (json::out_of_range& e)
-    {
-        Logger::getLogger()->fatal("Couldn't reach value " + path.to_string() +
-                                   " : " + e.what());
-    }
-
-    return typed_value;
-}
-
-void IEC104::m_sendInterrogationCommmands()
-{
-    int broadcast_ca = m_getBroadcastCA();
-
-    int gi_repeat_count = m_getConfigValue<int>(
-        m_stack_configuration,
-        "/application_layer/gi_repeat_count"_json_pointer);
-    int gi_time = m_getConfigValue<int>(
-        m_stack_configuration, "/application_layer/gi_time"_json_pointer);
-
-    // If we try to send to every ca
-    if (m_getConfigValue<bool>(m_stack_configuration,
-                               "/application_layer/gi_all_ca"_json_pointer))
-    {
-        // For every ca
-        for (auto& element : m_msg_configuration["asdu_list"])
-            m_sendInterrogationCommmandToCA(
-                m_getConfigValue<unsigned int>(element, "/ca"_json_pointer),
-                gi_repeat_count, gi_time);
-    }
-    else  // Otherwise, broadcast (causes Segmentation fault)
-    {
-        // m_sendInterrogationCommmandToCA(broadcast_ca, gi_repeat_count,
-        // gi_time);
-    }
-
-    Logger::getLogger()->info("Interrogation command sent");
-}
-
-void IEC104::m_sendInterrogationCommmandToCA(unsigned int ca,
-                                             int gi_repeat_count, int gi_time)
-{
-    Logger::getLogger()->info("Sending interrogation command to ca = " +
-                              to_string(ca));
-
-    // Try gi_repeat_count times if doesn't work
-    bool sentWithSuccess = false;
-    for (unsigned int count = 0; count < gi_repeat_count; count++)
-    {
-        for (auto connection : m_connections)
-        {
-            // If it does work, wait gi_time seconds to complete, and
-            // break
-            if (CS104_Connection_sendInterrogationCommand(
-                    connection, CS101_COT_ACTIVATION, ca, IEC60870_QOI_STATION))
-            {
-                sentWithSuccess = true;
-                Thread_sleep(1000 * gi_time);
-                break;
-            }
-        }
-        if (sentWithSuccess) break;
-    }
-}
-
-int IEC104::m_getBroadcastCA()
-{
-    int ca_asdu_size = m_getConfigValue<int>(
-        m_stack_configuration, "/application_layer/ca_asdu_size"_json_pointer);
-
-    // Broadcast address is the maximum value possible, ie 2^(8*asdu_size) (8 is
-    // 1 byte)
-    // https://www.openmuc.org/iec-60870-5-104/javadoc/org/openmuc/j60870/ASdu.html
-    return pow(2, 8 * ca_asdu_size) - 1;
-}
-
-/*
-CS104_Connection IEC104::m_createTlsConnection(const char* ip, int port)
-{
-    TLSConfiguration TLSConfig =
-        TLSConfiguration_create();  // TLSConfiguration_create makes plugin
-                                    // unresponsive, without giving any
-                                    // log/exception
-    Logger::getLogger()->debug("Af TLSConf create");
-
-    std::string private_key =
-        "$FLEDGE_ROOT/data/etc/certs/" +
-        m_getConfigValue<string>(m_tls_configuration,
-                                 "/private_key"_json_pointer);
-    std::string server_cert =
-        "$FLEDGE_ROOT/data/etc/certs/" +
-        m_getConfigValue<string>(m_tls_configuration,
-                                 "/server_cert"_json_pointer);
-    std::string ca_cert =
-        "$FLEDGE_ROOT/data/etc/certs/" +
-        m_getConfigValue<string>(m_tls_configuration, "/ca_cert"_json_pointer);
-
-    TLSConfiguration_setOwnCertificateFromFile(TLSConfig, server_cert.c_str());
-    TLSConfiguration_setOwnKeyFromFile(TLSConfig, private_key.c_str(), nullptr);
-    TLSConfiguration_addCACertificateFromFile(TLSConfig, ca_cert.c_str());
-
-    return CS104_Connection_createSecure(ip, port, TLSConfig);
-}
-*/
 
 int IEC104::m_watchdog(int delay, int checkRes, bool* flag, std::string id)
 {
@@ -377,6 +173,8 @@ bool IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool
         // select or execute, must be a boolean
         // 0 = execute, otherwise = select
         bool select = static_cast<bool>(atoi(params[3]->value.c_str()));
+
+        printf("m_doubleCommandOperation\n");
 
         return m_client->sendDoubleCommand(ca, ioa, value, withTime, select);
     }

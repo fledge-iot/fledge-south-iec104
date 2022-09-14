@@ -11,6 +11,7 @@
 #include <iec104.h>
 #include <logger.h>
 #include <reading.h>
+#include <lib60870/cs104_connection.h>
 
 #include <cmath>
 #include <ctime>
@@ -19,7 +20,8 @@
 #include <utility>
 
 using namespace std;
-using namespace nlohmann;
+
+
 
 static uint64_t getMonotonicTimeInMs()
 {
@@ -33,34 +35,6 @@ static uint64_t getMonotonicTimeInMs()
 
     return timeVal;
 }
-
-// Map of all handled ASDU types by the plugin
-static map<string, int> mapAsduTypeId = {
-    {"M_ME_NB_1", M_ME_NB_1},
-    {"M_SP_NA_1", M_SP_NA_1},
-    {"M_SP_TB_1", M_SP_TB_1},
-    {"M_DP_NA_1", M_DP_NA_1},
-    {"M_DP_TB_1", M_DP_TB_1},
-    {"M_ST_NA_1", M_ST_NA_1},
-    {"M_ST_TB_1", M_ST_TB_1},
-    {"M_ME_NA_1", M_ME_NA_1},
-    {"M_ME_TD_1", M_ME_TD_1},
-    {"M_ME_TE_1", M_ME_TE_1},
-    {"M_ME_NC_1", M_ME_NC_1},
-    {"M_ME_TF_1", M_ME_TF_1},
-    {"C_SC_NA_1", C_SC_NA_1},
-    {"C_SC_TA_1", C_SC_TA_1},
-    {"C_DC_NA_1", C_DC_NA_1},
-    {"C_DC_TA_1", C_DC_TA_1},
-    {"C_RC_NA_1", C_RC_NA_1},
-    {"C_RC_TA_1", C_RC_TA_1},
-    {"C_SE_NA_1", C_SE_NA_1},
-    {"C_SE_TA_1", C_SE_TA_1},
-    {"C_SE_NB_1", C_SE_NB_1},
-    {"C_SE_TB_1", C_SE_TB_1},
-    {"C_SE_NC_1", C_SE_NC_1},
-    {"C_SE_TC_1", C_SE_TC_1}
-};
 
 static map<int, string> mapAsduTypeIdStr = {
     {M_ME_NB_1, "M_ME_NB_1"},
@@ -91,35 +65,10 @@ static map<int, string> mapAsduTypeIdStr = {
 
 int IEC104Client::broadcastCA()
 {
-    int caSize = m_getConfigValueDefault<int>(
-        *m_stack_configuration,
-        "/application_layer/ca_asdu_size"_json_pointer, 2);
-
-    if (caSize == 1)
+    if (m_config->CaSize() == 1)
         return 0xff;
 
     return 0xffff;
-}
-
-int IEC104Client::defaultCA()
-{
-    return m_getConfigValueDefault<int>(
-        *m_stack_configuration,
-        "/application_layer/default_ca"_json_pointer, -1);
-}
-
-int IEC104Client::timeSyncCA()
-{
-    return m_getConfigValueDefault<int>(
-        *m_stack_configuration,
-        "/application_layer/time_sync_ca"_json_pointer, -1);
-}
-
-int IEC104Client::getOrigAddr()
-{
-    return m_getConfigValueDefault<int>(
-        *m_stack_configuration,
-        "/application_layer/orig_addr"_json_pointer, 0);
 }
 
 bool IEC104Client::isMessageTypeMatching(int expectedType, int rcvdType)
@@ -274,52 +223,6 @@ bool IEC104Client::isMessageTypeMatching(int expectedType, int rcvdType)
 }
 
 template <class T>
-T  IEC104Client::m_getConfigValueDefault(json configuration, json_pointer<json> path, T defaultValue)
-{
-    T typed_value = defaultValue;
-
-    try
-    {
-        typed_value = configuration.at(path);
-    }
-    catch (json::parse_error& e)
-    {
-        Logger::getLogger()->fatal("Couldn't parse value " + path.to_string() +
-                                   " : " + e.what());
-    }
-    catch (json::out_of_range& e)
-    {
-        Logger::getLogger()->fatal("Couldn't reach value " + path.to_string() +
-                                   " : " + e.what());
-    }
-
-    return typed_value;
-}
-
-template <class T>
-T IEC104Client::m_getConfigValue(json configuration, json_pointer<json> path)
-{
-    T typed_value;
-
-    try
-    {
-        typed_value = configuration.at(path);
-    }
-    catch (json::parse_error& e)
-    {
-        Logger::getLogger()->fatal("Couldn't parse value " + path.to_string() +
-                                   " : " + e.what());
-    }
-    catch (json::out_of_range& e)
-    {
-        Logger::getLogger()->fatal("Couldn't reach value " + path.to_string() +
-                                   " : " + e.what());
-    }
-
-    return typed_value;
-}
-
-template <class T>
 void IEC104Client::m_addData(CS101_ASDU asdu, vector<Datapoint*>& datapoints, int64_t ioa,
                              const std::string& dataname, const T value,
                              QualityDescriptor* qd, CP56Time2a ts)
@@ -383,54 +286,20 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints,
     }
 }
 
-IEC104Client::IEC104Client(IEC104* iec104, nlohmann::json* stack_configuration,
-                nlohmann::json* msg_configuration)
+IEC104Client::IEC104Client(IEC104* iec104, IEC104ClientConfig* config)
         : m_iec104(iec104),
-            m_stack_configuration(stack_configuration),
-            m_msg_configuration(msg_configuration)
+          m_config(config)
 {
-    createDataExchangeDefinitions();
 }
 
 IEC104Client::~IEC104Client()
 {
-    for (auto const &element : exchangeDefinitions) {
-        for (auto const &elem2 : element.second) {
-            delete elem2.second;
-        }
-    }
-}
-
-void IEC104Client::createDataExchangeDefinitions()
-{
-    for (auto& element : (*m_msg_configuration)["asdu_list"])
-    {
-        int ca = m_getConfigValue<unsigned int>(element, "/ca"_json_pointer);
-        int ioa = m_getConfigValue<unsigned int>(element, "/ioa"_json_pointer);
-
-        std::string typeIdStr = m_getConfigValue<string>(element,
-                                                   "/type_id"_json_pointer);
-
-        std::string label = m_getConfigValue<string>(element,
-                                                   "/label"_json_pointer);
-
-        DataExchangeDefinition* def = new DataExchangeDefinition;
-
-        def->ca = ca;
-        def->ioa = ioa;
-        def->label = label;
-        def->typeId = 0;
-        def->typeId = mapAsduTypeId[typeIdStr];
-
-        exchangeDefinitions[ca][ioa] = def;
-    }
-}
+} 
 
 void IEC104Client::createListOfCAs()
 {
-    for (auto& element : (*m_msg_configuration)["asdu_list"])
-    {
-        int ca = m_getConfigValue<unsigned int>(element, "/ca"_json_pointer);
+    for (auto& element : m_config->ExchangeDefinition()) {
+        int ca = element.first;
 
         m_listOfCA[ca] = ca;
     }
@@ -440,9 +309,9 @@ std::string IEC104Client::m_checkExchangedDataLayer(int ca,
                                               int type_id,
                                               int ioa)
 {
-    auto& def = exchangeDefinitions[ca][ioa];
+    auto& def = m_config->ExchangeDefinition()[ca][ioa];
 
-    if (def) {
+    if (def != nullptr) {
         // check if message type is matching the exchange definition
         if (isMessageTypeMatching(def->typeId, type_id)) {
             return def->label;
@@ -945,10 +814,84 @@ void IEC104Client::m_connectionHandler(void* parameter, CS104_Connection connect
     }
 }
 
+void IEC104Client::prepareParameters(CS104_Connection connection, IEC104ClientRedGroup* redgroup, IEC104ClientRedGroupConnection* redgroupCon)
+{
+    // Transport layer initialization
+    sCS104_APCIParameters apci_parameters = {12, 8,  10,
+                                             15, 10, 20};  // default values
+    apci_parameters.k = redgroup->K();
+    apci_parameters.w = redgroup->W();
+    apci_parameters.t0 = redgroup->T0();
+    apci_parameters.t1 = redgroup->T1();
+    apci_parameters.t2 = redgroup->T2();
+    apci_parameters.t3 = redgroup->T3();
+
+    CS104_Connection_setAPCIParameters(connection, &apci_parameters);
+
+    int asdu_size = m_config->AsduSize();
+
+    // If 0 is set in the configuration file, use the maximum value (249 for IEC 104)
+    if (asdu_size == 0) asdu_size = 249;
+
+    // Application layer initialization
+    sCS101_AppLayerParameters app_layer_parameters = {
+        1, 1, 2, 0, 2, 3, 249};  // default values
+
+    app_layer_parameters.originatorAddress = m_config->OrigAddr();
+    app_layer_parameters.sizeOfCA = m_config->CaSize();
+    app_layer_parameters.sizeOfIOA = m_config->IOASize();
+    app_layer_parameters.maxSizeOfASDU = asdu_size;
+
+    CS104_Connection_setAppLayerParameters(connection, &app_layer_parameters);
+
+    // m_comm_wttag = m_getConfigValue<bool>(
+    //     *m_stack_configuration, "/application_layer/comm_wttag"_json_pointer);
+    // m_tsiv = m_getConfigValue<string>(m_stack_configuration,
+    //                                   "/application_layer/tsiv"_json_pointer);
+
+    Logger::getLogger()->info("Connection initialized");
+}
+
 bool IEC104Client::prepareConnection()
 {
     CS104_Connection new_connection = nullptr;
 
+    //TODO use all connections!
+
+    std::vector<IEC104ClientRedGroup*>& redGroups = m_config->RedundancyGroups();
+
+    for (auto& redGroup : redGroups) {
+        auto& connections = redGroup->Connections();
+
+        for (auto connection : connections) {
+            if (new_connection == nullptr) {
+
+                connection->ServerIP().c_str();
+
+                new_connection = CS104_Connection_create(connection->ServerIP().c_str(), connection->TcpPort());
+
+                if (new_connection != nullptr) {
+                    Logger::getLogger()->info("Connection tp %s:%i created", connection->ServerIP().c_str(), connection->TcpPort());
+
+                    prepareParameters(new_connection, redGroup, connection);
+
+                    CS104_Connection_setConnectionHandler(
+                        new_connection, m_connectionHandler, static_cast<void*>(this));
+
+                    CS104_Connection_setASDUReceivedHandler(new_connection,
+                                                            m_asduReceivedHandler,
+                                                            static_cast<void*>(this));
+
+                    m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
+
+                    CS104_Connection_connectAsync(new_connection);
+                }
+
+            }
+        }
+    }
+
+#if 0
     for (auto& path_element : (*m_stack_configuration)["transport_layer"]["connection"]["path"])
     {
         string ip =
@@ -994,13 +937,7 @@ bool IEC104Client::prepareConnection()
         // only use first part -> TODO implement redundancy handling
         break;
     }
-
-    auto& appLayerConfig = (*m_stack_configuration)["application_layer"];
-
-    m_timeSyncEnabled = m_getConfigValueDefault<bool>(appLayerConfig, "/time_sync"_json_pointer, false);
-    m_timeSyncPeriod = m_getConfigValueDefault<int>(appLayerConfig, "/time_sync_period"_json_pointer, 0);
-    
-    m_giAllCA = m_getConfigValueDefault<bool>(appLayerConfig, "/gi_all_ca"_json_pointer, true);
+#endif
 
     createListOfCAs();
 
@@ -1017,7 +954,7 @@ bool IEC104Client::prepareConnection()
 void IEC104Client::performPeriodicTasks()
 {
     /* do time synchroniation when enabled */
-    if (m_timeSyncEnabled) {
+    if (m_config->isTimeSyncEnabled()) {
 
         bool sendTimeSyncCommand = false;
 
@@ -1040,10 +977,10 @@ void IEC104Client::performPeriodicTasks()
             
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
-            int ca = timeSyncCA();
+            int ca = m_config->TimeSyncCa();
 
             if (ca == -1)
-                ca = defaultCA();
+                ca = m_config->DefaultCa();
 
             if (ca == -1)
                 ca = broadcastCA();
@@ -1059,12 +996,12 @@ void IEC104Client::performPeriodicTasks()
             }
         }
     }
-
-    if ((m_timeSyncEnabled == false) || (m_firstTimeSyncOperationCompleted == true)) 
+    
+    if ((m_config->isTimeSyncEnabled() == false) || (m_firstTimeSyncOperationCompleted == true)) 
     {
         if (m_firstGISent == false) {
 
-            if (m_giAllCA == false) {
+            if (m_config->GiForAllCa() == false) {
                 if (sendInterrogationCommand(broadcastCA())) {
                     m_firstGISent = true;
                     m_interrogationInProgress = true;
@@ -1109,7 +1046,7 @@ void IEC104Client::performPeriodicTasks()
                 }
                 else {
 
-                    if (m_giAllCA == true) {
+                    if (m_config->GiForAllCa() == true) {
 
                         if (m_listOfCA_it != m_listOfCA.end()) {
                             if (sendInterrogationCommand(m_listOfCA_it->first)) {
@@ -1320,7 +1257,6 @@ bool IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, 
     // check if the data point is in the exchange configuration
     if (m_checkExchangedDataLayer(ca, typeID, ioa) == "") {
         Logger::getLogger()->error("Failed to send command - no such data point");
-        printf("Failed to send command - no such data point");
 
         return false;
     }

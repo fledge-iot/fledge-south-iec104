@@ -10,7 +10,6 @@
 #include <vector>
 
 using namespace std;
-using namespace nlohmann;
 
 #include "conf_init.h"
 struct json_config

@@ -31,8 +31,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <json.hpp>
 // clang-format on
+
+#include "iec104_client_config.h"
 
 class IEC104Client;
 
@@ -59,35 +60,9 @@ public:
     bool operation(const std::string& operation, int count,
                    PLUGIN_PARAMETER** params);
 
-
-    void prepareParameters(CS104_Connection connection);  
-
-    // For test purpose
-    void sendInterrogationCommmands();
-    void sendInterrogationCommmandToCA(unsigned int ca, int gi_repeat_count,
-                                       int gi_time);
-
-    static bool getCommWttag() { return m_comm_wttag; };
-    static void setCommWttag(bool comm_wttag) { m_comm_wttag = comm_wttag; };
-
-    static std::string getTsiv() { return m_tsiv; };
-    static void setTsiv(std::string tsiv) { m_tsiv = tsiv; };
-
 private:
 
-    template <class T>
-    static T m_getConfigValue(nlohmann::json configuration,
-                              nlohmann::json_pointer<nlohmann::json> path);
-
-    void m_sendInterrogationCommmands();
-    void m_sendInterrogationCommmandToCA(unsigned int ca, int gi_repeat_count,
-                                         int gi_time);
-
-    static CS104_Connection m_createTlsConnection(const char* ip, int port);
-
     static int m_watchdog(int delay, int checkRes, bool* flag, std::string id);
-
-    int m_getBroadcastCA();
 
     bool m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime);
     bool m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime);
@@ -96,14 +71,9 @@ private:
     bool m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime);
     bool m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime);
 
-    nlohmann::json m_stack_configuration;
-    nlohmann::json m_msg_configuration;
-    nlohmann::json m_tls_configuration;
+    IEC104ClientConfig* m_config;
 
     std::string m_asset;
-
-    static bool m_comm_wttag;
-    static std::string m_tsiv;
 
 protected:
     std::vector<CS104_Connection> m_connections;
@@ -118,9 +88,7 @@ class IEC104Client
 {
 public:
 
-    explicit IEC104Client(IEC104* iec104,
-                    nlohmann::json* stack_configuration,
-                    nlohmann::json* msg_configuration);
+    explicit IEC104Client(IEC104* iec104, IEC104ClientConfig* config);
 
     ~IEC104Client();
 
@@ -163,27 +131,16 @@ private:
         CON_STATE_FATAL_ERROR
     } ConState;
 
-
-    typedef struct {
-        int ca;
-        int ioa;
-        int typeId;
-        std::string label;
-    } DataExchangeDefinition;
-
-    std::map<int, std::map<int, DataExchangeDefinition*>> exchangeDefinitions;
-
+    IEC104ClientConfig* m_config;
 
     ConState m_connectionState = CON_STATE_IDLE;
     bool m_started = false;
     bool m_startDtSent = false;
 
-    bool m_timeSyncEnabled = false;
     bool m_timeSynchronized = false;
     bool m_timeSyncCommandSent = false;
     bool m_firstTimeSyncOperationCompleted = false;
     int m_timeSyncPeriod = 0;
-    bool m_giAllCA = true;
     uint64_t m_nextTimeSync;
 
     bool m_firstGISent = false;
@@ -202,14 +159,8 @@ private:
     void _conThread();
 
     int broadcastCA();
-    int defaultCA();
-    int timeSyncCA();
-    int getOrigAddr();
 
-    void createDataExchangeDefinitions();
-
-    void prepareParameters(CS104_Connection connection);
-
+    void prepareParameters(CS104_Connection connection, IEC104ClientRedGroup* redgroup, IEC104ClientRedGroupConnection* redgroupCon);
     bool prepareConnection();
     void performPeriodicTasks();
 
@@ -222,14 +173,6 @@ private:
 
     static bool m_asduReceivedHandler(void* parameter, int address,
         CS101_ASDU asdu);
-
-    template <class T>
-    static T m_getConfigValue(nlohmann::json configuration,
-                              nlohmann::json_pointer<nlohmann::json> path);
-
-    template <class T>
-    static T m_getConfigValueDefault(nlohmann::json configuration, 
-                                nlohmann::json_pointer<nlohmann::json> path, T defaultValue);
 
     template <class T>
     void m_addData(CS101_ASDU asdu, std::vector<Datapoint*>& datapoints, int64_t ioa,
@@ -351,8 +294,6 @@ private:
     }
 
     IEC104* m_iec104;
-    nlohmann::json* m_stack_configuration;
-    nlohmann::json* m_msg_configuration;
 
     bool m_comm_wttag = false;
 };

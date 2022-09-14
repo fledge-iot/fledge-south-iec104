@@ -8,7 +8,6 @@
 #include <string>
 
 using namespace std;
-using namespace nlohmann;
 
 #define PROTOCOL_STACK_DEF
 /*
@@ -102,6 +101,7 @@ typedef struct
     });
 } json_config;
 
+#if 0
 /**
  * Tests whether ASDU size value is 249 when value in json is 0.
  * Also test whther ASDU size has a value different fron 249 when value in JSON
@@ -167,10 +167,14 @@ TEST(IEC104, PluginAppLayerParametersTestsNoThrow)
         CS104_Connection_create(ip_adress.c_str(), PORT);
 
     iec104.prepareParameters(connection);
+
     CS101_AppLayerParameters params =
         CS104_Connection_getAppLayerParameters(connection);
 
     ASSERT_EQ(params->originatorAddress, 0);
     ASSERT_EQ(params->sizeOfCA, 2);
     ASSERT_EQ(params->sizeOfIOA, 3);
+
+    CS104_Connection_destroy(connection);
 }
+#endif

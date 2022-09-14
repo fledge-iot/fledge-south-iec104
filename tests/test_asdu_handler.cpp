@@ -10,7 +10,6 @@
 
 using ::testing::NiceMock;
 using namespace std;
-using namespace nlohmann;
 
 // Define configuration, important part is the exchanged_data
 // It contains all asdu to take into account
@@ -142,21 +141,15 @@ protected:
     IEC104* iec104;        // Object on which we call for tests
     json_config config;    // Will contain JSON defined above
     InformationObject io;  // Contain information object for asdu
-    json m_stack_configuration;
+
     struct sCP56Time2a testTimestamp;
     IEC104Client* m_client;
 
     // Setup is ran for every tests, so each variable are reinitialised
     void SetUp() override
     {
-        m_stack_configuration =
-            json::parse(config.protocol_stack);
-
         // Init iec object with dummy ingest callback and json configuration
         iec104 = new IEC104();
-        iec104->setTsiv("PROCESS");
-        iec104->setCommWttag(false);
-        iec104->registerIngest(NULL, ingest_cb);
         iec104->setJsonConfig(config.protocol_stack, config.exchanged_data, config.tls);
 
         // Init used parameters to define create ASDU
@@ -167,7 +160,9 @@ protected:
         // Get current timestamp (used in tests)
         CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
 
-        m_client = new IEC104Client(iec104, &m_stack_configuration, NULL);
+        IEC104ClientConfig config;
+
+        m_client = new IEC104Client(iec104, &config);
 
         // Default base ASDU
         asdu = CS101_ASDU_create(alParams, false, CS101_COT_INITIALIZED, 0, 1,

@@ -11,7 +11,6 @@
 #include <vector>
 
 using namespace std;
-using namespace nlohmann;
 
 #define TEST_PORT 2404
 
@@ -22,14 +21,17 @@ using namespace nlohmann;
             "name" : "iec104client",                                           \
             "version" : "1.0",                                                 \
             "transport_layer" : {                                              \
-                "connection" : {                                               \
-                    "path" : [                                                 \
+                "redundancy_groups" : {                                        \
+                    "connections" : [                                                 \
                         {                                                      \
                             "srv_ip" : "127.0.0.1",                            \
-                            "clt_ip" : "",                                     \
                             "port" : 2404                                      \
                         },                                                     \
-                        {"srv_ip" : "127.0.0.1", "clt_ip" : "", "port" : 2404} \
+                        {                                                      \
+                            "srv_ip" : "127.0.0.1",                            \
+                            "port" : 2404, \
+                            "start" : false \
+                         }                                                       \
                     ],                                                         \
                     "tls" : false                                              \
                 },                                                             \
