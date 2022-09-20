@@ -7,6 +7,8 @@
 
 #include <arpa/inet.h>
 
+#include <algorithm>
+
 #define JSON_EXCHANGED_DATA "exchanged_data"
 #define JSON_DATAPOINTS "datapoints"
 #define JSON_PROTOCOLS "protocols"
@@ -16,7 +18,6 @@
 #define JSON_PROT_NAME "name"
 #define JSON_PROT_ADDR "address"
 #define JSON_PROT_TYPEID "typeid"
-
 
 using namespace rapidjson;
 
@@ -57,13 +58,180 @@ static map<string, int> mapAsduTypeId = {
     {"C_SE_TC_1", C_SE_TC_1}
 };
 
-int IEC104ClientConfig::GetTypeIdByName(const string& name)
+int
+IEC104ClientConfig::GetTypeIdByName(const string& name)
 {
     int typeId = 0;
 
     typeId = mapAsduTypeId[name];
 
     return typeId;
+}
+
+bool IEC104ClientConfig::isMessageTypeMatching(int expectedType, int rcvdType)
+{
+    if (expectedType == rcvdType) {
+        return true; /* direct match */
+    }
+
+    switch (expectedType) {
+
+        case M_SP_NA_1:
+            if ((rcvdType == M_SP_TA_1) || (rcvdType == M_SP_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_SP_TA_1:
+            if ((rcvdType == M_SP_NA_1) || (rcvdType == M_SP_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_SP_TB_1:
+            if ((rcvdType == M_SP_NA_1) || (rcvdType == M_SP_TA_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_DP_NA_1:
+            if ((rcvdType == M_DP_TA_1) || (rcvdType == M_DP_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_DP_TA_1:
+            if ((rcvdType == M_DP_NA_1) || (rcvdType == M_DP_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_DP_TB_1:
+            if ((rcvdType == M_DP_NA_1) || (rcvdType == M_DP_TA_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_NA_1:
+            if ((rcvdType == M_ME_TA_1) || (rcvdType == M_ME_TD_1) || (rcvdType == M_ME_ND_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TA_1:
+            if ((rcvdType == M_ME_NA_1) || (rcvdType == M_ME_TD_1) || (rcvdType == M_ME_ND_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TD_1:
+            if ((rcvdType == M_ME_TA_1) || (rcvdType == M_ME_NA_1) || (rcvdType == M_ME_ND_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_ND_1:
+            if ((rcvdType == M_ME_TA_1) || (rcvdType == M_ME_TD_1) || (rcvdType == M_ME_NA_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_NB_1:
+            if ((rcvdType == M_ME_TB_1) || (rcvdType == M_ME_TE_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TB_1:
+            if ((rcvdType == M_ME_NB_1) || (rcvdType == M_ME_TE_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TE_1:
+            if ((rcvdType == M_ME_TB_1) || (rcvdType == M_ME_NB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_NC_1:
+            if ((rcvdType == M_ME_TC_1) || (rcvdType == M_ME_TF_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TC_1:
+            if ((rcvdType == M_ME_NC_1) || (rcvdType == M_ME_TF_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ME_TF_1:
+            if ((rcvdType == M_ME_TC_1) || (rcvdType == M_ME_NC_1)) {
+                return true;
+            }
+
+            break;
+
+
+        case M_ST_NA_1:
+            if ((rcvdType == M_ST_TA_1) || (rcvdType == M_ST_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ST_TA_1:
+            if ((rcvdType == M_ST_NA_1) || (rcvdType == M_ST_TB_1)) {
+                return true;
+            }
+
+            break;
+
+        case M_ST_TB_1:
+            if ((rcvdType == M_ST_TA_1) || (rcvdType == M_ST_NA_1)) {
+                return true;
+            }
+
+            break;
+
+
+        default:
+            //Type not supported
+            break;
+    }   
+
+    return false;
+}
+
+std::string*
+IEC104ClientConfig::checkExchangeDataLayer(int typeId, int ca, int ioa)
+{
+    auto& def = ExchangeDefinition()[ca][ioa];
+
+    if (def != nullptr) {
+        // check if message type is matching the exchange definition
+        if (isMessageTypeMatching(def->typeId, typeId)) {
+            return &(def->label);
+        }
+    }
+
+    return nullptr;
 }
 
 bool
@@ -184,7 +352,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                                             }
                                         }
 
-                                        IEC104ClientRedGroupConnection* connection = new IEC104ClientRedGroupConnection(srvIp, tcpPort, conn, start);
+                                        RedGroupCon* connection = new RedGroupCon(srvIp, tcpPort, conn, start);
 
                                         redundancyGroup->AddConnection(connection);
 
@@ -577,6 +745,14 @@ void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
                     }
                 }
             }
+        }
+    }
+
+    for (auto& element : ExchangeDefinition()) {
+        int ca = element.first;
+
+        if (std::find(m_listOfCAs.begin(), m_listOfCAs.end(), ca) == m_listOfCAs.end()) {
+            m_listOfCAs.push_back(ca);
         }
     }
 

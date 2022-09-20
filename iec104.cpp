@@ -102,37 +102,8 @@ void IEC104::registerIngest(void* data, INGEST_CB cb)
     m_data = data;
 }
 
-int IEC104::m_watchdog(int delay, int checkRes, bool* flag, std::string id)
-{
-    using namespace std::chrono;
-    high_resolution_clock::time_point beginning_time =
-        high_resolution_clock::now();
-    while (true)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(checkRes));
-        high_resolution_clock::time_point current_time =
-            high_resolution_clock::now();
-        duration<double, std::milli> time_span = current_time - beginning_time;
-        if (*flag)  // Operation has been validated
-        {
-            Logger::getLogger()->info(id + " completed in " +
-                                      to_string(time_span.count() / 1000) +
-                                      " seconds.");
-            return 0;
-        }
-        else  // Operation has not been validated yet
-        {
-            if (time_span.count() > 1000 * delay)
-            {  // Time has expired
-                Logger::getLogger()->warn(
-                    id + " is taking to int64_t, restarting ...");
-                return 1;
-            }
-        }
-    }
-}
-
-bool IEC104::m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
+bool
+IEC104::m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
     if (count > 3) {
         // common address of the asdu
@@ -157,7 +128,8 @@ bool IEC104::m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool
     }
 }
 
-bool IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
+bool
+IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
     if (count > 3) {
         // common address of the asdu
@@ -184,7 +156,8 @@ bool IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool
     }
 }
 
-bool IEC104::m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
+bool
+IEC104::m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
     if (count > 3) {
         // common address of the asdu
@@ -209,7 +182,8 @@ bool IEC104::m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool w
     }
 }
 
-bool IEC104::m_setpointNormalized(int count, PLUGIN_PARAMETER** params, bool withTime)
+bool
+IEC104::m_setpointNormalized(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
     if (count > 2) {
         // common address of the asdu
@@ -230,7 +204,8 @@ bool IEC104::m_setpointNormalized(int count, PLUGIN_PARAMETER** params, bool wit
     }
 }
 
-bool IEC104::m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime)
+bool
+IEC104::m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
     if (count > 2) {
         // common address of the asdu
@@ -251,7 +226,8 @@ bool IEC104::m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTim
     }
 }
 
-bool IEC104::m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime)
+bool
+IEC104::m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
     if (count > 2) {
         // common address of the asdu
@@ -279,7 +255,8 @@ bool IEC104::m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime
  * name and a value
  * @param count         number of parameters
  */
-bool IEC104::operation(const std::string& operation, int count,
+bool
+IEC104::operation(const std::string& operation, int count,
                        PLUGIN_PARAMETER** params)
 {
     printf("IEC104::operation(%s)\n", operation.c_str());
@@ -351,4 +328,3 @@ bool IEC104::operation(const std::string& operation, int count,
     Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
     return false;
 }
-

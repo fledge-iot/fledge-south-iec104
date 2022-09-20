@@ -2,7 +2,7 @@
 #define IEC104_CLIENT_CONFIG_H
 
 
-#include "logger.h"
+#include <logger.h>
 #include <map>
 #include <vector>
 #include "iec104_client_redgroup.h"
@@ -50,9 +50,15 @@ public:
 
     std::map<int, std::map<int, DataExchangeDefinition*>>& ExchangeDefinition() {return m_exchangeDefinitions;};
 
+    std::vector<int>& ListOfCAs() {return m_listOfCAs;};
+
     static int GetTypeIdByName(const string& name);
 
+    std::string* checkExchangeDataLayer(int typeId, int ca, int ioa);
+
 private:
+
+    static bool isMessageTypeMatching(int expectedType, int rcvdType);
 
     void deleteExchangeDefinitions();
 
@@ -60,6 +66,8 @@ private:
 
     std::map<int, std::map<int, DataExchangeDefinition*>> m_exchangeDefinitions = std::map<int, std::map<int, DataExchangeDefinition*>>();
 
+    std::vector<int> m_listOfCAs = std::vector<int>();
+    
     int m_caSize = 2;
     int m_ioaSize = 3;
     int m_asduSize = 0;

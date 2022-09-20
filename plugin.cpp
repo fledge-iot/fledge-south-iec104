@@ -26,96 +26,103 @@ typedef void (*INGEST_CB)(void *, Reading);
 #define PLUGIN_NAME "iec104"
 
 // PLUGIN DEFAULT PROTOCOL STACK CONF
-#define PROTOCOL_STACK_DEF                                                     \
-    QUOTE({                                                                    \
-        "protocol_stack" : {                                                   \
-            "name" : "iec104client",                                           \
-            "version" : "1.0",                                                 \
-            "transport_layer" : {                                              \
-                "connection" : {                                               \
-                    "path" : [                                                 \
-                        {                                                      \
-                            "srv_ip" : "127.0.0.1",                            \
-                            "clt_ip" : "",                                     \
-                            "port" : 2404                                      \
-                        },                                                     \
-                        {"srv_ip" : "127.0.0.1", "clt_ip" : "", "port" : 2404} \
-                    ],                                                         \
-                    "tls" : false                                              \
-                },                                                             \
-                "llevel" : 1,                                                  \
-                "k_value" : 12,                                                \
-                "w_value" : 8,                                                 \
-                "t0_timeout" : 10,                                             \
-                "t1_timeout" : 15,                                             \
-                "t2_timeout" : 10,                                             \
-                "t3_timeout" : 20,                                             \
-                "conn_all" : true,                                             \
-                "start_all" : false,                                           \
-                "conn_passv" : false                                           \
-            },                                                                 \
-            "application_layer" : {                                            \
-                "orig_addr" : 0,                                               \
-                "ca_asdu_size" : 2,                                            \
-                "ioaddr_size" : 3,                                             \
-                "startup_time" : 180,                                          \
-                "asdu_size" : 0,                                               \
-                "gi_time" : 60,                                                \
-                "gi_cycle" : false,                                            \
-                "gi_all_ca" : false,                                           \
-                "gi_repeat_count" : 2,                                         \
-                "disc_qual" : "NT",                                            \
-                "send_iv_time" : 0,                                            \
-                "tsiv" : "REMOVE",                                             \
-                "utc_time" : false,                                            \
-                "comm_wttag" : false,                                          \
-                "comm_parallel" : 0,                                           \
-                "exec_cycl_test" : false,                                      \
-                "startup_state" : true,                                        \
-                "reverse" : false,                                             \
-                "time_sync" : false                                            \
-            }                                                                  \
-        }                                                                      \
-    })
+static string protocol_config = QUOTE({
+        "protocol_stack" : {
+            "name" : "iec104client",
+            "version" : "1.0",
+            "transport_layer" : {
+                "redundancy_groups" : [
+                    { 
+                        "connections" : [
+                            {     
+                                "srv_ip" : "127.0.0.1",        
+                                "port" : 2404          
+                            }
+                        ],
+                        "rg_name" : "red-group1",  
+                        "tls" : false,
+                        "k_value" : 12,  
+                        "w_value" : 8,
+                        "t0_timeout" : 10,                 
+                        "t1_timeout" : 15,                 
+                        "t2_timeout" : 10,                 
+                        "t3_timeout" : 20    
+                    }
+                ]                  
+            },                
+            "application_layer" : {                
+                "orig_addr" : 10, 
+                "ca_asdu_size" : 2,                
+                "ioaddr_size" : 3,                 
+                "startup_time" : 180,              
+                "asdu_size" : 0, 
+                "gi_time" : 60,  
+                "gi_cycle" : false,                
+                "gi_all_ca" : false,               
+                "gi_repeat_count" : 2,             
+                "disc_qual" : "NT",                
+                "send_iv_time" : 0,                
+                "tsiv" : "REMOVE",                 
+                "utc_time" : false,                
+                "comm_wttag" : false,              
+                "comm_parallel" : 0,               
+                "exec_cycl_test" : false,          
+                "reverse" : false,                 
+                "time_sync" : 0                 
+            }                 
+        }                     
+    });
 
 // PLUGIN DEFAULT EXCHANGED DATA CONF
-#define EXCHANGED_DATA_DEF                   \
-    QUOTE({                                  \
-        "exchanged_data" : {                 \
-            "name" : "iec104client",         \
-            "version" : "1.0",               \
-            "asdu_list" : [                  \
-                {                            \
-                    "ca" : 41025,            \
-                    "type_id" : "M_ME_NA_1", \
-                    "label" : "TM-1",        \
-                    "ioa" : 4202832          \
-                },                           \
-                {                            \
-                    "ca" : 41025,            \
-                    "type_id" : "M_ME_NA_1", \
-                    "label" : "TM-2",        \
-                    "ioa" : 4202852          \
-                },                           \
-                {                            \
-                    "ca" : 41025,            \
-                    "type_id" : "M_SP_TB_1", \
-                    "label" : "TS-1",        \
-                    "ioa" : 4206948          \
-                }                            \
-            ]                                \
-        }                                    \
-    })
 
-// PLUGIN DEFAULT TLS CONF
-#define TLS_DEF                               \
-    QUOTE({                                   \
-        "tls_conf:" : {                       \
-            "private_key" : "server-key.pem", \
-            "server_cert" : "server.cer",     \
-            "ca_cert" : "root.cer"            \
-        }                                     \
-    })
+static string exchanged_data = QUOTE({
+        "exchanged_data": {
+            "name" : "iec104client",        
+            "version" : "1.0",               
+            "datapoints" : [          
+                {
+                    "label":"TM-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4202832",
+                          "typeid":"M_ME_NA_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"TM-2",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4202852",
+                          "typeid":"M_ME_NA_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"TS-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4206948",
+                          "typeid":"M_SP_TB_1"
+                       }
+                    ]
+                }                   
+            ]
+        }
+    });
+
+// PLUGIN DEFAULT TLS CONF  
+static string tls_config =  QUOTE({       
+        "tls_conf:" : {
+            "private_key" : "server-key.pem",
+            "server_cert" : "server.cer",
+            "ca_cert" : "root.cer"
+        }         
+    });
+
 
 /**
  * Default configuration
@@ -123,14 +130,14 @@ typedef void (*INGEST_CB)(void *, Reading);
 static const char *default_config = QUOTE({
     "plugin" : {
         "description" : "iec104 south plugin",
-        "type" : "string",
+        "type" : "json",
         "default" : PLUGIN_NAME,
         "readonly" : "true"
     },
 
     "asset" : {
         "description" : "Asset name",
-        "type" : "string",
+        "type" : "json",
         "default" : "iec104",
         "displayName" : "Asset Name",
         "order" : "1",
@@ -139,27 +146,26 @@ static const char *default_config = QUOTE({
 
     "protocol_stack" : {
         "description" : "protocol stack parameters",
-        "type" : "string",
+        "type" : "json",
         "displayName" : "Protocol stack parameters",
         "order" : "2",
-        "default" : PROTOCOL_STACK_DEF
+        "default" : protocol_config
     },
 
     "exchanged_data" : {
         "description" : "exchanged data list",
-        "type" : "string",
+        "type" : "json",
         "displayName" : "Exchanged data list",
         "order" : "3",
-        "default" : EXCHANGED_DATA_DEF
+        "default" : exchanged_data
     },
-
 
     "tls" : {
         "description" : "tls parameters",
-        "type" : "string",
+        "type" : "json",
         "displayName" : "TLS parameters",
         "order" : "5",
-        "default" : TLS_DEF
+        "default" : tls_config
     }
 });
 

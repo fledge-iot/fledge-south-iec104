@@ -1,6 +1,6 @@
 #include "iec104_client_redgroup.h"
 
-IEC104ClientRedGroupConnection::IEC104ClientRedGroupConnection(const string& serverIp, int tcpPort, bool conn, bool start)
+RedGroupCon::RedGroupCon(const string& serverIp, int tcpPort, bool conn, bool start)
 {
     m_serverIp = serverIp;
     m_tcpPort = tcpPort;
@@ -8,7 +8,7 @@ IEC104ClientRedGroupConnection::IEC104ClientRedGroupConnection(const string& ser
     m_conn = conn;
 }
 
-void IEC104ClientRedGroup::AddConnection(IEC104ClientRedGroupConnection* con)
+void IEC104ClientRedGroup::AddConnection(RedGroupCon* con)
 {
     m_connections.push_back(con);
 }
