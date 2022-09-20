@@ -21,7 +21,8 @@
 
 using namespace std;
 
-static uint64_t getMonotonicTimeInMs()
+static uint64_t
+getMonotonicTimeInMs()
 {
     uint64_t timeVal = 0;
 
@@ -61,7 +62,8 @@ static map<int, string> mapAsduTypeIdStr = {
     {C_SE_NC_1, "C_SE_NC_1"}
 };
 
-int IEC104Client::broadcastCA()
+int
+IEC104Client::broadcastCA()
 {
     if (m_config->CaSize() == 1)
         return 0xff;
@@ -118,7 +120,8 @@ Datapoint* IEC104Client::m_createDataObject(CS101_ASDU asdu, int64_t ioa, const 
     return new Datapoint("data_object", dpv);
 }
 
-void IEC104Client::sendData(vector<Datapoint*> datapoints,
+void
+IEC104Client::sendData(vector<Datapoint*> datapoints,
                             const vector<std::string> labels)
 {
     int i = 0;
@@ -214,12 +217,32 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
 
                 case C_SC_NA_1:
                 case C_SC_TA_1:
-                    handle_C_SC_TA_1(datapoints, *label, ca, asdu, io, ioa);
+                    handle_C_SC_NA_1(datapoints, *label, ca, asdu, io, ioa);
                     break;
 
                 case C_DC_TA_1:
                 case C_DC_NA_1:
-                    handle_C_DC_TA_1(datapoints, *label, ca, asdu, io, ioa);
+                    handle_C_DC_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                    break;
+
+                case C_RC_NA_1:
+                case C_RC_TA_1:
+                    handle_C_RC_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                    break;
+
+                case C_SE_NA_1:
+                case C_SE_TA_1:
+                    handle_C_SE_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                    break;
+
+                case C_SE_NB_1:
+                case C_SE_TB_1:
+                    handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
+                    break;
+
+                case C_SE_NC_1:
+                case C_SE_TC_1:
+                    handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
                     break;
             }
 
@@ -467,7 +490,7 @@ void IEC104Client::handle_M_ME_TF_1(vector<Datapoint*>& datapoints, string& labe
     MeasuredValueShortWithCP56Time2a_destroy(io_casted);
 }
 
-void IEC104Client::handle_C_SC_TA_1(vector<Datapoint*>& datapoints, string& label,
+void IEC104Client::handle_C_SC_NA_1(vector<Datapoint*>& datapoints, string& label,
                              unsigned int ca,
                              CS101_ASDU asdu, InformationObject io,
                              uint64_t ioa)
@@ -488,10 +511,10 @@ void IEC104Client::handle_C_SC_TA_1(vector<Datapoint*>& datapoints, string& labe
         datapoints.push_back(m_createDataObject(asdu, ioa, label, state, nullptr));
     }
 
-    SingleCommandWithCP56Time2a_destroy(io_casted);
+    InformationObject_destroy(io);
 }
 
-void IEC104Client::handle_C_DC_TA_1(vector<Datapoint*>& datapoints, string& label,
+void IEC104Client::handle_C_DC_NA_1(vector<Datapoint*>& datapoints, string& label,
                              unsigned int ca,
                              CS101_ASDU asdu, InformationObject io,
                              uint64_t ioa)
@@ -504,14 +527,104 @@ void IEC104Client::handle_C_DC_TA_1(vector<Datapoint*>& datapoints, string& labe
     if (CS101_ASDU_getTypeID(asdu) == C_DC_TA_1)
     {
         CP56Time2a ts = DoubleCommandWithCP56Time2a_getTimestamp(io_casted);
-        bool is_invalid = CP56Time2a_isInvalid(ts);
-        //if (m_tsiv == "PROCESS" || !is_invalid)
+
         datapoints.push_back(m_createDataObject(asdu, ioa, label, state, nullptr, ts));
     }
     else
         datapoints.push_back(m_createDataObject(asdu, ioa, label, state, nullptr));
 
-    DoubleCommandWithCP56Time2a_destroy(io_casted);
+    InformationObject_destroy(io);
+}
+
+void IEC104Client::handle_C_RC_NA_1(vector<Datapoint*>& datapoints, string& label,
+                             unsigned int ca,
+                             CS101_ASDU asdu, InformationObject io,
+                             uint64_t ioa)
+{
+    auto io_casted = (StepCommandWithCP56Time2a)io;
+    int64_t state = StepCommand_getState((StepCommand)io_casted);
+
+    QualifierOfCommand qu = StepCommand_getQU((StepCommand)io_casted);
+
+    if (CS101_ASDU_getTypeID(asdu) == C_DC_TA_1)
+    {
+        CP56Time2a ts = StepCommandWithCP56Time2a_getTimestamp(io_casted);
+
+        datapoints.push_back(m_createDataObject(asdu, ioa, label, state, nullptr, ts));
+    }
+    else
+        datapoints.push_back(m_createDataObject(asdu, ioa, label, state, nullptr));
+
+    InformationObject_destroy(io);
+}
+
+void IEC104Client::handle_C_SE_NA_1(vector<Datapoint*>& datapoints, string& label,
+                             unsigned int ca,
+                             CS101_ASDU asdu, InformationObject io,
+                             uint64_t ioa)
+{
+    auto io_casted = (SetpointCommandNormalizedWithCP56Time2a)io;
+
+    float value = SetpointCommandNormalized_getValue((SetpointCommandNormalized)io_casted);
+
+    QualifierOfCommand ql = SetpointCommandNormalized_getQL((SetpointCommandNormalized)io_casted);
+
+    if (CS101_ASDU_getTypeID(asdu) == C_SE_TA_1)
+    {
+        CP56Time2a ts = SetpointCommandNormalizedWithCP56Time2a_getTimestamp(io_casted);
+
+        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, nullptr, ts));
+    }
+    else
+        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, nullptr));
+
+    InformationObject_destroy(io);
+}
+
+void IEC104Client::handle_C_SE_NB_1(vector<Datapoint*>& datapoints, string& label,
+                             unsigned int ca,
+                             CS101_ASDU asdu, InformationObject io,
+                             uint64_t ioa)
+{
+    auto io_casted = (SetpointCommandScaledWithCP56Time2a)io;
+
+    int64_t value = SetpointCommandScaled_getValue((SetpointCommandScaled)io_casted);
+
+    QualifierOfCommand ql = SetpointCommandScaled_getQL((SetpointCommandScaled)io_casted);
+
+    if (CS101_ASDU_getTypeID(asdu) == C_SE_TB_1)
+    {
+        CP56Time2a ts = SetpointCommandScaledWithCP56Time2a_getTimestamp(io_casted);
+
+        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, nullptr, ts));
+    }
+    else
+        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, nullptr));
+
+    InformationObject_destroy(io);
+}
+
+void IEC104Client::handle_C_SE_NC_1(vector<Datapoint*>& datapoints, string& label,
+                             unsigned int ca,
+                             CS101_ASDU asdu, InformationObject io,
+                             uint64_t ioa)
+{
+    auto io_casted = (SetpointCommandShortWithCP56Time2a)io;
+
+    float value = SetpointCommandShort_getValue((SetpointCommandShort)io_casted);
+
+    QualifierOfCommand ql = SetpointCommandShort_getQL((SetpointCommandShort)io_casted);
+
+    if (CS101_ASDU_getTypeID(asdu) == C_SE_TC_1)
+    {
+        CP56Time2a ts = SetpointCommandShortWithCP56Time2a_getTimestamp(io_casted);
+
+        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, nullptr, ts));
+    }
+    else
+        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, nullptr));
+
+    InformationObject_destroy(io);
 }
 
 bool
@@ -537,7 +650,8 @@ IEC104Client::prepareConnections()
     return true;
 }
 
-void IEC104Client::start()
+void
+IEC104Client::start()
 {
     if (m_started == false) {
 
@@ -613,7 +727,8 @@ IEC104Client::_monitoringThread()
     }
 }
 
-bool IEC104Client::sendInterrogationCommand(int ca)
+bool
+IEC104Client::sendInterrogationCommand(int ca)
 {
     // send interrogation request over active connection
     bool success = false;
@@ -630,7 +745,8 @@ bool IEC104Client::sendInterrogationCommand(int ca)
     return success;
 }
 
-bool IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select)
+bool
+IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select)
 {
     // send single command over active connection
     bool success = false;
@@ -655,7 +771,8 @@ bool IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime,
     return success;
 }
 
-bool IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select)
+bool
+IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select)
 {
     // send double command over active connection
     bool success = false;
@@ -679,7 +796,8 @@ bool IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, 
     return success;
 }
 
-bool IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool select)
+bool
+IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool select)
 {
     // send step command over active connection
     bool success = false;
@@ -783,5 +901,3 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime)
 
     return success;
 }
-
-

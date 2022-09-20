@@ -315,8 +315,6 @@ protected:
                 IMasterConnection_sendACT_CON(connection, asdu, false);
                 lastConnection = connection;
             }
-
-            
         }
         else if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1) {
             printf("  C_SC_TA_1 (single-command w/timetag)\n");

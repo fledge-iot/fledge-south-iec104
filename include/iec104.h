@@ -226,14 +226,34 @@ private:
                                 InformationObject io, uint64_t ioa);
 
     // commands and setpoint commands (for ACKs)
-    void handle_C_SC_TA_1(std::vector<Datapoint*>& datapoints,
+    void handle_C_SC_NA_1(std::vector<Datapoint*>& datapoints,
                                 std::string& label,
                                 unsigned int ca, CS101_ASDU asdu,
                                 InformationObject io, uint64_t ioa);
 
-    void handle_C_DC_TA_1(std::vector<Datapoint*>& datapoints,
+    void handle_C_DC_NA_1(std::vector<Datapoint*>& datapoints,
                                 std::string& label,
                                 unsigned int ca, CS101_ASDU asdu,
+                                InformationObject io, uint64_t ioa);
+
+    void handle_C_RC_NA_1(vector<Datapoint*>& datapoints,
+                                string& label,
+                                unsigned int ca, CS101_ASDU asdu, 
+                                InformationObject io, uint64_t ioa);
+
+    void handle_C_SE_NA_1(vector<Datapoint*>& datapoints,
+                                string& label,
+                                unsigned int ca, CS101_ASDU asdu, 
+                                InformationObject io, uint64_t ioa);
+
+    void handle_C_SE_NB_1(vector<Datapoint*>& datapoints,
+                                string& label,
+                                unsigned int ca, CS101_ASDU asdu, 
+                                InformationObject io, uint64_t ioa);
+                                
+    void handle_C_SE_NC_1(vector<Datapoint*>& datapoints,
+                                string& label,
+                                unsigned int ca, CS101_ASDU asdu, 
                                 InformationObject io, uint64_t ioa);
 
     // Format 2019-01-01 10:00:00.123456+08:00
