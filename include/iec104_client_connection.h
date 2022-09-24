@@ -2,6 +2,7 @@
 #define IEC104_CLIENT_CONNECTION_H
 
 #include <thread>
+#include <mutex>
 #include "iec104.h"
 #include <lib60870/cs104_connection.h>
 
@@ -66,12 +67,13 @@ private:
     bool m_connect = false; /* flag to indicate that the connection is to be establish */
     bool m_disconnect = false; /* flag to indicate that the connection has to be disconnected */
 
-
     int broadcastCA();
 
+    std::mutex m_conLock;
     CS104_Connection m_connection = nullptr;
-
+    
     ConState m_connectionState = CON_STATE_IDLE;
+
     bool m_started = false;
     bool m_startDtSent = false;
 

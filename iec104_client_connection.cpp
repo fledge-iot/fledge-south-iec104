@@ -37,7 +37,14 @@ void
 IEC104ClientConnection::Activate()
 {
     if (m_connectionState == CON_STATE_CONNECTED_INACTIVE) {
-        CS104_Connection_sendStartDT(m_connection);
+
+        m_conLock.lock();
+
+        if (m_connection)
+            CS104_Connection_sendStartDT(m_connection);
+
+        m_conLock.unlock();
+
         m_startDtSent = true;
 
         printf("Activate con to %s\n", m_redGroupConnection->ServerIP().c_str());
@@ -96,6 +103,8 @@ IEC104ClientConnection::sendInterrogationCommand(int ca)
 {
     bool success = false;
 
+    m_conLock.lock();
+
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
         if (CS104_Connection_sendInterrogationCommand(m_connection, CS101_COT_ACTIVATION, ca, IEC60870_QOI_STATION)) {
@@ -107,6 +116,8 @@ IEC104ClientConnection::sendInterrogationCommand(int ca)
         }
     }
 
+    m_conLock.unlock();
+
     return success;
 }
 
@@ -114,6 +125,8 @@ bool
 IEC104ClientConnection::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select)
 {
     bool success = false;
+
+    m_conLock.lock();
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
@@ -138,6 +151,8 @@ IEC104ClientConnection::sendSingleCommand(int ca, int ioa, bool value, bool with
         }  
     }
 
+    m_conLock.unlock();
+
     if (!success) Logger::getLogger()->warn("Failed to send single command");
 
     return success;
@@ -147,6 +162,8 @@ bool
 IEC104ClientConnection::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select)
 {
     bool success = false;
+
+    m_conLock.lock();
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
@@ -171,6 +188,8 @@ IEC104ClientConnection::sendDoubleCommand(int ca, int ioa, int value, bool withT
         }  
     }
 
+    m_conLock.unlock();
+
     if (!success) Logger::getLogger()->warn("Failed to send double command");
 
     return success;    
@@ -180,6 +199,8 @@ bool
 IEC104ClientConnection::sendStepCommand(int ca, int ioa, int value, bool withTime, bool select)
 {
     bool success = false;
+
+    m_conLock.lock();
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
@@ -204,6 +225,8 @@ IEC104ClientConnection::sendStepCommand(int ca, int ioa, int value, bool withTim
         }  
     }
 
+    m_conLock.unlock();
+
     if (!success) Logger::getLogger()->warn("Failed to send step command");
 
     return success;
@@ -213,6 +236,8 @@ bool
 IEC104ClientConnection::sendSetpointNormalized(int ca, int ioa, float value, bool withTime)
 {
     bool success = false;
+
+    m_conLock.lock();
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
@@ -237,6 +262,8 @@ IEC104ClientConnection::sendSetpointNormalized(int ca, int ioa, float value, boo
         }  
     }
 
+    m_conLock.unlock();
+
     if (!success) Logger::getLogger()->warn("Failed to send setpoint(normalized)");
 
     return success;
@@ -246,6 +273,8 @@ bool
 IEC104ClientConnection::sendSetpointScaled(int ca, int ioa, int value, bool withTime)
 {
     bool success = false;
+
+    m_conLock.lock();
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
@@ -270,6 +299,8 @@ IEC104ClientConnection::sendSetpointScaled(int ca, int ioa, int value, bool with
         }  
     }
 
+    m_conLock.unlock();
+
     if (!success) Logger::getLogger()->warn("Failed to send setpoint(scaled)");
 
     return success;
@@ -279,6 +310,8 @@ bool
 IEC104ClientConnection::sendSetpointShort(int ca, int ioa, float value, bool withTime)
 {
     bool success = false;
+
+    m_conLock.lock();
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
@@ -302,6 +335,8 @@ IEC104ClientConnection::sendSetpointShort(int ca, int ioa, float value, bool wit
             }
         }  
     }
+
+    m_conLock.unlock();
 
     if (!success) Logger::getLogger()->warn("Failed to send setpoint(short)");
 
@@ -377,6 +412,8 @@ IEC104ClientConnection::performPeriodicTasks()
             if (ca == -1)
                 ca = broadcastCA();
 
+            m_conLock.lock();
+
             if (CS104_Connection_sendClockSyncCommand(m_connection, ca, &ts)) {
                 Logger::getLogger()->info("Sent clock sync command ...");
 
@@ -386,6 +423,8 @@ IEC104ClientConnection::performPeriodicTasks()
                 Logger::getLogger()->error("Failed to send clock sync command");
                 printf("Failed to send clock sync command!\n");
             }
+
+            m_conLock.unlock();
         }
     }
     
@@ -581,6 +620,8 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 bool
 IEC104ClientConnection::prepareConnection()
 {
+    bool success = false;
+
     if (m_connection == nullptr)
     {
         //TODO handle TLS
@@ -598,11 +639,11 @@ IEC104ClientConnection::prepareConnection()
 
             CS104_Connection_setConnectionHandler(m_connection, m_connectionHandler, this);
 
-            return true;
+            success = true;
         }
     }
 
-    return false;
+    return success;
 }
 
 void
@@ -611,8 +652,6 @@ IEC104ClientConnection::Start()
     if (m_started == false) 
     {
         m_connect = m_redGroupConnection->Conn();
-
-        printf("m_connect: %i\n", m_connect);
 
         m_started = true;
 
@@ -663,6 +702,8 @@ IEC104ClientConnection::_conThread()
                     {
                         m_startDtSent = false;
 
+                        m_conLock.lock();
+
                         if (m_connection != nullptr) {
                             CS104_Connection_destroy(m_connection);
 
@@ -683,6 +724,7 @@ IEC104ClientConnection::_conThread()
                             Logger::getLogger()->error("Fatal configuration error");
                         }
                         
+                        m_conLock.unlock();
                     }
                     break;
 
@@ -739,17 +781,25 @@ IEC104ClientConnection::_conThread()
             m_connecting = false;
             m_disconnect = false;
 
+            m_conLock.lock();
+
             if (m_connection) {
                 CS104_Connection_destroy(m_connection);
                 m_connection = nullptr;
             }
+
+            m_conLock.unlock();
         }
 
         Thread_sleep(50);
     }
 
-    if (m_connection) {
+    m_conLock.lock();
+
+    if (m_connection) { 
         CS104_Connection_destroy(m_connection);
         m_connection = nullptr;
     }
+
+    m_conLock.unlock();
 }
