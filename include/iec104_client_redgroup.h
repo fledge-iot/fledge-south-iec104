@@ -13,12 +13,12 @@ class RedGroupCon
 {
 public:
 
-    RedGroupCon(const string& serverIp, int tcpPort, bool conn, bool start);
+    RedGroupCon(const string& serverIp, int tcpPort, bool conn, bool start, const string* clientIp);
 
-    ~RedGroupCon() {};
-    
+    ~RedGroupCon();
 
     const string& ServerIP() {return m_serverIp;};
+    const string* ClientIP() {return m_clientIp;};
     int TcpPort() {return m_tcpPort;};
     bool Conn() {return m_conn;};
     bool Start() {return m_start;};
@@ -27,6 +27,7 @@ private:
     
     /* configuration properties */
     string m_serverIp;
+    const string* m_clientIp = nullptr;
     int m_tcpPort = 2404;
     bool m_conn = true;
     bool m_start = true;

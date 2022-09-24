@@ -315,13 +315,28 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                                     string srvIp = con["srv_ip"].GetString();
 
                                     if (isValidIPAddress(srvIp)) {
-                                        //CS104_RedundancyGroup_addAllowedClient(redundancyGroup, cltIp.c_str());
 
                                         printf("  add to group: %s\n", srvIp.c_str());
 
                                         int tcpPort = 2404;
                                         bool start = true;
                                         bool conn = true;
+                                       
+                                        string* clientIp = nullptr;
+
+                                        if (con.HasMember("clt_ip")) {
+                                            if (con["clt_ip"].IsString()) {
+                                                string cltIpStr = con["clt_ip"].GetString();
+
+                                                if (isValidIPAddress(cltIpStr)) {
+                                                    clientIp = new string(cltIpStr);
+                                                }
+                                                else {
+                                                    printf("clt_ip %s is not a valid IP address -> ignore\n", srvIp.c_str());
+                                                    Logger::getLogger()->error("clt_ip %s is not a valid IP address -> ignore", srvIp.c_str());
+                                                }
+                                            }
+                                        }
 
                                         if (con.HasMember("port")) {
                                             if (con["port"].IsInt()) {
@@ -352,14 +367,14 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                                             }
                                         }
 
-                                        RedGroupCon* connection = new RedGroupCon(srvIp, tcpPort, conn, start);
+                                        RedGroupCon* connection = new RedGroupCon(srvIp, tcpPort, conn, start, clientIp);
 
                                         redundancyGroup->AddConnection(connection);
 
                                     }
                                     else {
-                                        printf("  %s is not a valid IP address -> ignore\n", srvIp.c_str());
-                                        Logger::getLogger()->error("s is not a valid IP address -> ignore", srvIp.c_str());
+                                        printf("srv_ip %s is not a valid IP address -> ignore\n", srvIp.c_str());
+                                        Logger::getLogger()->error("srv_ip %s is not a valid IP address -> ignore", srvIp.c_str());
                                     }
 
                                 }

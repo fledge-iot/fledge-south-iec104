@@ -18,6 +18,12 @@ public:
     void Stop();
     void Activate();
 
+    void Disonnect();
+    void Connect();
+
+    bool Autostart() {return m_redGroupConnection->Start();};
+    bool Disconnected() {return ((m_connecting == false) && (m_connected == false));};
+    bool Connecting() {return m_connecting;};
     bool Connected() {return m_connected;};
     bool Active() {return m_active;};
 
@@ -55,8 +61,11 @@ private:
     /* global state information */
     bool m_connected = false; /* connection is in connected state */
     bool m_active = false;    /* connection is connected and active */
+    bool m_connecting = false; /* connection is currently connecting */
 
-    // >>>>> from IEC104Client
+    bool m_connect = false; /* flag to indicate that the connection is to be establish */
+    bool m_disconnect = false; /* flag to indicate that the connection has to be disconnected */
+
 
     int broadcastCA();
 
@@ -88,8 +97,6 @@ private:
 
     static void m_connectionHandler(void* parameter, CS104_Connection connection,
                                  CS104_ConnectionEvent event);
-
-    // <<<<< from IEC104Client
 };
 
 #endif /* IEC104_CLIENT_CONNECTION_H */

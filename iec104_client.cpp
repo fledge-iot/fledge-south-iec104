@@ -21,6 +21,8 @@
 
 using namespace std;
 
+#define BACKUP_CONNECTION_TIMEOUT 5000 /* 5 seconds */
+
 static uint64_t
 getMonotonicTimeInMs()
 {
@@ -143,6 +145,7 @@ IEC104Client::IEC104Client(IEC104* iec104, IEC104ClientConfig* config)
 
 IEC104Client::~IEC104Client()
 {
+    stop();
 } 
 
 bool
@@ -688,31 +691,67 @@ IEC104Client::_monitoringThread()
         }
     }
 
+    uint64_t backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
+
     while (m_started) 
     {
         m_activeConnectionMtx.lock();
 
         if (m_activeConnection == nullptr) 
         {
+            bool foundOpenConnections = false;
+
+            /* activate the first open connection */
             for (auto clientConnection : m_connections)
             {
                 if (clientConnection->Connected()) {
+
+                    backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
+
+                    foundOpenConnections = true;
+
                     clientConnection->Activate();
 
                     m_activeConnection = clientConnection;
                     
                     break;
                 }
-                else {
-                    //TODO trigger connect
-                }
             }
 
+            if (foundOpenConnections == false) {
+
+                if (Hal_getTimeInMs() > backupConnectionStartTime) 
+                {
+                    /* Connect all disconnected connections */
+                    for (auto clientConnection : m_connections)
+                    {
+                        if (clientConnection->Disconnected()) {
+                            clientConnection->Connect();
+                        }
+                    }
+
+                    backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
+                }
+            }
         }
         else {
+            backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
+
             if (m_activeConnection->Connected() == false) 
             {
                 m_activeConnection = nullptr;
+            }
+            else {
+                /* Check for connection that should be disconnected */
+
+                for (auto clientConnection : m_connections)
+                {
+                    if (clientConnection != m_activeConnection) {
+                        if (clientConnection->Connected() && !clientConnection->Autostart()) {
+                            clientConnection->Disonnect();
+                        }
+                    }
+                }
             }
         }
 
@@ -724,7 +763,11 @@ IEC104Client::_monitoringThread()
     for (auto clientConnection : m_connections)
     {
         clientConnection->Stop();
+
+        delete clientConnection;
     }
+
+    m_connections.clear();
 }
 
 bool

@@ -30,7 +30,7 @@ IEC104ClientConnection::IEC104ClientConnection(IEC104Client* client, IEC104Clien
 
 IEC104ClientConnection::~IEC104ClientConnection()
 {
-    
+    Stop();
 }
 
 void
@@ -67,11 +67,13 @@ IEC104ClientConnection::m_connectionHandler(void* parameter, CS104_Connection co
     {
         self->m_connectionState = CON_STATE_CLOSED;
         self->m_connected = false;
+        self->m_connecting = false;
     }
     else if (event == CS104_CONNECTION_OPENED) 
     {
         self->m_connectionState = CON_STATE_CONNECTED_INACTIVE;
         self->m_connected = true;
+        self->m_connecting = false;
     }
     else if (event == CS104_CONNECTION_STARTDT_CON_RECEIVED)
     {
@@ -588,6 +590,10 @@ IEC104ClientConnection::prepareConnection()
         if (m_connection) {
             prepareParameters();
 
+            if (m_redGroupConnection->ClientIP() != nullptr) {
+                CS104_Connection_setLocalAddress(m_connection, m_redGroupConnection->ClientIP()->c_str(), 0);
+            }
+
             CS104_Connection_setASDUReceivedHandler(m_connection, m_asduReceivedHandler, this);
 
             CS104_Connection_setConnectionHandler(m_connection, m_connectionHandler, this);
@@ -604,10 +610,28 @@ IEC104ClientConnection::Start()
 {
     if (m_started == false) 
     {
+        m_connect = m_redGroupConnection->Conn();
+
+        printf("m_connect: %i\n", m_connect);
+
         m_started = true;
 
         m_conThread = new std::thread(&IEC104ClientConnection::_conThread, this);
     }
+}
+
+void
+IEC104ClientConnection::Disonnect()
+{
+    m_disconnect = true;
+    m_connect = false;
+}
+
+void
+IEC104ClientConnection::Connect()
+{
+    m_disconnect = false;
+    m_connect = true;
 }
 
 void
@@ -631,81 +655,101 @@ IEC104ClientConnection::_conThread()
 {
     while (m_started) 
     {
-        switch (m_connectionState) {
+        if (m_connect)
+        {
+            switch (m_connectionState) {
 
-            case CON_STATE_IDLE:
-                {
-                    m_startDtSent = false;
+                case CON_STATE_IDLE:
+                    {
+                        m_startDtSent = false;
 
-                    if (m_connection != nullptr) {
-                        CS104_Connection_destroy(m_connection);
+                        if (m_connection != nullptr) {
+                            CS104_Connection_destroy(m_connection);
 
-                        m_connection = nullptr;
+                            m_connection = nullptr;
+                        }
+
+                        if (prepareConnection()) {
+                            m_connectionState = CON_STATE_CONNECTING;
+                            m_connecting = true;
+
+                            CS104_Connection_connectAsync(m_connection);
+
+                            Logger::getLogger()->info("Connecting");
+                        }
+                        else {
+                            m_connectionState = CON_STATE_FATAL_ERROR;
+                            printf("Fatal configuration error\n");
+                            Logger::getLogger()->error("Fatal configuration error");
+                        }
+                        
+                    }
+                    break;
+
+                case CON_STATE_CONNECTING:
+                    /* wait for connected event or timeout */
+
+                    if (getMonotonicTimeInMs() > m_delayExpirationTime) {
+                        Logger::getLogger()->warn("Timeout while connecting");
+                        m_connectionState = CON_STATE_IDLE;
                     }
 
-                    if (prepareConnection()) {
-                        m_connectionState = CON_STATE_CONNECTING;
+                    break;
 
-                        CS104_Connection_connectAsync(m_connection);
+                case CON_STATE_CONNECTED_INACTIVE:
 
-                        Logger::getLogger()->info("Connecting");
-                    }
-                    else {
-                        m_connectionState = CON_STATE_FATAL_ERROR;
-                        printf("Fatal configuration error\n");
-                        Logger::getLogger()->error("Fatal configuration error");
-                    }
+                    /* wait for Activate signal */
+
+                    break;
+
+                case CON_STATE_CONNECTED_ACTIVE:
+
+                    performPeriodicTasks();
+
+                    break;
+
+                case CON_STATE_CLOSED:
+
+                    // start delay timer for reconnect
                     
-                }
-                break;
+                    m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
+                    m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
 
-            case CON_STATE_CONNECTING:
-                /* wait for connected event or timeout */
+                    break;
 
-                if (getMonotonicTimeInMs() > m_delayExpirationTime) {
-                    Logger::getLogger()->warn("Timeout while connecting");
-                    m_connectionState = CON_STATE_IDLE;
-                }
+                case CON_STATE_WAIT_FOR_RECONNECT:
 
-                break;
+                    // when timeout expired switch to idle state
 
-            case CON_STATE_CONNECTED_INACTIVE:
+                    if (getMonotonicTimeInMs() >= m_delayExpirationTime) {
+                        m_connectionState = CON_STATE_IDLE;
+                    }
 
-                /* wait for Activate signal */
+                    break;
 
-                break;
+                case CON_STATE_FATAL_ERROR:
+                    /* stay in this state until stop is called */
+                    break;
+            }
+        }
 
-            case CON_STATE_CONNECTED_ACTIVE:
+        if (m_disconnect) {
 
-                performPeriodicTasks();
+            m_connected = false;
+            m_connecting = false;
+            m_disconnect = false;
 
-                break;
-
-            case CON_STATE_CLOSED:
-
-                // start delay timer for reconnect
-                
-                m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
-                m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
-
-                break;
-
-            case CON_STATE_WAIT_FOR_RECONNECT:
-
-                // when timeout expired switch to idle state
-
-                if (getMonotonicTimeInMs() >= m_delayExpirationTime) {
-                    m_connectionState = CON_STATE_IDLE;
-                }
-
-                break;
-
-            case CON_STATE_FATAL_ERROR:
-                /* stay in this state until stop is called */
-                break;
-
+            if (m_connection) {
+                CS104_Connection_destroy(m_connection);
+                m_connection = nullptr;
+            }
         }
 
         Thread_sleep(50);
+    }
+
+    if (m_connection) {
+        CS104_Connection_destroy(m_connection);
+        m_connection = nullptr;
     }
 }
