@@ -48,7 +48,7 @@ find_package(Boost 1.53.0 COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 # Find source files
-file(GLOB SOURCES ../*.cpp)
+file(GLOB SOURCES ../src/*.cpp)
 file(GLOB unittests "*.cpp")
 
 # Find Fledge includes and libs, by including FindFledge.cmak file

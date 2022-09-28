@@ -609,7 +609,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                 break;
 
             default:
-                Logger::getLogger()->error("Type of message not supported");
+                Logger::getLogger()->error("Type of message (%i - COT: %i) not supported", CS101_ASDU_getTypeID(asdu), CS101_ASDU_getCOT(asdu));
                 return false;
         }
     }

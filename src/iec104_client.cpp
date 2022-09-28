@@ -132,6 +132,7 @@ IEC104Client::sendData(vector<Datapoint*> datapoints,
     {
         std::vector<Datapoint*> points;
         points.push_back(item_dp);
+        
         m_iec104->ingest(labels.at(i), points);
         i++;
     }
@@ -151,7 +152,7 @@ IEC104Client::~IEC104Client()
 bool
 IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
 {
-    bool handledAsdu = false;
+    bool handledAsdu = true;
 
     vector<Datapoint*> datapoints;
     vector<string> labels;
@@ -247,9 +248,16 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
                 case C_SE_TC_1:
                     handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
                     break;
+
+                default:
+                    handledAsdu = false;
+                    break;
             }
 
             labels.push_back(*label);
+        }
+        else {
+            handledAsdu = false;
         }
     }
 

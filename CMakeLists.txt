@@ -64,7 +64,7 @@ set(PLUGIN_TYPE "south")
 set(NEEDED_FLEDGE_LIBS common-lib)
 
 # Find source files
-file(GLOB SOURCES *.cpp)
+file(GLOB SOURCES src/*.cpp)
 
 # Find Fledge includes and libs, by including FindFledge.cmak file
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})

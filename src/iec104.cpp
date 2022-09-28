@@ -120,6 +120,8 @@ IEC104::m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool with
         // 0 = execute, otherwise = select
         bool select = static_cast<bool>(atoi(params[3]->value.c_str()));
 
+        Logger::getLogger()->debug("operate: single command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, withTime);
+
         return m_client->sendSingleCommand(ca, ioa, value, withTime, select);
     }
     else {
@@ -146,7 +148,7 @@ IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool with
         // 0 = execute, otherwise = select
         bool select = static_cast<bool>(atoi(params[3]->value.c_str()));
 
-        printf("m_doubleCommandOperation\n");
+        Logger::getLogger()->debug("operate: double command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, withTime);
 
         return m_client->sendDoubleCommand(ca, ioa, value, withTime, select);
     }
@@ -174,6 +176,8 @@ IEC104::m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTi
         // 0 = execute, otherwise = select
         bool select = static_cast<bool>(atoi(params[3]->value.c_str()));
 
+        Logger::getLogger()->debug("operate: step command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, withTime);
+
         return m_client->sendStepCommand(ca, ioa, value, withTime, select);
     }
     else {
@@ -195,6 +199,8 @@ IEC104::m_setpointNormalized(int count, PLUGIN_PARAMETER** params, bool withTime
         // normalized value (range -1.0 ... 1.0)
         // TODO check range?
         float value = (float)atof(params[2]->value.c_str());
+
+        Logger::getLogger()->debug("operate: setpoint command (normalized) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, withTime);
 
         return m_client->sendSetpointNormalized(ca, ioa, value, withTime);
     }
@@ -218,6 +224,8 @@ IEC104::m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime)
         // TODO check range
         int value = atoi(params[2]->value.c_str());
 
+        Logger::getLogger()->debug("operate: setpoint command (scaled) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, withTime);
+
         return m_client->sendSetpointScaled(ca, ioa, value, withTime);
     }
     else {
@@ -238,6 +246,8 @@ IEC104::m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime)
 
         // short float value
         float value = (float)atof(params[2]->value.c_str());
+
+        Logger::getLogger()->debug("operate: setpoint command (short) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, withTime);
 
         return m_client->sendSetpointShort(ca, ioa, value, withTime);
     }
