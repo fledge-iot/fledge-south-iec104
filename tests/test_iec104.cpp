@@ -27,10 +27,6 @@ static string protocol_config = QUOTE({
                             {     
                                 "srv_ip" : "127.0.0.1",        
                                 "port" : 2404          
-                            },    
-                            {
-                                "srv_ip" : "127.0.0.1", 
-                                "port" : 2404
                             }
                         ],
                         "rg_name" : "red-group1",  
@@ -144,39 +140,19 @@ class IEC104Test : public testing::Test
 {
 protected:
 
-    struct sTestInfo {
-        int callbackCalled;
-        Reading* storedReading;
-    };
-
-    // Per-test-suite set-up.
-    // Called before the first test in this test suite.
-    // Can be omitted if not needed.
-    static void SetUpTestSuite()
+    void SetUp()
     {
-        // Avoid reallocating static objects if called in subclasses of FooTest.
-        if (iec104 == nullptr)
-        {
-            iec104 = new IEC104TestComp();
-            iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
+        iec104 = new IEC104TestComp();
+        iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
 
-            iec104->registerIngest(NULL, ingestCallback);
-
-            //startIEC104();
-            //thread_ = boost::thread(&IEC104Test::startIEC104);
-        }
+        iec104->registerIngest(NULL, ingestCallback);
     }
 
-    // Per-test-suite tear-down.
-    // Called after the last test in this test suite.
-    // Can be omitted if not needed.
-    static void TearDownTestSuite()
+    void TearDown()
     {
         iec104->stop();
-        //thread_.interrupt();
-        // delete iec104;
-        // iec104 = nullptr;
-        //thread_.join();
+       
+        delete iec104;
     }
 
     static void startIEC104() { iec104->start(); }
@@ -277,38 +253,6 @@ boost::thread IEC104Test::thread_;
 IEC104TestComp* IEC104Test::iec104;
 int IEC104Test::ingestCallbackCalled;
 Reading* IEC104Test::storedReading;
-
-#if 0
-TEST_F(IEC104Test, IEC104_operation_notConnected)
-{
-    startIEC104();
-
-     vector<string> operations;
-    PLUGIN_PARAMETER iec104client = {"iec104client", "4"};
-    params[0] = &iec104client;
-
-    // ioa
-    PLUGIN_PARAMETER ioa = {"io", "4202832"};
-    params[1] = &ioa;
-
-    // Third value
-    PLUGIN_PARAMETER buf = {"", "4202832"};
-    params[2] = &buf;
-
-    operations.push_back("CS104_Connection_sendInterrogationCommand");
-    operations.push_back("CS104_Connection_sendTestCommandWithTimestamp");
-    operations.push_back("SingleCommandWithCP56Time2a");
-    operations.push_back("DoubleCommandWithCP56Time2a");
-    operations.push_back("StepCommandWithCP56Time2a");
-
-    for (const string& operation : operations)
-    {
-        ASSERT_FALSE(iec104->operation(operation, 3, params));
-    }
-
-    ASSERT_FALSE(IEC104Test::iec104->operation("NULL", 0, params));
-}
-#endif
 
 TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 {
@@ -454,7 +398,11 @@ static void test_ConnectionEventHandler (void* parameter, IMasterConnection conn
 {
     int* connectEventCounter = (int*)parameter;
 
-    printf("event: %i\n", event);
+    char addrBuf[100];
+
+    IMasterConnection_getPeerAddress(connection, addrBuf, 100);
+
+    printf("event: %i (from %s)\n", event, addrBuf);
 
     if (event == CS104_CON_EVENT_CONNECTION_OPENED) {
         *connectEventCounter = *connectEventCounter + 1;

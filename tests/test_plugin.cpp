@@ -162,7 +162,7 @@ TEST(IEC104, PluginReconfigure)
 {
     ConfigCategory *emptyConfig = new ConfigCategory();
     PLUGIN_HANDLE handle = plugin_init(emptyConfig);
-    ASSERT_NO_THROW(plugin_reconfigure((PLUGIN_HANDLE *)handle, conf));
+    ASSERT_NO_THROW(plugin_reconfigure((PLUGIN_HANDLE*)handle, conf));
 
     // TODO test when there is an asset name, but it will crash because of the
     // restart

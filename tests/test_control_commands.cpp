@@ -166,42 +166,29 @@ class ControlCommandsTest : public testing::Test
 {
 protected:
 
-    struct sTestInfo {
-        int callbackCalled;
-        Reading* storedReading;
-    };
-
-    // Per-test-suite set-up.
-    // Called before the first test in this test suite.
-    // Can be omitted if not needed.
-    static void SetUpTestSuite()
+    void SetUp()
     {
-        // Avoid reallocating static objects if called in subclasses of FooTest.
-        if (iec104 == nullptr)
-        {
-            iec104 = new IEC104TestComp();
-            iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
+        iec104 = new IEC104TestComp();
+        iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
 
-            iec104->registerIngest(NULL, ingestCallback);
-
-            //startIEC104();
-            //thread_ = boost::thread(&IEC104Test::startIEC104);
-        }
+        iec104->registerIngest(NULL, ingestCallback);
     }
 
-    // Per-test-suite tear-down.
-    // Called after the last test in this test suite.
-    // Can be omitted if not needed.
-    static void TearDownTestSuite()
+    void TearDown()
     {
         iec104->stop();
-        //thread_.interrupt();
-        // delete iec104;
-        // iec104 = nullptr;
-        //thread_.join();
+
+        delete iec104;
+
+        for (Reading* reading : storedReadings)
+        {
+            delete reading;
+        }
+
+        storedReadings.clear();
     }
 
-    static void startIEC104() { iec104->start(); }
+    void startIEC104() { iec104->start(); }
 
     static bool hasChild(Datapoint& dp, std::string childLabel)
     {
@@ -281,7 +268,7 @@ protected:
         // for (Datapoint* sdp : dataPoints) {
         //     printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
         // }
-        storedReading = new Reading(reading);
+        storedReadings.push_back(new Reading(reading));
 
         ingestCallbackCalled++;
     }
@@ -333,6 +320,8 @@ protected:
             }
         }
 
+        InformationObject_destroy(io);
+
         if (CS101_ASDU_getTypeID(asdu) != C_IC_NA_1)
             asduHandlerCalled++;
 
@@ -340,9 +329,9 @@ protected:
     }
 
     static boost::thread thread_;
-    static IEC104TestComp* iec104;
+    IEC104TestComp* iec104 = nullptr;
     static int ingestCallbackCalled;
-    static Reading* storedReading;
+    static std::vector<Reading*> storedReadings;
     static int clockSyncHandlerCalled;
     static int asduHandlerCalled;
     static IMasterConnection lastConnection;
@@ -350,9 +339,8 @@ protected:
 };
 
 boost::thread ControlCommandsTest::thread_;
-IEC104TestComp* ControlCommandsTest::iec104;
 int ControlCommandsTest::ingestCallbackCalled;
-Reading* ControlCommandsTest::storedReading;
+std::vector<Reading*> ControlCommandsTest::storedReadings;
 int ControlCommandsTest::asduHandlerCalled;
 int ControlCommandsTest::clockSyncHandlerCalled;
 IMasterConnection ControlCommandsTest::lastConnection;
@@ -414,6 +402,10 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommand)
     CS101_ASDU_addInformationObject(ctAsdu, io);
 
     IMasterConnection_sendASDU(lastConnection, ctAsdu);
+
+    InformationObject_destroy(io);
+
+    CS101_ASDU_destroy(ctAsdu);
 
     ASSERT_EQ(10, lastOA);
 
@@ -589,6 +581,10 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommand)
 
     IMasterConnection_sendASDU(lastConnection, ctAsdu);
 
+    InformationObject_destroy(io);
+
+    CS101_ASDU_destroy(ctAsdu);
+
     ASSERT_EQ(10, lastOA);
 
     Thread_sleep(500);
@@ -597,7 +593,6 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommand)
     //  1. ACT_CON for single command
     //  2. ACT_TERM for single command
     ASSERT_EQ(2, ingestCallbackCalled);
-
 
     CS104_Slave_stop(slave);
 

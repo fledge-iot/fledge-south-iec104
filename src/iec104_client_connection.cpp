@@ -130,24 +130,26 @@ IEC104ClientConnection::sendSingleCommand(int ca, int ioa, bool value, bool with
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
-        InformationObject sc = nullptr;
+        InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
             
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
-            sc = (InformationObject)SingleCommandWithCP56Time2a_create(NULL, ioa, value, select, 0, &ts);
+            cmdObj = (InformationObject)SingleCommandWithCP56Time2a_create(NULL, ioa, value, select, 0, &ts);
         }
         else {
-            sc = (InformationObject)SingleCommand_create(NULL, ioa, value, select, 0);
+            cmdObj = (InformationObject)SingleCommand_create(NULL, ioa, value, select, 0);
         }
 
-        if (sc) {
-            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, sc)) {
+        if (cmdObj) {
+            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
                 Logger::getLogger()->info("single command sent");
                 success = true;
             }
+
+            InformationObject_destroy(cmdObj);
         }  
     }
 
@@ -167,24 +169,26 @@ IEC104ClientConnection::sendDoubleCommand(int ca, int ioa, int value, bool withT
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
-        InformationObject sc = nullptr;
+        InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
             
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
-            sc = (InformationObject)DoubleCommandWithCP56Time2a_create(NULL, ioa, value, select, 0, &ts);
+            cmdObj = (InformationObject)DoubleCommandWithCP56Time2a_create(NULL, ioa, value, select, 0, &ts);
         }
         else {
-            sc = (InformationObject)DoubleCommand_create(NULL, ioa, value, select, 0);
+            cmdObj = (InformationObject)DoubleCommand_create(NULL, ioa, value, select, 0);
         }
 
-        if (sc) {
-            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, sc)) {
+        if (cmdObj) {
+            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
                 Logger::getLogger()->info("double command sent");
                 success = true;
             }
+
+            InformationObject_destroy(cmdObj);
         }  
     }
 
@@ -204,24 +208,26 @@ IEC104ClientConnection::sendStepCommand(int ca, int ioa, int value, bool withTim
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
-        InformationObject sc = nullptr;
+        InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
             
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
-            sc = (InformationObject)StepCommandWithCP56Time2a_create(NULL, ioa, (StepCommandValue)value, select, 0, &ts);
+            cmdObj = (InformationObject)StepCommandWithCP56Time2a_create(NULL, ioa, (StepCommandValue)value, select, 0, &ts);
         }
         else {
-            sc = (InformationObject)StepCommand_create(NULL, ioa, (StepCommandValue)value, select, 0);
+            cmdObj = (InformationObject)StepCommand_create(NULL, ioa, (StepCommandValue)value, select, 0);
         }
 
-        if (sc) {
-            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, sc)) {
+        if (cmdObj) {
+            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
                 Logger::getLogger()->info("step command sent");
                 success = true;
             }
+
+            InformationObject_destroy(cmdObj);
         }  
     }
 
@@ -241,24 +247,26 @@ IEC104ClientConnection::sendSetpointNormalized(int ca, int ioa, float value, boo
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
-        InformationObject sc = nullptr;
+        InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
             
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
-            sc = (InformationObject)SetpointCommandNormalizedWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
+            cmdObj = (InformationObject)SetpointCommandNormalizedWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
         }
         else {
-            sc = (InformationObject)SetpointCommandNormalized_create(NULL, ioa, value, false, 0);
+            cmdObj = (InformationObject)SetpointCommandNormalized_create(NULL, ioa, value, false, 0);
         }
 
-        if (sc) {
-            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, sc)) {
+        if (cmdObj) {
+            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
                 Logger::getLogger()->info("setpoint(normalized) sent");
                 success = true;
             }
+
+            InformationObject_destroy(cmdObj);
         }  
     }
 
@@ -278,24 +286,26 @@ IEC104ClientConnection::sendSetpointScaled(int ca, int ioa, int value, bool with
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
-        InformationObject sc = nullptr;
+        InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
             
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
-            sc = (InformationObject)SetpointCommandScaledWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
+            cmdObj = (InformationObject)SetpointCommandScaledWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
         }
         else {
-            sc = (InformationObject)SetpointCommandScaled_create(NULL, ioa, value, false, 0);
+            cmdObj = (InformationObject)SetpointCommandScaled_create(NULL, ioa, value, false, 0);
         }
 
-        if (sc) {
-            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, sc)) {
+        if (cmdObj) {
+            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
                 Logger::getLogger()->info("setpoint(scaled) sent");
                 success = true;
             }
+
+            InformationObject_destroy(cmdObj);
         }  
     }
 
@@ -315,24 +325,26 @@ IEC104ClientConnection::sendSetpointShort(int ca, int ioa, float value, bool wit
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
-        InformationObject sc = nullptr;
+        InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
             
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
-            sc = (InformationObject)SetpointCommandShortWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
+            cmdObj = (InformationObject)SetpointCommandShortWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
         }
         else {
-            sc = (InformationObject)SetpointCommandShort_create(NULL, ioa, value, false, 0);
+            cmdObj = (InformationObject)SetpointCommandShort_create(NULL, ioa, value, false, 0);
         }
 
-        if (sc) {
-            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, sc)) {
+        if (cmdObj) {
+            if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
                 Logger::getLogger()->info("setpoint(short) sent");
                 success = true;
             }
+
+            InformationObject_destroy(cmdObj);
         }  
     }
 
@@ -483,6 +495,7 @@ IEC104ClientConnection::performPeriodicTasks()
                             if (sendInterrogationCommand(*m_listOfCA_it)) {
                                 printf("Sent GI request to CA=%i\n", *m_listOfCA_it);
                                 m_interrogationRequestState = 1;
+                                m_interrogationRequestSent = getMonotonicTimeInMs();
                             }
                             else {
                                 Logger::getLogger()->error("Failed to send interrogation command");
@@ -713,6 +726,8 @@ IEC104ClientConnection::_conThread()
                         if (prepareConnection()) {
                             m_connectionState = CON_STATE_CONNECTING;
                             m_connecting = true;
+
+                            m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
 
                             CS104_Connection_connectAsync(m_connection);
 

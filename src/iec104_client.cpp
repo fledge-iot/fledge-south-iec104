@@ -163,101 +163,111 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
     for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
     {
         InformationObject io = CS101_ASDU_getElement(asdu, i);
-        int ioa = InformationObject_getObjectAddress(io);
 
-        std::string* label = m_config->checkExchangeDataLayer(typeId, ca, ioa);
-
-        if (label)
+        if (io) 
         {
-            switch (typeId) 
+            int ioa = InformationObject_getObjectAddress(io);
+
+            std::string* label = m_config->checkExchangeDataLayer(typeId, ca, ioa);
+
+            if (label)
             {
-                case M_ME_NB_1:
-                    handle_M_ME_NB_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                switch (typeId) 
+                {
+                    case M_ME_NB_1:
+                        handle_M_ME_NB_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case M_SP_NA_1:
-                    handle_M_SP_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case M_SP_NA_1:
+                        handle_M_SP_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case M_SP_TB_1:
-                    handle_M_SP_TB_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case M_SP_TB_1:
+                        handle_M_SP_TB_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case M_DP_NA_1:
-                    handle_M_DP_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case M_DP_NA_1:
+                        handle_M_DP_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case M_DP_TB_1:
-                    handle_M_DP_TB_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case M_DP_TB_1:
+                        handle_M_DP_TB_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case M_ST_NA_1:
-                    handle_M_ST_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case M_ST_NA_1:
+                        handle_M_ST_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case M_ST_TB_1:
-                    handle_M_ST_TB_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case M_ST_TB_1:
+                        handle_M_ST_TB_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case M_ME_NA_1:
-                    handle_M_ME_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case M_ME_NA_1:
+                        handle_M_ME_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case M_ME_TD_1:
-                    handle_M_ME_TD_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case M_ME_TD_1:
+                        handle_M_ME_TD_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case M_ME_TE_1:
-                    handle_M_ME_TE_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case M_ME_TE_1:
+                        handle_M_ME_TE_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case M_ME_NC_1:
-                    handle_M_ME_NC_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case M_ME_NC_1:
+                        handle_M_ME_NC_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case M_ME_TF_1:
-                    handle_M_ME_TF_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case M_ME_TF_1:
+                        handle_M_ME_TF_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case C_SC_NA_1:
-                case C_SC_TA_1:
-                    handle_C_SC_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case C_SC_NA_1:
+                    case C_SC_TA_1:
+                        handle_C_SC_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case C_DC_TA_1:
-                case C_DC_NA_1:
-                    handle_C_DC_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case C_DC_TA_1:
+                    case C_DC_NA_1:
+                        handle_C_DC_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case C_RC_NA_1:
-                case C_RC_TA_1:
-                    handle_C_RC_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case C_RC_NA_1:
+                    case C_RC_TA_1:
+                        handle_C_RC_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case C_SE_NA_1:
-                case C_SE_TA_1:
-                    handle_C_SE_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case C_SE_NA_1:
+                    case C_SE_TA_1:
+                        handle_C_SE_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case C_SE_NB_1:
-                case C_SE_TB_1:
-                    handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case C_SE_NB_1:
+                    case C_SE_TB_1:
+                        handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                case C_SE_NC_1:
-                case C_SE_TC_1:
-                    handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
-                    break;
+                    case C_SE_NC_1:
+                    case C_SE_TC_1:
+                        handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
+                        break;
 
-                default:
-                    handledAsdu = false;
-                    break;
+                    default:
+                        handledAsdu = false;
+                        break;
+                }
+
+                labels.push_back(*label);
+            }
+            else {
+                handledAsdu = false;
             }
 
-            labels.push_back(*label);
+            InformationObject_destroy(io);
         }
-        else {
-            handledAsdu = false;
+        else 
+        {
+            Logger::getLogger()->error("ASDU with invalid or unknown information object");
         }
     }
 
@@ -282,8 +292,6 @@ void IEC104Client::handle_M_ME_NB_1(vector<Datapoint*>& datapoints, string& labe
     QualityDescriptor qd = MeasuredValueScaled_getQuality(io_casted);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
-
-    MeasuredValueScaled_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_SP_NA_1(vector<Datapoint*>& datapoints, string& label,
@@ -296,8 +304,6 @@ void IEC104Client::handle_M_SP_NA_1(vector<Datapoint*>& datapoints, string& labe
     QualityDescriptor qd = SinglePointInformation_getQuality((SinglePointInformation)io_casted);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
-
-    SinglePointInformation_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_SP_TB_1(vector<Datapoint*>& datapoints, string& label,
@@ -316,8 +322,6 @@ void IEC104Client::handle_M_SP_TB_1(vector<Datapoint*>& datapoints, string& labe
     bool is_invalid = CP56Time2a_isInvalid(ts);
     //if (m_tsiv == "PROCESS" || !is_invalid)
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
-
-    SinglePointWithCP56Time2a_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_DP_NA_1(vector<Datapoint*>& datapoints, string& label,
@@ -332,8 +336,6 @@ void IEC104Client::handle_M_DP_NA_1(vector<Datapoint*>& datapoints, string& labe
         DoublePointInformation_getQuality((DoublePointInformation)io_casted);
     
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
-
-    DoublePointInformation_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_DP_TB_1(vector<Datapoint*>& datapoints, string& label,
@@ -349,11 +351,8 @@ void IEC104Client::handle_M_DP_TB_1(vector<Datapoint*>& datapoints, string& labe
 
     CP56Time2a ts = DoublePointWithCP56Time2a_getTimestamp(io_casted);
     bool is_invalid = CP56Time2a_isInvalid(ts);
-    //if (m_tsiv == "PROCESS" || !is_invalid)
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
-
-    DoublePointWithCP56Time2a_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_ST_NA_1(vector<Datapoint*>& datapoints, string& label,
@@ -386,14 +385,11 @@ void IEC104Client::handle_M_ST_TB_1(vector<Datapoint*>& datapoints, string& labe
     {
         CP56Time2a ts = StepPositionWithCP56Time2a_getTimestamp(io_casted);
         bool is_invalid = CP56Time2a_isInvalid(ts);
-        //if (m_tsiv == "PROCESS" || !is_invalid)
 
         datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
     }
     else
         datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
-
-    StepPositionWithCP56Time2a_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_ME_NA_1(vector<Datapoint*>& datapoints, string& label,
@@ -408,8 +404,6 @@ void IEC104Client::handle_M_ME_NA_1(vector<Datapoint*>& datapoints, string& labe
         MeasuredValueNormalized_getQuality((MeasuredValueNormalized)io_casted);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
-
-    MeasuredValueNormalized_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_ME_TD_1(vector<Datapoint*>& datapoints, string& label,
@@ -433,8 +427,6 @@ void IEC104Client::handle_M_ME_TD_1(vector<Datapoint*>& datapoints, string& labe
     }
     else
         datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
-
-    MeasuredValueNormalizedWithCP56Time2a_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_ME_TE_1(vector<Datapoint*>& datapoints, string& label,
@@ -458,8 +450,6 @@ void IEC104Client::handle_M_ME_TE_1(vector<Datapoint*>& datapoints, string& labe
     }
     else
         datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
-
-    MeasuredValueScaledWithCP56Time2a_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_ME_NC_1(vector<Datapoint*>& datapoints, string& label,
@@ -473,8 +463,6 @@ void IEC104Client::handle_M_ME_NC_1(vector<Datapoint*>& datapoints, string& labe
         MeasuredValueShort_getQuality((MeasuredValueShort)io_casted);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
-
-    MeasuredValueShort_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_ME_TF_1(vector<Datapoint*>& datapoints, string& label,
@@ -497,8 +485,6 @@ void IEC104Client::handle_M_ME_TF_1(vector<Datapoint*>& datapoints, string& labe
     }
     else
         datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
-
-    MeasuredValueShortWithCP56Time2a_destroy(io_casted);
 }
 
 void IEC104Client::handle_C_SC_NA_1(vector<Datapoint*>& datapoints, string& label,
@@ -521,8 +507,6 @@ void IEC104Client::handle_C_SC_NA_1(vector<Datapoint*>& datapoints, string& labe
     else {
         datapoints.push_back(m_createDataObject(asdu, ioa, label, state, nullptr));
     }
-
-    InformationObject_destroy(io);
 }
 
 void IEC104Client::handle_C_DC_NA_1(vector<Datapoint*>& datapoints, string& label,
@@ -543,8 +527,6 @@ void IEC104Client::handle_C_DC_NA_1(vector<Datapoint*>& datapoints, string& labe
     }
     else
         datapoints.push_back(m_createDataObject(asdu, ioa, label, state, nullptr));
-
-    InformationObject_destroy(io);
 }
 
 void IEC104Client::handle_C_RC_NA_1(vector<Datapoint*>& datapoints, string& label,
@@ -565,8 +547,6 @@ void IEC104Client::handle_C_RC_NA_1(vector<Datapoint*>& datapoints, string& labe
     }
     else
         datapoints.push_back(m_createDataObject(asdu, ioa, label, state, nullptr));
-
-    InformationObject_destroy(io);
 }
 
 void IEC104Client::handle_C_SE_NA_1(vector<Datapoint*>& datapoints, string& label,
@@ -588,8 +568,6 @@ void IEC104Client::handle_C_SE_NA_1(vector<Datapoint*>& datapoints, string& labe
     }
     else
         datapoints.push_back(m_createDataObject(asdu, ioa, label, value, nullptr));
-
-    InformationObject_destroy(io);
 }
 
 void IEC104Client::handle_C_SE_NB_1(vector<Datapoint*>& datapoints, string& label,
@@ -611,8 +589,6 @@ void IEC104Client::handle_C_SE_NB_1(vector<Datapoint*>& datapoints, string& labe
     }
     else
         datapoints.push_back(m_createDataObject(asdu, ioa, label, value, nullptr));
-
-    InformationObject_destroy(io);
 }
 
 void IEC104Client::handle_C_SE_NC_1(vector<Datapoint*>& datapoints, string& label,
@@ -634,8 +610,6 @@ void IEC104Client::handle_C_SE_NC_1(vector<Datapoint*>& datapoints, string& labe
     }
     else
         datapoints.push_back(m_createDataObject(asdu, ioa, label, value, nullptr));
-
-    InformationObject_destroy(io);
 }
 
 bool
@@ -805,7 +779,6 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SC_NA_1, ca, ioa) == nullptr) {
         Logger::getLogger()->error("Failed to send command - no such data point");
-        printf("Failed to send command - no such data point");
 
         return false;
     }

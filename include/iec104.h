@@ -45,7 +45,7 @@ public:
     typedef void (*INGEST_CB)(void*, Reading);
 
     IEC104();
-    ~IEC104() = default;
+    ~IEC104();
 
     void setAssetName(const std::string& asset) { m_asset = asset; }
     void setJsonConfig(const std::string& stack_configuration,

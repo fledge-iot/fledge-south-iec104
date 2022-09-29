@@ -28,6 +28,10 @@ IEC104ClientConfig::~IEC104ClientConfig()
             delete elem2.second;
         }
     }
+
+    for (IEC104ClientRedGroup* redGroup : m_redundancyGroups) {
+        delete redGroup;
+    }
 }
 
 // Map of all handled ASDU types by the plugin
@@ -302,8 +306,6 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                 }
 
                 IEC104ClientRedGroup* redundancyGroup = new IEC104ClientRedGroup();
-
-                printf("Adding red group with name: %s\n", redGroupName);
 
                 free(redGroupName);
 

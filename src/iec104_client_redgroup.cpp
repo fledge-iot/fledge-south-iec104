@@ -18,3 +18,10 @@ void IEC104ClientRedGroup::AddConnection(RedGroupCon* con)
 {
     m_connections.push_back(con);
 }
+
+IEC104ClientRedGroup::~IEC104ClientRedGroup()
+{
+    for (RedGroupCon* con : m_connections) {
+        delete con;
+    }
+}

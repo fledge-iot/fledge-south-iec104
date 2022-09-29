@@ -38,7 +38,7 @@ class IEC104ClientRedGroup
 public:
 
     IEC104ClientRedGroup() {};
-    ~IEC104ClientRedGroup() {};
+    ~IEC104ClientRedGroup();
 
     const string& Name() {return m_name;};
     bool UseTLS() {return m_useTls;};

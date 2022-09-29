@@ -27,6 +27,11 @@ IEC104::IEC104() : m_client(nullptr)
     m_config = new IEC104ClientConfig();
 }
 
+IEC104::~IEC104()
+{
+    delete m_config;
+}
+
 void IEC104::setJsonConfig(const std::string& stack_configuration,
                            const std::string& msg_configuration,
                            const std::string& tls_configuration)

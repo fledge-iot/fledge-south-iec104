@@ -123,6 +123,53 @@ static string protocol_config_2 = QUOTE({
         }                     
     });
 
+static string protocol_config_3 = QUOTE({
+        "protocol_stack" : {
+            "name" : "iec104client",
+            "version" : "1.0",
+            "transport_layer" : {
+                "redundancy_groups" : [
+                    { 
+                        "connections" : [
+                            {     
+                                "srv_ip" : "127.0.0.1",   
+                                "port" : 2404          
+                            }
+                        ],
+                        "rg_name" : "red-group1",  
+                        "tls" : false,
+                        "k_value" : 12,  
+                        "w_value" : 8,
+                        "t0_timeout" : 10,                 
+                        "t1_timeout" : 15,                 
+                        "t2_timeout" : 10,                 
+                        "t3_timeout" : 20    
+                    }
+                ]                  
+            },                
+            "application_layer" : {                
+                "orig_addr" : 10, 
+                "ca_asdu_size" : 2,                
+                "ioaddr_size" : 3,                 
+                "startup_time" : 180,              
+                "asdu_size" : 0, 
+                "gi_time" : 60,  
+                "gi_cycle" : false,                
+                "gi_all_ca" : false,               
+                "gi_repeat_count" : 2,             
+                "disc_qual" : "NT",                
+                "send_iv_time" : 0,                
+                "tsiv" : "REMOVE",                 
+                "utc_time" : false,                
+                "comm_wttag" : false,              
+                "comm_parallel" : 0,               
+                "exec_cycl_test" : false,          
+                "reverse" : false,                 
+                "time_sync" : 0                 
+            }                 
+        }                     
+    });
+
 // PLUGIN DEFAULT EXCHANGED DATA CONF
 
 static string exchanged_data = QUOTE({
