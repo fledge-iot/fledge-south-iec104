@@ -40,7 +40,7 @@ public:
     int TimeSyncPeriod() {return m_timeSyncPeriod;};
 
     bool GiForAllCa() {return m_giAllCa;};
-    bool GiCycle() {return m_giCycle;};
+    int GiCycle() {return m_giCycle;};
     int GiRepeatCount() {return m_giRepeatCount;};
     int GiTime() {return m_giTime;};
 
@@ -80,7 +80,7 @@ private:
     int m_timeSyncPeriod = 0; /* application_layer/time_sync_period in s*/
 
     bool m_giAllCa = false; /* application_layer/gi_all_ca */
-    bool m_giCycle = false; /* application_layer/gi_cycle */
+    int m_giCycle = 0; /* application_layer/gi_cycle: cycle time in seconds (0 = cycle disabled)*/
     int m_giRepeatCount = 2; /* application_layer/gi_repeat_count */
     int m_giTime = 0;
 

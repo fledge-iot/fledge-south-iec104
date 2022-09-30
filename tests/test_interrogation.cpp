@@ -48,7 +48,7 @@ static string protocol_config = QUOTE({
                 "ioaddr_size" : 3,                             
                 "asdu_size" : 0, 
                 "gi_time" : 60,  
-                "gi_cycle" : false,                
+                "gi_cycle" : 30,                
                 "gi_all_ca" : true,               
                 "gi_repeat_count" : 2,             
                 "disc_qual" : "NT",                
@@ -98,7 +98,7 @@ static string protocol_config2 = QUOTE({
                 "ioaddr_size" : 3,                          
                 "asdu_size" : 0, 
                 "gi_time" : 60,  
-                "gi_cycle" : false,                
+                "gi_cycle" : 30,                
                 "gi_all_ca" : false,               
                 "gi_repeat_count" : 2,             
                 "disc_qual" : "NT",                
@@ -222,41 +222,23 @@ class InterrogationTest : public testing::Test
 {
 protected:
 
-    struct sTestInfo {
-        int callbackCalled;
-        Reading* storedReading;
-    };
-
-    // Per-test-suite set-up.
-    // Called before the first test in this test suite.
-    // Can be omitted if not needed.
-    static void SetUpTestSuite()
+    void SetUp()
     {
-        // Avoid reallocating static objects if called in subclasses of FooTest.
-        if (iec104 == nullptr)
-        {
-            iec104 = new IEC104TestComp();
+        clockSyncHandlerCalled = 0;
 
-            iec104->registerIngest(NULL, ingestCallback);
+        iec104 = new IEC104TestComp();
 
-            //startIEC104();
-            //thread_ = boost::thread(&IEC104Test::startIEC104);
-        }
+        iec104->registerIngest(NULL, ingestCallback);
     }
 
-    // Per-test-suite tear-down.
-    // Called after the last test in this test suite.
-    // Can be omitted if not needed.
-    static void TearDownTestSuite()
+    void TearDown()
     {
         iec104->stop();
-        //thread_.interrupt();
-        // delete iec104;
-        // iec104 = nullptr;
-        //thread_.join();
+
+        delete iec104;
     }
 
-    static void startIEC104() { iec104->start(); }
+    void startIEC104() { iec104->start(); }
 
     static bool hasChild(Datapoint& dp, std::string childLabel)
     {
@@ -498,7 +480,7 @@ protected:
     }
 
     static boost::thread thread_;
-    static IEC104TestComp* iec104;
+    IEC104TestComp* iec104;
     static int ingestCallbackCalled;
     static Reading* storedReading;
     static int clockSyncHandlerCalled;
@@ -509,7 +491,6 @@ protected:
 };
 
 boost::thread InterrogationTest::thread_;
-IEC104TestComp* InterrogationTest::iec104;
 int InterrogationTest::ingestCallbackCalled;
 Reading* InterrogationTest::storedReading;
 int InterrogationTest::asduHandlerCalled;

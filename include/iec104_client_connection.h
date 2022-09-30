@@ -42,6 +42,7 @@ private:
     void performPeriodicTasks();
     void prepareParameters();
     bool prepareConnection();
+    void startNewInterrogationCycle();
 
     typedef enum {
         CON_STATE_IDLE,
@@ -87,6 +88,7 @@ private:
     bool m_interrogationInProgress = false;
     int m_interrogationRequestState = 0; /* 0 - idle, 1 - waiting for ACT_CON, 2 - waiting for ACT_TERM */
     uint64_t m_interrogationRequestSent;
+    uint64_t m_nextGIStartTime;
 
     uint64_t m_delayExpirationTime;
 

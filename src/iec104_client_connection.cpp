@@ -389,6 +389,32 @@ IEC104ClientConnection::prepareParameters()
     Logger::getLogger()->info("Connection (red-group: %s IP: %s port: %i) initialized", m_redGroup->Name().c_str(), m_redGroupConnection->ServerIP().c_str(), m_redGroupConnection->TcpPort());
 }
 
+void
+IEC104ClientConnection::startNewInterrogationCycle()
+{
+    if (m_config->GiForAllCa() == false) {
+        if (sendInterrogationCommand(broadcastCA())) {
+            m_firstGISent = true;
+            m_interrogationInProgress = true;
+            m_interrogationRequestState = 1;
+            m_interrogationRequestSent = getMonotonicTimeInMs();
+        }
+        else {
+            Logger::getLogger()->error("Failed to send interrogation command to broadcast address");
+            printf("Failed to send interrogation command to broadcast address!\n");
+        }
+    }
+    else {
+        m_listOfCA_it = m_config->ListOfCAs().begin();
+
+        m_firstGISent = true;
+
+        if (m_listOfCA_it != m_config->ListOfCAs().end()) {
+            m_interrogationInProgress = true;
+        }
+    }
+}
+
 void 
 IEC104ClientConnection::performPeriodicTasks()
 {
@@ -442,74 +468,67 @@ IEC104ClientConnection::performPeriodicTasks()
     
     if ((m_config->isTimeSyncEnabled() == false) || (m_firstTimeSyncOperationCompleted == true)) 
     {
-        if (m_firstGISent == false) {
-
-            if (m_config->GiForAllCa() == false) {
-                if (sendInterrogationCommand(broadcastCA())) {
-                    m_firstGISent = true;
-                    m_interrogationInProgress = true;
-                    m_interrogationRequestState = 1;
-                    m_interrogationRequestSent = getMonotonicTimeInMs();
-                }
-                else {
-                    Logger::getLogger()->error("Failed to send interrogation command to broadcast address");
-                    printf("Failed to send interrogation command to broadcast address!\n");
-                }
+        if (m_config->GiCycle() != 0)
+        {
+            if (m_firstGISent == false)
+            {
+                startNewInterrogationCycle();
             }
-            else {
-                m_listOfCA_it = m_config->ListOfCAs().begin();
+            else 
+            {
+                uint64_t currentTime = getMonotonicTimeInMs();
 
-                m_firstGISent = true;
+                if (m_interrogationInProgress) {
 
-                if (m_listOfCA_it != m_config->ListOfCAs().end()) {
-                    m_interrogationInProgress = true;
-                }
-            }
-        }
-        else {
+                    if (m_interrogationRequestState != 0) {
 
-            if (m_interrogationInProgress) {
-
-                if (m_interrogationRequestState != 0) {
-
-                    uint64_t currentTime = getMonotonicTimeInMs();
-
-                    if (m_interrogationRequestState == 1) { /* wait for ACT_CON */
-                        if (currentTime > m_interrogationRequestSent + 1000) {
-                            printf("Interrogation request timed out (no ACT_CON)!\n");
-                            m_interrogationRequestState = 0;
+                        if (m_interrogationRequestState == 1) { /* wait for ACT_CON */
+                            if (currentTime > m_interrogationRequestSent + 1000) {
+                                printf("Interrogation request timed out (no ACT_CON)!\n");
+                                m_interrogationRequestState = 0;
+                                m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
+                            }
+                        }
+                        else if (m_interrogationRequestState == 2) { /* wait for ACT_TERM */
+                            if (currentTime > m_interrogationRequestSent + 1000) {
+                                printf("Interrogation request timed out!\n");
+                                m_nextGIStartTime = m_config->GiCycle();
+                                m_interrogationRequestState = 0;
+                                m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
+                            }
                         }
                     }
-                    else if (m_interrogationRequestState == 2) { /* wait for ACT_TERM */
-                        if (currentTime > m_interrogationRequestSent + 1000) {
-                            printf("Interrogation request timed out!\n");
-                            m_interrogationRequestState = 0;
-                        }
-                    }
-                }
-                else {
+                    else {
 
-                    if (m_config->GiForAllCa() == true) {
+                        if (m_config->GiForAllCa() == true) {
 
-                        if (m_listOfCA_it != m_config->ListOfCAs().end()) {
-                            if (sendInterrogationCommand(*m_listOfCA_it)) {
-                                printf("Sent GI request to CA=%i\n", *m_listOfCA_it);
-                                m_interrogationRequestState = 1;
-                                m_interrogationRequestSent = getMonotonicTimeInMs();
+                            if (m_listOfCA_it != m_config->ListOfCAs().end()) {
+                                if (sendInterrogationCommand(*m_listOfCA_it)) {
+                                    printf("Sent GI request to CA=%i\n", *m_listOfCA_it);
+                                    m_interrogationRequestState = 1;
+                                    m_interrogationRequestSent = getMonotonicTimeInMs();
+                                }
+                                else {
+                                    Logger::getLogger()->error("Failed to send interrogation command");
+                                    printf("Failed to send interrogation command to CA=%i!\n", *m_listOfCA_it);
+                                }
+
+                                m_listOfCA_it++;
                             }
                             else {
-                                Logger::getLogger()->error("Failed to send interrogation command");
-                                printf("Failed to send interrogation command to CA=%i!\n", *m_listOfCA_it);
+                                m_interrogationInProgress = false;
+                                m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
                             }
-
-                            m_listOfCA_it++;
                         }
                         else {
                             m_interrogationInProgress = false;
                         }
                     }
-                    else {
-                        m_interrogationInProgress = false;
+                }
+                else 
+                {
+                    if (currentTime > m_nextGIStartTime) {
+                        startNewInterrogationCycle();
                     }
                 }
             }
@@ -609,6 +628,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                     else if (cot == CS101_COT_ACTIVATION_TERMINATION) {
                         if (self->m_interrogationRequestState == 2) {
                             self->m_interrogationRequestState = 0;
+                            self->m_nextGIStartTime = getMonotonicTimeInMs() + (self->m_config->GiCycle() * 1000);
                         }
                         else {
                             printf("Unexpected ACT_TERM\n");
