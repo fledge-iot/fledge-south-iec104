@@ -114,6 +114,53 @@ static string protocol_config2 = QUOTE({
         }                     
     });
 
+static string protocol_config3 = QUOTE({
+        "protocol_stack" : {
+            "name" : "iec104client",
+            "version" : "1.0",
+            "transport_layer" : {
+                "redundancy_groups" : [
+                    { 
+                        "connections" : [
+                            {     
+                                "srv_ip" : "127.0.0.1",        
+                                "port" : 2404          
+                            }
+                        ],
+                        "rg_name" : "red-group1",  
+                        "tls" : false,
+                        "k_value" : 12,  
+                        "w_value" : 8,
+                        "t0_timeout" : 10,                 
+                        "t1_timeout" : 15,                 
+                        "t2_timeout" : 10,                 
+                        "t3_timeout" : 20    
+                    }
+                ]                  
+            },                
+            "application_layer" : {                
+                "orig_addr" : 10, 
+                "ca_asdu_size" : 2,                
+                "ioaddr_size" : 3,                          
+                "asdu_size" : 0, 
+                "gi_time" : 1,  
+                "gi_cycle" : 1,                
+                "gi_all_ca" : false,               
+                "gi_repeat_count" : 2,             
+                "disc_qual" : "NT",                
+                "send_iv_time" : 0,                
+                "tsiv" : "REMOVE",                 
+                "utc_time" : false,                
+                "cmd_with_timetag" : false,              
+                "cmd_parallel" : 0,               
+                "exec_cycl_test" : false,          
+                "reverse" : false,                 
+                "time_sync" : 100                
+            }                 
+        }                     
+    });
+
+
 static string exchanged_data = QUOTE({
         "exchanged_data": {
             "name" : "iec104client",        
@@ -325,7 +372,9 @@ protected:
 
     static bool clockSynchronizationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
     {
-        clockSyncHandlerCalled++;
+        InterrogationTest* self = (InterrogationTest*)parameter;
+
+        self->clockSyncHandlerCalled++;
 
         return true;
     }
@@ -483,7 +532,7 @@ protected:
     IEC104TestComp* iec104;
     static int ingestCallbackCalled;
     static Reading* storedReading;
-    static int clockSyncHandlerCalled;
+    int clockSyncHandlerCalled = 0;
     static int asduHandlerCalled;
     static IMasterConnection lastConnection;
     static int lastOA;
@@ -495,7 +544,6 @@ int InterrogationTest::ingestCallbackCalled;
 Reading* InterrogationTest::storedReading;
 int InterrogationTest::asduHandlerCalled;
 int InterrogationTest::interrogationRequestsReceived;
-int InterrogationTest::clockSyncHandlerCalled;
 IMasterConnection InterrogationTest::lastConnection;
 int InterrogationTest::lastOA;
 
@@ -570,6 +618,85 @@ TEST_F(InterrogationTest, IEC104Client_startupProcedureBroadcastCA)
     Thread_sleep(2500);
 
     ASSERT_EQ(1, interrogationRequestsReceived);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+}
+
+TEST_F(InterrogationTest, IEC104Client_GIcycleOneSecond)
+{
+    iec104->setJsonConfig(protocol_config3, exchanged_data, tls_config);
+
+    asduHandlerCalled = 0;
+    interrogationRequestsReceived = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setInterrogationHandler(slave, interrogationHandler, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(1, clockSyncHandlerCalled);
+    ASSERT_EQ(0, asduHandlerCalled);
+    ASSERT_EQ(1, interrogationRequestsReceived);
+
+    Thread_sleep(2000);
+
+    ASSERT_EQ(3, interrogationRequestsReceived);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+}
+
+
+TEST_F(InterrogationTest, IEC104Client_GIcycleOneSecondNoACT_CON)
+{
+    iec104->setJsonConfig(protocol_config3, exchanged_data, tls_config);
+
+    asduHandlerCalled = 0;
+    interrogationRequestsReceived = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setInterrogationHandler(slave, interrogationHandler_No_ACT_CON, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(1, clockSyncHandlerCalled);
+    ASSERT_EQ(0, asduHandlerCalled);
+    ASSERT_EQ(1, interrogationRequestsReceived);
+
+    Thread_sleep(2000);
+
+    ASSERT_EQ(2, interrogationRequestsReceived);
 
     CS104_Slave_stop(slave);
 

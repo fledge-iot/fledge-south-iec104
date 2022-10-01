@@ -66,14 +66,6 @@ static const char *default_config = QUOTE({
         "default" : EXCHANGED_DATA_DEF
     },
 
-    "protocol_translation" : {
-        "description" : "protocol translation mapping",
-        "type" : "string",
-        "displayName" : "Protocol translation mapping",
-        "order" : "4",
-        "default" : PROTOCOL_TRANSLATION_DEF
-    },
-
     "tls" : {
         "description" : "tls parameters",
         "type" : "string",
@@ -139,14 +131,6 @@ string conf = QUOTE({
         "displayName" : "Exchanged data list",
         "order" : "3",
         "value" : EXCHANGED_DATA_DEF
-    },
-
-    "protocol_translation" : {
-        "description" : "protocol translation mapping",
-        "type" : "string",
-        "displayName" : "Protocol translation mapping",
-        "order" : "4",
-        "value" : PROTOCOL_TRANSLATION_DEF
     },
 
     "tls" : {

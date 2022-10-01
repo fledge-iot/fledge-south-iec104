@@ -68,7 +68,7 @@ IEC104ClientConnection::m_connectionHandler(void* parameter, CS104_Connection co
 {
     IEC104ClientConnection* self = static_cast<IEC104ClientConnection*>(parameter);
 
-    Logger::getLogger()->info("Connection state changed: " + std::to_string(event));
+    Logger::getLogger()->debug("Connection state changed: " + std::to_string(event));
 
     if (event == CS104_CONNECTION_CLOSED)
     {
@@ -108,7 +108,7 @@ IEC104ClientConnection::sendInterrogationCommand(int ca)
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
         if (CS104_Connection_sendInterrogationCommand(m_connection, CS101_COT_ACTIVATION, ca, IEC60870_QOI_STATION)) {
-            Logger::getLogger()->info("Interrogation command sent");
+            Logger::getLogger()->debug("Interrogation command sent (CA=%i)", ca);
             success = true;
         }
         else {
@@ -145,7 +145,7 @@ IEC104ClientConnection::sendSingleCommand(int ca, int ioa, bool value, bool with
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->info("single command sent");
+                Logger::getLogger()->debug("single command sent");
                 success = true;
             }
 
@@ -184,7 +184,7 @@ IEC104ClientConnection::sendDoubleCommand(int ca, int ioa, int value, bool withT
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->info("double command sent");
+                Logger::getLogger()->debug("double command sent");
                 success = true;
             }
 
@@ -223,7 +223,7 @@ IEC104ClientConnection::sendStepCommand(int ca, int ioa, int value, bool withTim
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->info("step command sent");
+                Logger::getLogger()->debug("step command sent");
                 success = true;
             }
 
@@ -262,7 +262,7 @@ IEC104ClientConnection::sendSetpointNormalized(int ca, int ioa, float value, boo
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->info("setpoint(normalized) sent");
+                Logger::getLogger()->debug("setpoint(normalized) sent");
                 success = true;
             }
 
@@ -301,7 +301,7 @@ IEC104ClientConnection::sendSetpointScaled(int ca, int ioa, int value, bool with
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->info("setpoint(scaled) sent");
+                Logger::getLogger()->debug("setpoint(scaled) sent");
                 success = true;
             }
 
@@ -340,7 +340,7 @@ IEC104ClientConnection::sendSetpointShort(int ca, int ioa, float value, bool wit
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->info("setpoint(short) sent");
+                Logger::getLogger()->debug("setpoint(short) sent");
                 success = true;
             }
 
@@ -394,14 +394,15 @@ IEC104ClientConnection::startNewInterrogationCycle()
 {
     if (m_config->GiForAllCa() == false) {
         if (sendInterrogationCommand(broadcastCA())) {
+            Logger::getLogger()->debug("Sent interrogation command to broadcase address");
             m_firstGISent = true;
             m_interrogationInProgress = true;
             m_interrogationRequestState = 1;
             m_interrogationRequestSent = getMonotonicTimeInMs();
+            m_nextGIStartTime = m_interrogationRequestSent + (m_config->GiCycle() * 1000);
         }
         else {
             Logger::getLogger()->error("Failed to send interrogation command to broadcast address");
-            printf("Failed to send interrogation command to broadcast address!\n");
         }
     }
     else {
@@ -483,15 +484,15 @@ IEC104ClientConnection::performPeriodicTasks()
                     if (m_interrogationRequestState != 0) {
 
                         if (m_interrogationRequestState == 1) { /* wait for ACT_CON */
-                            if (currentTime > m_interrogationRequestSent + 1000) {
-                                printf("Interrogation request timed out (no ACT_CON)!\n");
+                            if (currentTime > m_interrogationRequestSent + (m_config->GiTime() * 1000)) {
+                                Logger::getLogger()->error("Interrogation request timed out (no ACT_CON)");
                                 m_interrogationRequestState = 0;
                                 m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
                             }
                         }
                         else if (m_interrogationRequestState == 2) { /* wait for ACT_TERM */
-                            if (currentTime > m_interrogationRequestSent + 1000) {
-                                printf("Interrogation request timed out!\n");
+                            if (currentTime > m_interrogationRequestSent + (m_config->GiTime() * 1000)) {
+                                Logger::getLogger()->error("Interrogation request timed out (no ACT_TERM)");
                                 m_nextGIStartTime = m_config->GiCycle();
                                 m_interrogationRequestState = 0;
                                 m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
@@ -504,13 +505,12 @@ IEC104ClientConnection::performPeriodicTasks()
 
                             if (m_listOfCA_it != m_config->ListOfCAs().end()) {
                                 if (sendInterrogationCommand(*m_listOfCA_it)) {
-                                    printf("Sent GI request to CA=%i\n", *m_listOfCA_it);
+                                    Logger::getLogger()->debug("Sent GI request to CA=%i", *m_listOfCA_it);
                                     m_interrogationRequestState = 1;
                                     m_interrogationRequestSent = getMonotonicTimeInMs();
                                 }
                                 else {
-                                    Logger::getLogger()->error("Failed to send interrogation command");
-                                    printf("Failed to send interrogation command to CA=%i!\n", *m_listOfCA_it);
+                                    Logger::getLogger()->error("Failed to send interrogation command to CA=%i!\n", *m_listOfCA_it);
                                 }
 
                                 m_listOfCA_it++;
@@ -549,7 +549,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
             self->m_interrogationRequestSent = getMonotonicTimeInMs();
         }
         else {
-            printf("Unexpected interrogation response\n");
+            Logger::getLogger()->warn("Unexpected interrogation response");
         }
     }
 
@@ -558,7 +558,6 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
         /* ASDU not handled */
         switch (CS101_ASDU_getTypeID(asdu))
         {
-
             case M_EI_NA_1:
                 Logger::getLogger()->info("Received end of initialization");
                 break;
@@ -578,14 +577,12 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                             }
                         }
                         else {
-                            printf("time synchonizatation failed\n");
+                            Logger::getLogger()->error("time synchonizatation failed");
                         }
                     }
                     else if (CS101_ASDU_getCOT(asdu) == CS101_COT_UNKNOWN_TYPE_ID) {
 
                         Logger::getLogger()->warn("Time synchronization not supported by remote");
-
-                        printf("Time synchronization not supported by remote\n");
 
                         self->m_timeSyncCommandSent = false;
                         self->m_timeSynchronized = true;
@@ -595,15 +592,12 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                 else {
                     if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
                         Logger::getLogger()->warn("Unexpected time sync response");
-                        printf("Unexpected time sync response!\n");
                     }
                     else if (CS101_ASDU_getCOT(asdu) == CS101_COT_SPONTANEOUS) {
                         Logger::getLogger()->warn("Received remote clock time");
-                        printf("Received remote clock time\n");
                     }
                     else {
                         Logger::getLogger()->warn("Unexpected time sync message");
-                        printf("Unexpected time sync message\n");
                     }
                 }
 
@@ -613,25 +607,22 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 
             case C_IC_NA_1:
                 { 
-                    Logger::getLogger()->info("General interrogation response");
-                    printf("Receivd C_IC_NA_1 with COT=%i\n", cot);
+                    Logger::getLogger()->debug("Receivd C_IC_NA_1 with COT=%i", cot);
 
                     if (cot == CS101_COT_ACTIVATION_CON) {
                         if (self->m_interrogationRequestState == 1) {
-                            self->m_interrogationRequestSent = getMonotonicTimeInMs();
                             self->m_interrogationRequestState = 2;
                         }
                         else {
-                            printf("Unexpected ACT_CON\n");
+                            Logger::getLogger()->warn("Unexpected ACT_CON");
                         }
                     }
                     else if (cot == CS101_COT_ACTIVATION_TERMINATION) {
                         if (self->m_interrogationRequestState == 2) {
                             self->m_interrogationRequestState = 0;
-                            self->m_nextGIStartTime = getMonotonicTimeInMs() + (self->m_config->GiCycle() * 1000);
                         }
                         else {
-                            printf("Unexpected ACT_TERM\n");
+                            Logger::getLogger()->warn("Unexpected ACT_TERM");
                         }
                     }
                 }
@@ -755,7 +746,6 @@ IEC104ClientConnection::_conThread()
                         }
                         else {
                             m_connectionState = CON_STATE_FATAL_ERROR;
-                            printf("Fatal configuration error\n");
                             Logger::getLogger()->error("Fatal configuration error");
                         }
                         
