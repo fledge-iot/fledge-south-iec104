@@ -49,16 +49,10 @@ static string protocol_config = QUOTE({
                 "asdu_size" : 0, 
                 "gi_time" : 60,  
                 "gi_cycle" : 30,                
-                "gi_all_ca" : true,               
-                "gi_repeat_count" : 2,             
-                "disc_qual" : "NT",                
-                "send_iv_time" : 0,                
-                "tsiv" : "REMOVE",                 
+                "gi_all_ca" : true,                             
                 "utc_time" : false,                
                 "cmd_with_timetag" : false,              
-                "cmd_parallel" : 0,               
-                "exec_cycl_test" : false,          
-                "reverse" : false,                 
+                "cmd_parallel" : 0,                              
                 "time_sync" : 100                 
             }                 
         }                     
@@ -99,16 +93,10 @@ static string protocol_config2 = QUOTE({
                 "asdu_size" : 0, 
                 "gi_time" : 60,  
                 "gi_cycle" : 30,                
-                "gi_all_ca" : false,               
-                "gi_repeat_count" : 2,             
-                "disc_qual" : "NT",                
-                "send_iv_time" : 0,                
-                "tsiv" : "REMOVE",                 
+                "gi_all_ca" : false,                        
                 "utc_time" : false,                
                 "cmd_with_timetag" : false,              
-                "cmd_parallel" : 0,               
-                "exec_cycl_test" : false,          
-                "reverse" : false,                 
+                "cmd_parallel" : 0,                           
                 "time_sync" : 100                
             }                 
         }                     
@@ -145,16 +133,10 @@ static string protocol_config3 = QUOTE({
                 "asdu_size" : 0, 
                 "gi_time" : 1,  
                 "gi_cycle" : 1,                
-                "gi_all_ca" : false,               
-                "gi_repeat_count" : 2,             
-                "disc_qual" : "NT",                
-                "send_iv_time" : 0,                
-                "tsiv" : "REMOVE",                 
+                "gi_all_ca" : false,                            
                 "utc_time" : false,                
                 "cmd_with_timetag" : false,              
-                "cmd_parallel" : 0,               
-                "exec_cycl_test" : false,          
-                "reverse" : false,                 
+                "cmd_parallel" : 0,                              
                 "time_sync" : 100                
             }                 
         }                     
@@ -255,13 +237,6 @@ class IEC104TestComp : public IEC104
 public:
     IEC104TestComp() : IEC104()
     {
-        // CS104_Connection new_connection =
-        //     CS104_Connection_create("127.0.0.1", TEST_PORT);
-        // if (new_connection != nullptr)
-        // {
-        //     cout << "Connexion initialisée" << endl;
-        // }
-        // m_connections.push_back(new_connection);
     }
 };
 
@@ -373,6 +348,12 @@ protected:
     static bool clockSynchronizationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
     {
         InterrogationTest* self = (InterrogationTest*)parameter;
+
+        char addrBuf[100];
+
+        IMasterConnection_getPeerAddress(connection, addrBuf, 100);
+
+        printf("Clock sync called from %s\n", addrBuf);
 
         self->clockSyncHandlerCalled++;
 
@@ -584,6 +565,8 @@ TEST_F(InterrogationTest, IEC104Client_startupProcedureSeparateRequestForEachCA)
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
 }
 
 TEST_F(InterrogationTest, IEC104Client_startupProcedureBroadcastCA)
@@ -622,6 +605,8 @@ TEST_F(InterrogationTest, IEC104Client_startupProcedureBroadcastCA)
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
 }
 
 TEST_F(InterrogationTest, IEC104Client_GIcycleOneSecond)
@@ -661,6 +646,8 @@ TEST_F(InterrogationTest, IEC104Client_GIcycleOneSecond)
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
 }
 
 
@@ -701,6 +688,8 @@ TEST_F(InterrogationTest, IEC104Client_GIcycleOneSecondNoACT_CON)
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
 }
 
 

@@ -75,21 +75,14 @@ static const char *default_config = QUOTE({
                 "application_layer" : {                
                     "orig_addr" : 10, 
                     "ca_asdu_size" : 2,                
-                    "ioaddr_size" : 3,                 
-                    "startup_time" : 180,              
+                    "ioaddr_size" : 3,          
                     "asdu_size" : 0, 
                     "gi_time" : 60,  
                     "gi_cycle" : false,                
-                    "gi_all_ca" : false,               
-                    "gi_repeat_count" : 2,             
-                    "disc_qual" : "NT",                
-                    "send_iv_time" : 0,                
-                    "tsiv" : "REMOVE",                 
+                    "gi_all_ca" : false,                                          
                     "utc_time" : false,                
-                    "comm_wttag" : false,              
-                    "comm_parallel" : 0,               
-                    "exec_cycl_test" : false,          
-                    "reverse" : false,                 
+                    "cmd_wttag" : false,              
+                    "cmd_parallel" : 0,                                    
                     "time_sync" : 0                 
                 }                 
             }                     
@@ -183,22 +176,24 @@ extern "C"
      */
     PLUGIN_HANDLE plugin_init(ConfigCategory *config)
     {
-        IEC104 *iec104;
+        IEC104* iec104 = nullptr;
         Logger::getLogger()->info("Initializing the plugin");
 
         iec104 = new IEC104();
 
-        if (config->itemExists("asset"))
-            iec104->setAssetName(config->getValue("asset"));
-        else
-            iec104->setAssetName("iec 104");
+        if (iec104) {
+            if (config->itemExists("asset"))
+                iec104->setAssetName(config->getValue("asset"));
+            else
+                iec104->setAssetName("iec 104");
 
-        if (config->itemExists("protocol_stack") &&
-            config->itemExists("exchanged_data") &&
-            config->itemExists("tls"))
-            iec104->setJsonConfig(config->getValue("protocol_stack"),
-                                  config->getValue("exchanged_data"),
-                                  config->getValue("tls"));
+            if (config->itemExists("protocol_stack") &&
+                config->itemExists("exchanged_data") &&
+                config->itemExists("tls"))
+                iec104->setJsonConfig(config->getValue("protocol_stack"),
+                                      config->getValue("exchanged_data"),
+                                      config->getValue("tls"));
+        }
 
         return (PLUGIN_HANDLE)iec104;
     }

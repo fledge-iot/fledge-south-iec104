@@ -36,7 +36,7 @@ public:
     int TimeSyncCa() {return m_timeSyncCa;};
     int OrigAddr() {return m_origAddr;};
 
-    bool isTimeSyncEnabled() {return m_timeSyncEnabled;};
+    bool isTimeSyncEnabled() {return (m_timeSyncPeriod > 0);};
     int TimeSyncPeriod() {return m_timeSyncPeriod;};
 
     bool GiForAllCa() {return m_giAllCa;};
@@ -76,7 +76,6 @@ private:
     int m_timeSyncCa = 1; /* application_layer/time_sync_ca */
     int m_origAddr = 0; /* application_layer/orig_addr */
 
-    bool m_timeSyncEnabled = false; /* application_layer/time_sync */
     int m_timeSyncPeriod = 0; /* application_layer/time_sync_period in s*/
 
     bool m_giAllCa = false; /* application_layer/gi_all_ca */

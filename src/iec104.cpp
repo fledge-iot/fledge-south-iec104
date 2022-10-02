@@ -74,7 +74,7 @@ void IEC104::start()
 /** Disconnect from the iec104 servers */
 void IEC104::stop()
 {
-     if (m_client != nullptr)
+    if (m_client != nullptr)
     {
         m_client->stop();
 

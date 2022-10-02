@@ -86,7 +86,6 @@ IEC104ClientConnection::m_connectionHandler(void* parameter, CS104_Connection co
     {
         self->m_nextTimeSync = getMonotonicTimeInMs();
         self->m_timeSynchronized = false;
-        self->m_timeSyncCommandSent = false;
         self->m_firstTimeSyncOperationCompleted = false;
         self->m_firstGISent = false;
 
@@ -417,7 +416,7 @@ IEC104ClientConnection::startNewInterrogationCycle()
 }
 
 void 
-IEC104ClientConnection::performPeriodicTasks()
+IEC104ClientConnection::executePeriodicTasks()
 {
     /* do time synchroniation when enabled */
     if (m_config->isTimeSyncEnabled()) {
@@ -425,16 +424,18 @@ IEC104ClientConnection::performPeriodicTasks()
         bool sendTimeSyncCommand = false;
 
         /* send first time sync after connection was activated */
-        if ((m_timeSynchronized == false) && (m_timeSyncCommandSent == false)) {
+        if ((m_timeSynchronized == false) && (m_firstTimeSyncOperationCompleted == false) && (m_timeSyncCommandSent == false)) {
             sendTimeSyncCommand = true;
         }
         
         /* send periodic time sync command when configured */
         if ((m_timeSynchronized == true) && (m_timeSyncCommandSent == false)) {
-            if (m_timeSyncPeriod > 0) {
-                if (getMonotonicTimeInMs() >= m_nextTimeSync) {
-                    sendTimeSyncCommand = true;
-                }
+            uint64_t currentTime = getMonotonicTimeInMs();
+
+            if (currentTime >= m_nextTimeSync) {
+                sendTimeSyncCommand = true;
+
+                m_nextTimeSync = currentTime + (m_config->TimeSyncPeriod() * 1000);
             }
         }
 
@@ -453,14 +454,13 @@ IEC104ClientConnection::performPeriodicTasks()
 
             m_conLock.lock();
 
+            m_timeSyncCommandSent = true;
+
             if (CS104_Connection_sendClockSyncCommand(m_connection, ca, &ts)) {
                 Logger::getLogger()->info("Sent clock sync command ...");
-
-                m_timeSyncCommandSent = true;
             }
             else {
                 Logger::getLogger()->error("Failed to send clock sync command");
-                printf("Failed to send clock sync command!\n");
             }
 
             m_conLock.unlock();
@@ -564,17 +564,16 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 
             case C_CS_NA_1:
                 Logger::getLogger()->info("Received time sync response");
-
+                
                 if (self->m_timeSyncCommandSent == true) {
 
                     if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
                         if (CS101_ASDU_isNegative(asdu) == false) {
-                            self->m_timeSyncCommandSent = false;
                             self->m_timeSynchronized = true;
 
-                            if (self->m_timeSyncPeriod > 0) {
-                                self->m_nextTimeSync = getMonotonicTimeInMs() + (self->m_timeSyncPeriod * 1000);
-                            }
+                            self->m_nextTimeSync = getMonotonicTimeInMs() + (self->m_config->TimeSyncPeriod() * 1000);
+
+                            self->m_timeSyncCommandSent = false;
                         }
                         else {
                             Logger::getLogger()->error("time synchonizatation failed");
@@ -584,7 +583,6 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 
                         Logger::getLogger()->warn("Time synchronization not supported by remote");
 
-                        self->m_timeSyncCommandSent = false;
                         self->m_timeSynchronized = true;
                     }
 
@@ -771,7 +769,7 @@ IEC104ClientConnection::_conThread()
 
                 case CON_STATE_CONNECTED_ACTIVE:
 
-                    performPeriodicTasks();
+                    executePeriodicTasks();
 
                     break;
 

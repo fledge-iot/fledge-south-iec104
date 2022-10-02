@@ -18,7 +18,7 @@ TEST(IEC104, PluginInfo)
 {
     PLUGIN_INFORMATION *info = plugin_info();
     ASSERT_STREQ(info->name, "iec104");
-    ASSERT_EQ(info->type, PLUGIN_TYPE_SOUTH);
+    ASSERT_STREQ(info->type, PLUGIN_TYPE_SOUTH);
 }
 
 TEST(IEC104, PluginInfoConfigParse)

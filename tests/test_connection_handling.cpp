@@ -47,21 +47,14 @@ static string protocol_config = QUOTE({
             "application_layer" : {                
                 "orig_addr" : 10, 
                 "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                 
-                "startup_time" : 180,              
+                "ioaddr_size" : 3,                            
                 "asdu_size" : 0, 
                 "gi_time" : 60,  
-                "gi_cycle" : false,                
-                "gi_all_ca" : false,               
-                "gi_repeat_count" : 2,             
-                "disc_qual" : "NT",                
-                "send_iv_time" : 0,                
-                "tsiv" : "REMOVE",                 
+                "gi_cycle" : 30,                
+                "gi_all_ca" : false,                              
                 "utc_time" : false,                
-                "comm_wttag" : false,              
-                "comm_parallel" : 0,               
-                "exec_cycl_test" : false,          
-                "reverse" : false,                 
+                "cmd_wttag" : false,              
+                "cmd_parallel" : 0,                              
                 "time_sync" : 0                 
             }                 
         }                     
@@ -103,21 +96,14 @@ static string protocol_config_2 = QUOTE({
             "application_layer" : {                
                 "orig_addr" : 10, 
                 "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                 
-                "startup_time" : 180,              
+                "ioaddr_size" : 3,                           
                 "asdu_size" : 0, 
                 "gi_time" : 60,  
-                "gi_cycle" : false,                
-                "gi_all_ca" : false,               
-                "gi_repeat_count" : 2,             
-                "disc_qual" : "NT",                
-                "send_iv_time" : 0,                
-                "tsiv" : "REMOVE",                 
+                "gi_cycle" : 30,                
+                "gi_all_ca" : false,                              
                 "utc_time" : false,                
-                "comm_wttag" : false,              
-                "comm_parallel" : 0,               
-                "exec_cycl_test" : false,          
-                "reverse" : false,                 
+                "cmd_wttag" : false,              
+                "cmd_parallel" : 0,                               
                 "time_sync" : 0                 
             }                 
         }                     
@@ -150,21 +136,14 @@ static string protocol_config_3 = QUOTE({
             "application_layer" : {                
                 "orig_addr" : 10, 
                 "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                 
-                "startup_time" : 180,              
+                "ioaddr_size" : 3,                             
                 "asdu_size" : 0, 
                 "gi_time" : 60,  
                 "gi_cycle" : false,                
-                "gi_all_ca" : false,               
-                "gi_repeat_count" : 2,             
-                "disc_qual" : "NT",                
-                "send_iv_time" : 0,                
-                "tsiv" : "REMOVE",                 
+                "gi_all_ca" : false,                               
                 "utc_time" : false,                
-                "comm_wttag" : false,              
-                "comm_parallel" : 0,               
-                "exec_cycl_test" : false,          
-                "reverse" : false,                 
+                "cmd_wttag" : false,              
+                "cmd_parallel" : 0,                              
                 "time_sync" : 0                 
             }                 
         }                     
@@ -386,31 +365,36 @@ protected:
 
         InformationObject io = CS101_ASDU_getElement(asdu, 0);
 
-        int ioa = InformationObject_getObjectAddress(io);
+        if (io) {
 
-        if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1) {
-            printf("  C_SC_NA_1 (single-command)\n");
+            int ioa = InformationObject_getObjectAddress(io);
 
-            if (ca == 41025 && ioa == 2000) {
-                IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+            if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1) {
+                printf("  C_SC_NA_1 (single-command)\n");
+
+                if (ca == 41025 && ioa == 2000) {
+                    IMasterConnection_sendACT_CON(connection, asdu, false);
+                    lastConnection = connection;
+                }
             }
-        }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1) {
-            printf("  C_SC_TA_1 (single-command w/timetag)\n");
+            else if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1) {
+                printf("  C_SC_TA_1 (single-command w/timetag)\n");
 
-            if (ca == 41025 && ioa == 2001) {
-                IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+                if (ca == 41025 && ioa == 2001) {
+                    IMasterConnection_sendACT_CON(connection, asdu, false);
+                    lastConnection = connection;
+                }
             }
-        }
-        else if (CS101_ASDU_getTypeID(asdu) == C_DC_NA_1) {
-            printf("  C_DC_NA_1 (double-command)\n");
+            else if (CS101_ASDU_getTypeID(asdu) == C_DC_NA_1) {
+                printf("  C_DC_NA_1 (double-command)\n");
 
-            if (ca == 41025 && ioa == 2002) {
-                IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+                if (ca == 41025 && ioa == 2002) {
+                    IMasterConnection_sendACT_CON(connection, asdu, false);
+                    lastConnection = connection;
+                }
             }
+
+            InformationObject_destroy(io);
         }
 
         if (CS101_ASDU_getTypeID(asdu) != C_IC_NA_1)

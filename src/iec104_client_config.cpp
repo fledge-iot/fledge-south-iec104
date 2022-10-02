@@ -579,8 +579,6 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
         }
     }
 
-    m_timeSyncEnabled = false;
-
     if (applicationLayer.HasMember("time_sync")) {
         if (applicationLayer["time_sync"].IsInt()) {
             int timeSyncValue = applicationLayer["time_sync"].GetInt();
@@ -589,8 +587,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                 printf("application_layer.time_sync has invalid value -> using default value (0)\n");
                 Logger::getLogger()->warn("application_layer.time_sync has invalid value -> using default value (0)");
             }
-            else if (timeSyncValue > 0) {
-                m_timeSyncEnabled = true;
+            else {
                 m_timeSyncPeriod = timeSyncValue;
             }
 

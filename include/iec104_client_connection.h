@@ -39,7 +39,7 @@ public:
 
 private:
 
-    void performPeriodicTasks();
+    void executePeriodicTasks();
     void prepareParameters();
     bool prepareConnection();
     void startNewInterrogationCycle();
@@ -81,7 +81,6 @@ private:
     bool m_timeSynchronized = false;
     bool m_timeSyncCommandSent = false;
     bool m_firstTimeSyncOperationCompleted = false;
-    int m_timeSyncPeriod = 0;
     uint64_t m_nextTimeSync;
 
     bool m_firstGISent = false;

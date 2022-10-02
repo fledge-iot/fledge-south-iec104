@@ -46,17 +46,11 @@ static string protocol_config = QUOTE({
                 "ioaddr_size" : 3,                             
                 "asdu_size" : 0, 
                 "gi_time" : 60,  
-                "gi_cycle" : false,                
-                "gi_all_ca" : true,               
-                "gi_repeat_count" : 2,             
-                "disc_qual" : "NT",                
-                "send_iv_time" : 0,                
-                "tsiv" : "REMOVE",                 
+                "gi_cycle" : 30,                
+                "gi_all_ca" : true,                           
                 "utc_time" : false,                
                 "cmd_with_timetag" : false,              
-                "cmd_parallel" : 0,               
-                "exec_cycl_test" : false,          
-                "reverse" : false,                 
+                "cmd_parallel" : 0,                            
                 "time_sync" : 100                 
             }                 
         }                     
@@ -126,13 +120,6 @@ class IEC104TestComp : public IEC104
 public:
     IEC104TestComp() : IEC104()
     {
-        // CS104_Connection new_connection =
-        //     CS104_Connection_create("127.0.0.1", TEST_PORT);
-        // if (new_connection != nullptr)
-        // {
-        //     cout << "Connexion initialisée" << endl;
-        // }
-        // m_connections.push_back(new_connection);
     }
 };
 
