@@ -78,7 +78,7 @@ static const char *default_config = QUOTE({
                     "ioaddr_size" : 3,          
                     "asdu_size" : 0, 
                     "gi_time" : 60,  
-                    "gi_cycle" : false,                
+                    "gi_cycle" : 60,                
                     "gi_all_ca" : false,                                          
                     "utc_time" : false,                
                     "cmd_wttag" : false,              
