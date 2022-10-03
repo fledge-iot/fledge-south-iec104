@@ -66,14 +66,6 @@ static const char *default_config = QUOTE({
         "default" : EXCHANGED_DATA_DEF
     },
 
-    "protocol_translation" : {
-        "description" : "protocol translation mapping",
-        "type" : "string",
-        "displayName" : "Protocol translation mapping",
-        "order" : "4",
-        "default" : PROTOCOL_TRANSLATION_DEF
-    },
-
     "tls" : {
         "description" : "tls parameters",
         "type" : "string",
@@ -87,10 +79,20 @@ TEST(IEC104, PluginInit)
 {
     ConfigCategory *config = new ConfigCategory("Test_Config", default_config);
     config->setItemsValueFromDefault();
-    ASSERT_NO_THROW(PLUGIN_HANDLE handle = plugin_init(config));
+
+    PLUGIN_HANDLE handle = nullptr;
+
+    ASSERT_NO_THROW(handle = plugin_init(config));
+    
+    if (handle != nullptr) plugin_shutdown((PLUGIN_HANDLE*)handle);
 
     ConfigCategory *emptyConfig = new ConfigCategory();
-    ASSERT_NO_THROW(PLUGIN_HANDLE handle = plugin_init(emptyConfig));
+    ASSERT_NO_THROW(handle = plugin_init(emptyConfig));
+
+    if (handle != nullptr) plugin_shutdown((PLUGIN_HANDLE*)handle);
+
+    delete config;
+    delete emptyConfig;
 }
 
 void ingestCallback(void *data, Reading reading) {}
@@ -103,10 +105,14 @@ TEST(IEC104, PluginRegisterIngest)
     ASSERT_NO_THROW(
         plugin_register_ingest((PLUGIN_HANDLE *)handle, ingestCallback, NULL));
 
+    plugin_shutdown((PLUGIN_HANDLE*)handle);
+
     handle = nullptr;
     ASSERT_THROW(
         plugin_register_ingest((PLUGIN_HANDLE *)handle, ingestCallback, NULL),
         exception);
+
+    delete emptyConfig;
 }
 
 TEST(IEC104, PluginPoll)
@@ -115,6 +121,10 @@ TEST(IEC104, PluginPoll)
     PLUGIN_HANDLE handle = plugin_init(emptyConfig);
 
     ASSERT_THROW(plugin_poll((PLUGIN_HANDLE *)handle), runtime_error);
+
+    plugin_shutdown((PLUGIN_HANDLE*)handle);
+
+    delete emptyConfig;
 }
 
 string conf = QUOTE({
@@ -141,14 +151,6 @@ string conf = QUOTE({
         "value" : EXCHANGED_DATA_DEF
     },
 
-    "protocol_translation" : {
-        "description" : "protocol translation mapping",
-        "type" : "string",
-        "displayName" : "Protocol translation mapping",
-        "order" : "4",
-        "value" : PROTOCOL_TRANSLATION_DEF
-    },
-
     "tls" : {
         "description" : "tls parameters",
         "type" : "string",
@@ -162,10 +164,12 @@ TEST(IEC104, PluginReconfigure)
 {
     ConfigCategory *emptyConfig = new ConfigCategory();
     PLUGIN_HANDLE handle = plugin_init(emptyConfig);
-    ASSERT_NO_THROW(plugin_reconfigure((PLUGIN_HANDLE *)handle, conf));
+    ASSERT_FALSE(handle == NULL);
+    ASSERT_NO_THROW(plugin_reconfigure((PLUGIN_HANDLE*)&handle, conf));
 
-    // TODO test when there is an asset name, but it will crash because of the
-    // restart
+    plugin_shutdown((PLUGIN_HANDLE*)handle);
+
+    delete emptyConfig;
 }
 
 TEST(IEC104, PluginWrite)
@@ -176,6 +180,10 @@ TEST(IEC104, PluginWrite)
     string name("name");
     string value("value");
     ASSERT_FALSE(plugin_write((PLUGIN_HANDLE *)handle, name, value));
+    
+    plugin_shutdown((PLUGIN_HANDLE*)handle);
+
+    delete emptyConfig;
 }
 
 TEST(IEC104, PluginOperation)
@@ -189,9 +197,13 @@ TEST(IEC104, PluginOperation)
     ASSERT_FALSE(
         plugin_operation((PLUGIN_HANDLE *)handle, operation, 10, NULL));
 
+    plugin_shutdown((PLUGIN_HANDLE*)handle);
+
     handle = nullptr;
     ASSERT_THROW(plugin_operation((PLUGIN_HANDLE *)handle, operation, 10, NULL),
                  exception);
+
+    delete emptyConfig;
 }
 
 TEST(IEC104, PluginStop)
@@ -199,11 +211,7 @@ TEST(IEC104, PluginStop)
     ConfigCategory *emptyConfig = new ConfigCategory();
     PLUGIN_HANDLE handle = plugin_init(emptyConfig);
     ASSERT_NO_THROW(plugin_shutdown((PLUGIN_HANDLE *)handle));
+
+    delete emptyConfig;
 }
 
-class MockIEC104 : public IEC104
-{
-public:
-    MockIEC104() : IEC104(){};
-    MOCK_METHOD(void, start, ());
-};

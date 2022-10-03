@@ -24,11 +24,12 @@ static string protocol_config = QUOTE({
                     { 
                         "connections" : [
                             {     
-                                "srv_ip" : "127.0.0.1",        
+                                "srv_ip" : "127.0.0.1",   
                                 "port" : 2404          
                             },    
                             {
-                                "srv_ip" : "127.0.0.1", 
+                                "srv_ip" : "127.0.0.2",
+                                "clt_ip" : "127.0.0.3",
                                 "port" : 2404
                             }
                         ],
@@ -46,15 +47,103 @@ static string protocol_config = QUOTE({
             "application_layer" : {                
                 "orig_addr" : 10, 
                 "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                 
-                "startup_time" : 180,              
+                "ioaddr_size" : 3,                            
                 "asdu_size" : 0, 
                 "gi_time" : 60,  
                 "gi_cycle" : 30,                
-                "gi_all_ca" : false,              
+                "gi_all_ca" : false,                              
                 "utc_time" : false,                
                 "cmd_wttag" : false,              
-                "cmd_parallel" : 0,                            
+                "cmd_parallel" : 0,                              
+                "time_sync" : 0                 
+            }                 
+        }                     
+    });
+
+static string protocol_config_2 = QUOTE({
+        "protocol_stack" : {
+            "name" : "iec104client",
+            "version" : "1.0",
+            "transport_layer" : {
+                "redundancy_groups" : [
+                    { 
+                        "connections" : [
+                            {     
+                                "srv_ip" : "127.0.0.1",   
+                                "port" : 2404,
+                                "conn": true,
+                                "start": true
+                            },    
+                            {
+                                "srv_ip" : "127.0.0.2",
+                                "clt_ip" : "127.0.0.3",
+                                "port" : 2404,
+                                "conn": false,
+                                "start": false
+                            }
+                        ],
+                        "rg_name" : "red-group1",  
+                        "tls" : false,
+                        "k_value" : 12,  
+                        "w_value" : 8,
+                        "t0_timeout" : 10,                 
+                        "t1_timeout" : 15,                 
+                        "t2_timeout" : 10,                 
+                        "t3_timeout" : 20    
+                    }
+                ]                  
+            },                
+            "application_layer" : {                
+                "orig_addr" : 10, 
+                "ca_asdu_size" : 2,                
+                "ioaddr_size" : 3,                           
+                "asdu_size" : 0, 
+                "gi_time" : 60,  
+                "gi_cycle" : 30,                
+                "gi_all_ca" : false,                              
+                "utc_time" : false,                
+                "cmd_wttag" : false,              
+                "cmd_parallel" : 0,                               
+                "time_sync" : 0                 
+            }                 
+        }                     
+    });
+
+static string protocol_config_3 = QUOTE({
+        "protocol_stack" : {
+            "name" : "iec104client",
+            "version" : "1.0",
+            "transport_layer" : {
+                "redundancy_groups" : [
+                    { 
+                        "connections" : [
+                            {     
+                                "srv_ip" : "127.0.0.1",   
+                                "port" : 2404          
+                            }
+                        ],
+                        "rg_name" : "red-group1",  
+                        "tls" : false,
+                        "k_value" : 12,  
+                        "w_value" : 8,
+                        "t0_timeout" : 10,                 
+                        "t1_timeout" : 15,                 
+                        "t2_timeout" : 10,                 
+                        "t3_timeout" : 20    
+                    }
+                ]                  
+            },                
+            "application_layer" : {                
+                "orig_addr" : 10, 
+                "ca_asdu_size" : 2,                
+                "ioaddr_size" : 3,                             
+                "asdu_size" : 0, 
+                "gi_time" : 60,  
+                "gi_cycle" : false,                
+                "gi_all_ca" : false,                               
+                "utc_time" : false,                
+                "cmd_wttag" : false,              
+                "cmd_parallel" : 0,                              
                 "time_sync" : 0                 
             }                 
         }                     
@@ -149,14 +238,18 @@ public:
     }
 };
 
-class ControlCommandsTest : public testing::Test
+class ConnectionHandlingTest : public testing::Test
 {
 protected:
+
+    struct sTestInfo {
+        int callbackCalled;
+        Reading* storedReading;
+    };
 
     void SetUp()
     {
         iec104 = new IEC104TestComp();
-        iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
 
         iec104->registerIngest(NULL, ingestCallback);
     }
@@ -166,16 +259,8 @@ protected:
         iec104->stop();
 
         delete iec104;
-
-        for (Reading* reading : storedReadings)
-        {
-            delete reading;
-        }
-
-        storedReadings.clear();
+        iec104 = nullptr;
     }
-
-    void startIEC104() { iec104->start(); }
 
     static bool hasChild(Datapoint& dp, std::string childLabel)
     {
@@ -255,7 +340,7 @@ protected:
         // for (Datapoint* sdp : dataPoints) {
         //     printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
         // }
-        storedReadings.push_back(new Reading(reading));
+        storedReading = new Reading(reading);
 
         ingestCallbackCalled++;
     }
@@ -269,7 +354,7 @@ protected:
 
     static bool asduHandler (void* parameter, IMasterConnection connection, CS101_ASDU asdu)
     {
-        ControlCommandsTest* self = (ControlCommandsTest*)parameter;
+        ConnectionHandlingTest* self = (ConnectionHandlingTest*)parameter;
 
         printf("asduHandler: type: %i\n", CS101_ASDU_getTypeID(asdu));
 
@@ -280,34 +365,37 @@ protected:
 
         InformationObject io = CS101_ASDU_getElement(asdu, 0);
 
-        int ioa = InformationObject_getObjectAddress(io);
+        if (io) {
 
-        if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1) {
-            printf("  C_SC_NA_1 (single-command)\n");
+            int ioa = InformationObject_getObjectAddress(io);
 
-            if (ca == 41025 && ioa == 2000) {
-                IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+            if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1) {
+                printf("  C_SC_NA_1 (single-command)\n");
+
+                if (ca == 41025 && ioa == 2000) {
+                    IMasterConnection_sendACT_CON(connection, asdu, false);
+                    lastConnection = connection;
+                }
             }
-        }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1) {
-            printf("  C_SC_TA_1 (single-command w/timetag)\n");
+            else if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1) {
+                printf("  C_SC_TA_1 (single-command w/timetag)\n");
 
-            if (ca == 41025 && ioa == 2001) {
-                IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+                if (ca == 41025 && ioa == 2001) {
+                    IMasterConnection_sendACT_CON(connection, asdu, false);
+                    lastConnection = connection;
+                }
             }
-        }
-        else if (CS101_ASDU_getTypeID(asdu) == C_DC_NA_1) {
-            printf("  C_DC_NA_1 (double-command)\n");
+            else if (CS101_ASDU_getTypeID(asdu) == C_DC_NA_1) {
+                printf("  C_DC_NA_1 (double-command)\n");
 
-            if (ca == 41025 && ioa == 2002) {
-                IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+                if (ca == 41025 && ioa == 2002) {
+                    IMasterConnection_sendACT_CON(connection, asdu, false);
+                    lastConnection = connection;
+                }
             }
-        }
 
-        InformationObject_destroy(io);
+            InformationObject_destroy(io);
+        }
 
         if (CS101_ASDU_getTypeID(asdu) != C_IC_NA_1)
             asduHandlerCalled++;
@@ -315,31 +403,66 @@ protected:
         return true;
     }
 
+    static void connectionEventHandler(void* parameter, IMasterConnection connection, CS104_PeerConnectionEvent event)
+    {
+        ConnectionHandlingTest* self = (ConnectionHandlingTest*)parameter;
+
+        if (event == CS104_CON_EVENT_CONNECTION_OPENED) {
+            self->openConnections++;
+        }
+        else if (event == CS104_CON_EVENT_CONNECTION_CLOSED) {
+            self->openConnections--;
+        }
+        else if (event == CS104_CON_EVENT_ACTIVATED) {
+            self->activations++;
+        }
+        else if (event == CS104_CON_EVENT_DEACTIVATED) {
+            self->deactivations++;
+        }
+
+        if (self->openConnections > self->maxConnections)
+            self->maxConnections = self->openConnections;
+    }
+
     static boost::thread thread_;
     IEC104TestComp* iec104 = nullptr;
     static int ingestCallbackCalled;
-    static std::vector<Reading*> storedReadings;
+    static Reading* storedReading;
     static int clockSyncHandlerCalled;
     static int asduHandlerCalled;
     static IMasterConnection lastConnection;
     static int lastOA;
+
+    static int openConnections;
+    int maxConnections = 0;
+    static int activations;
+    static int deactivations;
 };
 
-boost::thread ControlCommandsTest::thread_;
-int ControlCommandsTest::ingestCallbackCalled;
-std::vector<Reading*> ControlCommandsTest::storedReadings;
-int ControlCommandsTest::asduHandlerCalled;
-int ControlCommandsTest::clockSyncHandlerCalled;
-IMasterConnection ControlCommandsTest::lastConnection;
-int ControlCommandsTest::lastOA;
+boost::thread ConnectionHandlingTest::thread_;
+int ConnectionHandlingTest::ingestCallbackCalled;
+Reading* ConnectionHandlingTest::storedReading;
+int ConnectionHandlingTest::asduHandlerCalled;
+int ConnectionHandlingTest::clockSyncHandlerCalled;
+IMasterConnection ConnectionHandlingTest::lastConnection;
+int ConnectionHandlingTest::lastOA;
+int ConnectionHandlingTest::openConnections;
+int ConnectionHandlingTest::activations;
+int ConnectionHandlingTest::deactivations;
 
 
-TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommand)
+TEST_F(ConnectionHandlingTest, TwoConnectionsSingleRedundancyGroup)
 {
+    openConnections = 0;
+    activations = 0;
+    deactivations = 0;
+
     asduHandlerCalled = 0;
     clockSyncHandlerCalled = 0;
     lastConnection = NULL;
     ingestCallbackCalled = 0;
+
+    iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
@@ -347,73 +470,41 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommand)
 
     CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
     CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, this);
 
     CS104_Slave_start(slave);
 
     CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
 
-    startIEC104();
+    ASSERT_EQ(0, openConnections);
 
-    Thread_sleep(500);
+    iec104->start();
 
-    PLUGIN_PARAMETER* params[4];
+    Thread_sleep(1000);
 
-    PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
+    ASSERT_EQ(2, openConnections);
+    ASSERT_EQ(2, maxConnections);
 
-    // ioa
-    PLUGIN_PARAMETER ioa = {"ioa", "2000"};
-    params[1] = &ioa;
-
-    // Third value
-    PLUGIN_PARAMETER value = {"", "1"};
-    params[2] = &value;
-
-    // Third value
-    PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
-
-    bool operationResult = iec104->operation("SingleCommand", 4, params);
-
-    ASSERT_TRUE(operationResult);
-
-    Thread_sleep(500);
-
-    ASSERT_EQ(1, asduHandlerCalled);
-
-    CS101_ASDU ctAsdu = CS101_ASDU_create(IMasterConnection_getApplicationLayerParameters(lastConnection),
-        false, CS101_COT_ACTIVATION_TERMINATION,lastOA, 41025, false, false);
-
-    InformationObject io = (InformationObject)SingleCommand_create(NULL, 2000, true, false, 0);
-
-    CS101_ASDU_addInformationObject(ctAsdu, io);
-
-    IMasterConnection_sendASDU(lastConnection, ctAsdu);
-
-    InformationObject_destroy(io);
-
-    CS101_ASDU_destroy(ctAsdu);
-
-    ASSERT_EQ(10, lastOA);
-
-    Thread_sleep(500);
-
-    // expect ingest callback called two timees:
-    //  1. ACT_CON for single command
-    //  2. ACT_TERM for single command
-    ASSERT_EQ(2, ingestCallbackCalled);
+    ASSERT_EQ(1, activations);
+    ASSERT_EQ(0, deactivations);
 
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
 }
 
-TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommandNotInExchangeConfig)
+TEST_F(ConnectionHandlingTest, TwoConnectionsOnlyOneConfiguredToConnect)
 {
+    openConnections = 0;
+    activations = 0;
+    deactivations = 0;
+
     asduHandlerCalled = 0;
     clockSyncHandlerCalled = 0;
     lastConnection = NULL;
     ingestCallbackCalled = 0;
+
+    iec104->setJsonConfig(protocol_config_2, exchanged_data, tls_config);
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
@@ -421,211 +512,28 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommandNotInExchangeConfig)
 
     CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
     CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, this);
 
     CS104_Slave_start(slave);
 
     CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
 
-    startIEC104();
+    ASSERT_EQ(0, openConnections);
 
-    Thread_sleep(500);
+    iec104->start();
 
-    PLUGIN_PARAMETER* params[4];
+    Thread_sleep(1000);
 
-    PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
+    ASSERT_EQ(1, openConnections);
+    ASSERT_EQ(1, maxConnections);
 
-    // ioa
-    PLUGIN_PARAMETER ioa = {"ioa", "2022"};
-    params[1] = &ioa;
-
-    // Third value
-    PLUGIN_PARAMETER value = {"", "1"};
-    params[2] = &value;
-
-    // Third value
-    PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
-
-    bool operationResult = iec104->operation("SingleCommand", 4, params);
-
-    ASSERT_FALSE(operationResult);
-
-    Thread_sleep(500);
-
-    ASSERT_EQ(0, asduHandlerCalled);
+    ASSERT_EQ(1, activations);
+    ASSERT_EQ(0, deactivations);
 
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
+
+    iec104->stop();
 }
 
-TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommandButConfiguredAsDoubleCommand)
-{
-    asduHandlerCalled = 0;
-    clockSyncHandlerCalled = 0;
-    lastConnection = NULL;
-    ingestCallbackCalled = 0;
-
-    CS104_Slave slave = CS104_Slave_create(10, 10);
-
-    CS104_Slave_setLocalPort(slave, TEST_PORT);
-
-    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
-    CS104_Slave_setASDUHandler(slave, asduHandler, this);
-
-    CS104_Slave_start(slave);
-
-    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
-
-    startIEC104();
-
-    Thread_sleep(500);
-
-    PLUGIN_PARAMETER* params[4];
-
-    PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
-
-    // ioa
-    PLUGIN_PARAMETER ioa = {"ioa", "2021"};
-    params[1] = &ioa;
-
-    // Third value
-    PLUGIN_PARAMETER value = {"", "1"};
-    params[2] = &value;
-
-    // Third value
-    PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
-
-    bool operationResult = iec104->operation("SingleCommand", 4, params);
-
-    ASSERT_FALSE(operationResult);
-
-    Thread_sleep(500);
-
-    ASSERT_EQ(0, asduHandlerCalled);
-
-    CS104_Slave_stop(slave);
-
-    CS104_Slave_destroy(slave);
-}
-
-TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommand)
-{
-    asduHandlerCalled = 0;
-    clockSyncHandlerCalled = 0;
-    lastConnection = NULL;
-    ingestCallbackCalled = 0;
-
-    CS104_Slave slave = CS104_Slave_create(10, 10);
-
-    CS104_Slave_setLocalPort(slave, TEST_PORT);
-
-    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
-    CS104_Slave_setASDUHandler(slave, asduHandler, this);
-
-    CS104_Slave_start(slave);
-
-    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
-
-    startIEC104();
-
-    Thread_sleep(500);
-
-    PLUGIN_PARAMETER* params[4];
-
-    PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
-
-    // ioa
-    PLUGIN_PARAMETER ioa = {"ioa", "2002"};
-    params[1] = &ioa;
-
-    // Third value
-    PLUGIN_PARAMETER value = {"", "2"};
-    params[2] = &value;
-
-    // Third value
-    PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
-
-    bool operationResult = iec104->operation("DoubleCommand", 4, params);
-
-    ASSERT_TRUE(operationResult);
-
-    Thread_sleep(500);
-
-    ASSERT_EQ(1, asduHandlerCalled);
-
-    CS101_ASDU ctAsdu = CS101_ASDU_create(IMasterConnection_getApplicationLayerParameters(lastConnection),
-        false, CS101_COT_ACTIVATION_TERMINATION,lastOA, 41025, false, false);
-
-    InformationObject io = (InformationObject)DoubleCommand_create(NULL, 2002, 2, false, 0);
-
-    CS101_ASDU_addInformationObject(ctAsdu, io);
-
-    IMasterConnection_sendASDU(lastConnection, ctAsdu);
-
-    InformationObject_destroy(io);
-
-    CS101_ASDU_destroy(ctAsdu);
-
-    ASSERT_EQ(10, lastOA);
-
-    Thread_sleep(500);
-
-    // expect ingest callback called two timees:
-    //  1. ACT_CON for single command
-    //  2. ACT_TERM for single command
-    ASSERT_EQ(2, ingestCallbackCalled);
-
-    CS104_Slave_stop(slave);
-
-    CS104_Slave_destroy(slave);
-}
-
-TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommandNotConnected)
-{
-    asduHandlerCalled = 0;
-    clockSyncHandlerCalled = 0;
-    lastConnection = NULL;
-    ingestCallbackCalled = 0;
-
-    CS104_Slave slave = CS104_Slave_create(10, 10);
-
-    CS104_Slave_setLocalPort(slave, TEST_PORT);
-
-    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
-    CS104_Slave_setASDUHandler(slave, asduHandler, this);
-
-    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
-
-    startIEC104();
-
-    Thread_sleep(500);
-
-    PLUGIN_PARAMETER* params[4];
-
-    PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
-
-    // ioa
-    PLUGIN_PARAMETER ioa = {"ioa", "2002"};
-    params[1] = &ioa;
-
-    // Third value
-    PLUGIN_PARAMETER value = {"", "2"};
-    params[2] = &value;
-
-    // Third value
-    PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
-
-    bool operationResult = iec104->operation("DoubleCommand", 4, params);
-
-    ASSERT_FALSE(operationResult);
-
-    CS104_Slave_destroy(slave);
-}

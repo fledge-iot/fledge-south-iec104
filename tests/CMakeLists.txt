@@ -11,7 +11,7 @@ project(RunTests)
 # If no -D options are given and FLEDGE_ROOT environment variable is set
 # then Fledge libraries and header files are pulled from FLEDGE_ROOT path.
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -O3")
+set(CMAKE_CXX_FLAGS "-std=c++11 -g")
 
 # Generation version header file
 set_source_files_properties(version.h PROPERTIES GENERATED TRUE)
@@ -48,7 +48,7 @@ find_package(Boost 1.53.0 COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 # Find source files
-file(GLOB SOURCES ../*.cpp)
+file(GLOB SOURCES ../src/*.cpp)
 file(GLOB unittests "*.cpp")
 
 # Find Fledge includes and libs, by including FindFledge.cmak file

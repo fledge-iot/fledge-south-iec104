@@ -11,202 +11,232 @@
 #include <vector>
 
 using namespace std;
-using namespace nlohmann;
 
 #define TEST_PORT 2404
 
-// PLUGIN DEFAULT PROTOCOL STACK CONF
-#define PROTOCOL_STACK_DEF                                                     \
-    QUOTE({                                                                    \
-        "protocol_stack" : {                                                   \
-            "name" : "iec104client",                                           \
-            "version" : "1.0",                                                 \
-            "transport_layer" : {                                              \
-                "connection" : {                                               \
-                    "path" : [                                                 \
-                        {                                                      \
-                            "srv_ip" : "127.0.0.1",                            \
-                            "clt_ip" : "",                                     \
-                            "port" : 2404                                      \
-                        },                                                     \
-                        {"srv_ip" : "127.0.0.1", "clt_ip" : "", "port" : 2404} \
-                    ],                                                         \
-                    "tls" : false                                              \
-                },                                                             \
-                "k_value" : 12,                                                \
-                "w_value" : 8,                                                 \
-                "t0_timeout" : 10,                                             \
-                "t1_timeout" : 15,                                             \
-                "t2_timeout" : 10,                                             \
-                "t3_timeout" : 20,                                             \
-                "conn_all" : true,                                             \
-                "start_all" : false,                                           \
-                "conn_passv" : false                                           \
-            },                                                                 \
-            "application_layer" : {                                            \
-                "orig_addr" : 10,                                               \
-                "ca_asdu_size" : 2,                                            \
-                "ioaddr_size" : 3,                                             \
-                "startup_time" : 180,                                          \
-                "asdu_size" : 0,                                               \
-                "gi_time" : 60,                                                \
-                "gi_cycle" : false,                                            \
-                "gi_all_ca" : true,                                           \
-                "gi_repeat_count" : 2,                                         \
-                "disc_qual" : "NT",                                            \
-                "send_iv_time" : 0,                                            \
-                "tsiv" : "REMOVE",                                             \
-                "utc_time" : false,                                            \
-                "comm_wttag" : false,                                          \
-                "comm_parallel" : 0,                                           \
-                "exec_cycl_test" : false,                                      \
-                "startup_state" : true,                                        \
-                "reverse" : false,                                             \
-                "time_sync_period" : 100,                                      \
-                "time_sync" : true                                    \
-            }                                                                  \
-        }                                                                      \
-    })
+static string protocol_config = QUOTE({
+        "protocol_stack" : {
+            "name" : "iec104client",
+            "version" : "1.0",
+            "transport_layer" : {
+                "redundancy_groups" : [
+                    { 
+                        "connections" : [
+                            {     
+                                "srv_ip" : "127.0.0.1",        
+                                "port" : 2404          
+                            },    
+                            {
+                                "srv_ip" : "127.0.0.1", 
+                                "port" : 2404
+                            }
+                        ],
+                        "rg_name" : "red-group1",  
+                        "tls" : false,
+                        "k_value" : 12,  
+                        "w_value" : 8,
+                        "t0_timeout" : 10,                 
+                        "t1_timeout" : 15,                 
+                        "t2_timeout" : 10,                 
+                        "t3_timeout" : 20    
+                    }
+                ]                  
+            },                
+            "application_layer" : {                
+                "orig_addr" : 10, 
+                "ca_asdu_size" : 2,                
+                "ioaddr_size" : 3,                             
+                "asdu_size" : 0, 
+                "gi_time" : 60,  
+                "gi_cycle" : 30,                
+                "gi_all_ca" : true,                             
+                "utc_time" : false,                
+                "cmd_with_timetag" : false,              
+                "cmd_parallel" : 0,                              
+                "time_sync" : 100                 
+            }                 
+        }                     
+    });
 
-#define PROTOCOL_STACK_DEF2                                                    \
-    QUOTE({                                                                    \
-        "protocol_stack" : {                                                   \
-            "name" : "iec104client",                                           \
-            "version" : "1.0",                                                 \
-            "transport_layer" : {                                              \
-                "connection" : {                                               \
-                    "path" : [                                                 \
-                        {                                                      \
-                            "srv_ip" : "127.0.0.1",                            \
-                            "clt_ip" : "",                                     \
-                            "port" : 2404                                      \
-                        },                                                     \
-                        {"srv_ip" : "127.0.0.1", "clt_ip" : "", "port" : 2404} \
-                    ],                                                         \
-                    "tls" : false                                              \
-                },                                                             \
-                "k_value" : 12,                                                \
-                "w_value" : 8,                                                 \
-                "t0_timeout" : 10,                                             \
-                "t1_timeout" : 15,                                             \
-                "t2_timeout" : 10,                                             \
-                "t3_timeout" : 20,                                             \
-                "conn_all" : true,                                             \
-                "start_all" : false,                                           \
-                "conn_passv" : false                                           \
-            },                                                                 \
-            "application_layer" : {                                            \
-                "orig_addr" : 10,                                               \
-                "ca_asdu_size" : 2,                                            \
-                "ioaddr_size" : 3,                                             \
-                "startup_time" : 180,                                          \
-                "asdu_size" : 0,                                               \
-                "gi_time" : 60,                                                \
-                "gi_cycle" : false,                                            \
-                "gi_all_ca" : false,                                           \
-                "gi_repeat_count" : 2,                                         \
-                "disc_qual" : "NT",                                            \
-                "send_iv_time" : 0,                                            \
-                "tsiv" : "REMOVE",                                             \
-                "utc_time" : false,                                            \
-                "comm_wttag" : false,                                          \
-                "comm_parallel" : 0,                                           \
-                "exec_cycl_test" : false,                                      \
-                "startup_state" : true,                                        \
-                "reverse" : false,                                             \
-                "time_sync_period" : 100,                                      \
-                "time_sync" : true                                    \
-            }                                                                  \
-        }                                                                      \
-    })
+static string protocol_config2 = QUOTE({
+        "protocol_stack" : {
+            "name" : "iec104client",
+            "version" : "1.0",
+            "transport_layer" : {
+                "redundancy_groups" : [
+                    { 
+                        "connections" : [
+                            {     
+                                "srv_ip" : "127.0.0.1",        
+                                "port" : 2404          
+                            },    
+                            {
+                                "srv_ip" : "127.0.0.1", 
+                                "port" : 2404
+                            }
+                        ],
+                        "rg_name" : "red-group1",  
+                        "tls" : false,
+                        "k_value" : 12,  
+                        "w_value" : 8,
+                        "t0_timeout" : 10,                 
+                        "t1_timeout" : 15,                 
+                        "t2_timeout" : 10,                 
+                        "t3_timeout" : 20    
+                    }
+                ]                  
+            },                
+            "application_layer" : {                
+                "orig_addr" : 10, 
+                "ca_asdu_size" : 2,                
+                "ioaddr_size" : 3,                          
+                "asdu_size" : 0, 
+                "gi_time" : 60,  
+                "gi_cycle" : 30,                
+                "gi_all_ca" : false,                        
+                "utc_time" : false,                
+                "cmd_with_timetag" : false,              
+                "cmd_parallel" : 0,                           
+                "time_sync" : 100                
+            }                 
+        }                     
+    });
 
-// PLUGIN DEFAULT EXCHANGED DATA CONF
-#define EXCHANGED_DATA_DEF                   \
-    QUOTE({                                  \
-        "exchanged_data" : {                 \
-            "name" : "iec104client",         \
-            "version" : "1.0",               \
-            "asdu_list" : [                  \
-                {                            \
-                    "ca" : 41025,            \
-                    "type_id" : "M_ME_NA_1", \
-                    "label" : "TM-1",        \
-                    "ioa" : 4202832          \
-                },                           \
-                {                            \
-                    "ca" : 41025,            \
-                    "type_id" : "M_ME_NA_1", \
-                    "label" : "TM-2",        \
-                    "ioa" : 4202852          \
-                },                           \
-                {                            \
-                    "ca" : 41025,            \
-                    "type_id" : "M_SP_TB_1", \
-                    "label" : "TS-1",        \
-                    "ioa" : 4206948          \
-                },                           \
-                {                            \
-                    "ca" : 41025,            \
-                    "type_id" : "C_SC_NA_1", \
-                    "label" : "C-1",         \
-                    "ioa" : 2000             \
-                },                           \
-                {                            \
-                    "ca" : 41025,            \
-                    "type_id" : "C_SC_TA_1", \
-                    "label" : "C-2",         \
-                    "ioa" : 2001             \
-                },                           \
-                {                            \
-                    "ca" : 41025,            \
-                    "type_id" : "C_DC_NA_1", \
-                    "label" : "C-3",         \
-                    "ioa" : 2002             \
-                },                           \
-                {                            \
-                    "ca" : 41026,            \
-                    "type_id" : "M_ME_NA_1", \
-                    "label" : "TM-B-1",      \
-                    "ioa" : 2001             \
-                }                            \
-            ]                                \
-        }                                    \
-    })
+static string protocol_config3 = QUOTE({
+        "protocol_stack" : {
+            "name" : "iec104client",
+            "version" : "1.0",
+            "transport_layer" : {
+                "redundancy_groups" : [
+                    { 
+                        "connections" : [
+                            {     
+                                "srv_ip" : "127.0.0.1",        
+                                "port" : 2404          
+                            }
+                        ],
+                        "rg_name" : "red-group1",  
+                        "tls" : false,
+                        "k_value" : 12,  
+                        "w_value" : 8,
+                        "t0_timeout" : 10,                 
+                        "t1_timeout" : 15,                 
+                        "t2_timeout" : 10,                 
+                        "t3_timeout" : 20    
+                    }
+                ]                  
+            },                
+            "application_layer" : {                
+                "orig_addr" : 10, 
+                "ca_asdu_size" : 2,                
+                "ioaddr_size" : 3,                          
+                "asdu_size" : 0, 
+                "gi_time" : 1,  
+                "gi_cycle" : 1,                
+                "gi_all_ca" : false,                            
+                "utc_time" : false,                
+                "cmd_with_timetag" : false,              
+                "cmd_parallel" : 0,                              
+                "time_sync" : 100                
+            }                 
+        }                     
+    });
+
+
+static string exchanged_data = QUOTE({
+        "exchanged_data": {
+            "name" : "iec104client",        
+            "version" : "1.0",               
+            "datapoints" : [          
+                {
+                    "label":"TM-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4202832",
+                          "typeid":"M_ME_NA_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"TM-2",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4202852",
+                          "typeid":"M_ME_NA_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"TS-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4206948",
+                          "typeid":"M_SP_TB_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"C-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-2000",
+                          "typeid":"C_SC_NA_1"
+                       }
+                    ]
+                },                          
+                {
+                    "label":"C-2",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-2001",
+                          "typeid":"C_SC_TA_1"
+                       }
+                    ]
+                },                            
+                {
+                    "label":"C-3",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-2002",
+                          "typeid":"C_DC_NA_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"TM-B-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41026-2001",
+                          "typeid":"M_ME_NA_1"
+                       }
+                    ]
+                }                   
+            ]
+        }
+    });
+
 
 // PLUGIN DEFAULT TLS CONF
-#define TLS_DEF                               \
-    QUOTE({                                   \
-        "tls_conf:" : {                       \
-            "private_key" : "server-key.pem", \
-            "server_cert" : "server.cer",     \
-            "ca_cert" : "root.cer"            \
-        }                                     \
-    })
-
-
-// Define configuration, important part is the exchanged_data
-// It contains all asdu to take into account
-struct json_config
-{
-    string protocol_stack = PROTOCOL_STACK_DEF;
-
-    string exchanged_data = EXCHANGED_DATA_DEF;
-
-    string tls = TLS_DEF;
-};
+static string tls_config =  QUOTE({       
+        "tls_conf:" : {
+            "private_key" : "server-key.pem",
+            "server_cert" : "server.cer",
+            "ca_cert" : "root.cer"
+        }         
+    });
 
 class IEC104TestComp : public IEC104
 {
 public:
     IEC104TestComp() : IEC104()
     {
-        // CS104_Connection new_connection =
-        //     CS104_Connection_create("127.0.0.1", TEST_PORT);
-        // if (new_connection != nullptr)
-        // {
-        //     cout << "Connexion initialisée" << endl;
-        // }
-        // m_connections.push_back(new_connection);
     }
 };
 
@@ -214,41 +244,23 @@ class InterrogationTest : public testing::Test
 {
 protected:
 
-    struct sTestInfo {
-        int callbackCalled;
-        Reading* storedReading;
-    };
-
-    // Per-test-suite set-up.
-    // Called before the first test in this test suite.
-    // Can be omitted if not needed.
-    static void SetUpTestSuite()
+    void SetUp()
     {
-        // Avoid reallocating static objects if called in subclasses of FooTest.
-        if (iec104 == nullptr)
-        {
-            iec104 = new IEC104TestComp();
+        clockSyncHandlerCalled = 0;
 
-            iec104->registerIngest(NULL, ingestCallback);
+        iec104 = new IEC104TestComp();
 
-            //startIEC104();
-            //thread_ = boost::thread(&IEC104Test::startIEC104);
-        }
+        iec104->registerIngest(NULL, ingestCallback);
     }
 
-    // Per-test-suite tear-down.
-    // Called after the last test in this test suite.
-    // Can be omitted if not needed.
-    static void TearDownTestSuite()
+    void TearDown()
     {
         iec104->stop();
-        //thread_.interrupt();
-        // delete iec104;
-        // iec104 = nullptr;
-        //thread_.join();
+
+        delete iec104;
     }
 
-    static void startIEC104() { iec104->start(); }
+    void startIEC104() { iec104->start(); }
 
     static bool hasChild(Datapoint& dp, std::string childLabel)
     {
@@ -335,7 +347,15 @@ protected:
 
     static bool clockSynchronizationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
     {
-        clockSyncHandlerCalled++;
+        InterrogationTest* self = (InterrogationTest*)parameter;
+
+        char addrBuf[100];
+
+        IMasterConnection_getPeerAddress(connection, addrBuf, 100);
+
+        printf("Clock sync called from %s\n", addrBuf);
+
+        self->clockSyncHandlerCalled++;
 
         return true;
     }
@@ -489,13 +509,11 @@ protected:
         return true;
     }
 
-
     static boost::thread thread_;
-    static IEC104TestComp* iec104;
-    static json_config config;
+    IEC104TestComp* iec104;
     static int ingestCallbackCalled;
     static Reading* storedReading;
-    static int clockSyncHandlerCalled;
+    int clockSyncHandlerCalled = 0;
     static int asduHandlerCalled;
     static IMasterConnection lastConnection;
     static int lastOA;
@@ -503,20 +521,17 @@ protected:
 };
 
 boost::thread InterrogationTest::thread_;
-IEC104TestComp* InterrogationTest::iec104;
-json_config InterrogationTest::config;
 int InterrogationTest::ingestCallbackCalled;
 Reading* InterrogationTest::storedReading;
 int InterrogationTest::asduHandlerCalled;
 int InterrogationTest::interrogationRequestsReceived;
-int InterrogationTest::clockSyncHandlerCalled;
 IMasterConnection InterrogationTest::lastConnection;
 int InterrogationTest::lastOA;
 
 
 TEST_F(InterrogationTest, IEC104Client_startupProcedureSeparateRequestForEachCA)
 {
-    iec104->setJsonConfig(PROTOCOL_STACK_DEF, EXCHANGED_DATA_DEF, TLS_DEF);
+    iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
 
     asduHandlerCalled = 0;
     interrogationRequestsReceived = 0;
@@ -550,11 +565,13 @@ TEST_F(InterrogationTest, IEC104Client_startupProcedureSeparateRequestForEachCA)
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
 }
 
 TEST_F(InterrogationTest, IEC104Client_startupProcedureBroadcastCA)
 {
-    iec104->setJsonConfig(PROTOCOL_STACK_DEF2, EXCHANGED_DATA_DEF, TLS_DEF);
+    iec104->setJsonConfig(protocol_config2, exchanged_data, tls_config);
 
     asduHandlerCalled = 0;
     interrogationRequestsReceived = 0;
@@ -588,6 +605,91 @@ TEST_F(InterrogationTest, IEC104Client_startupProcedureBroadcastCA)
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
+}
+
+TEST_F(InterrogationTest, IEC104Client_GIcycleOneSecond)
+{
+    iec104->setJsonConfig(protocol_config3, exchanged_data, tls_config);
+
+    asduHandlerCalled = 0;
+    interrogationRequestsReceived = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setInterrogationHandler(slave, interrogationHandler, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(1, clockSyncHandlerCalled);
+    ASSERT_EQ(0, asduHandlerCalled);
+    ASSERT_EQ(1, interrogationRequestsReceived);
+
+    Thread_sleep(2000);
+
+    ASSERT_EQ(3, interrogationRequestsReceived);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
+}
+
+
+TEST_F(InterrogationTest, IEC104Client_GIcycleOneSecondNoACT_CON)
+{
+    iec104->setJsonConfig(protocol_config3, exchanged_data, tls_config);
+
+    asduHandlerCalled = 0;
+    interrogationRequestsReceived = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setInterrogationHandler(slave, interrogationHandler_No_ACT_CON, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(1, clockSyncHandlerCalled);
+    ASSERT_EQ(0, asduHandlerCalled);
+    ASSERT_EQ(1, interrogationRequestsReceived);
+
+    Thread_sleep(2000);
+
+    ASSERT_EQ(2, interrogationRequestsReceived);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
 }
 
 

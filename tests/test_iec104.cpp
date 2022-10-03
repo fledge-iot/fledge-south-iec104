@@ -13,33 +13,113 @@
 #include "conf_init.h"
 
 using namespace std;
-using namespace nlohmann;
 
 #define TEST_PORT 2404
 
-// Define configuration, important part is the exchanged_data
-// It contains all asdu to take into account
-struct json_config
-{
-    string protocol_stack = PROTOCOL_STACK_DEF_INFO;
+static string protocol_config = QUOTE({
+        "protocol_stack" : {
+            "name" : "iec104client",
+            "version" : "1.0",
+            "transport_layer" : {
+                "redundancy_groups" : [
+                    { 
+                        "connections" : [
+                            {     
+                                "srv_ip" : "127.0.0.1",        
+                                "port" : 2404          
+                            }
+                        ],
+                        "rg_name" : "red-group1",  
+                        "tls" : false,
+                        "k_value" : 12,  
+                        "w_value" : 8,
+                        "t0_timeout" : 10,                 
+                        "t1_timeout" : 15,                 
+                        "t2_timeout" : 10,                 
+                        "t3_timeout" : 20    
+                    }
+                ]                  
+            },                
+            "application_layer" : {                
+                "orig_addr" : 10, 
+                "ca_asdu_size" : 2,                
+                "ioaddr_size" : 3,                             
+                "asdu_size" : 0, 
+                "gi_time" : 60,  
+                "gi_cycle" : 30,                
+                "gi_all_ca" : true,                           
+                "utc_time" : false,                
+                "cmd_with_timetag" : false,              
+                "cmd_parallel" : 0,                            
+                "time_sync" : 100                 
+            }                 
+        }                     
+    });
 
-    string exchanged_data = EXCHANGED_DATA_DEF;
+static string exchanged_data = QUOTE({
+        "exchanged_data": {
+            "name" : "iec104client",        
+            "version" : "1.0",               
+            "datapoints" : [          
+                {
+                    "label":"TM-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4202832",
+                          "typeid":"M_ME_NA_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"TM-2",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4202852",
+                          "typeid":"M_ME_NA_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"TS-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4206948",
+                          "typeid":"M_SP_TB_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"C-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-2000",
+                          "typeid":"C_SC_NA_1"
+                       }
+                    ]
+                }                 
+            ]
+        }
+    });
 
-    string tls = TLS_DEF;
-};
+
+// PLUGIN DEFAULT TLS CONF
+static string tls_config =  QUOTE({       
+        "tls_conf:" : {
+            "private_key" : "server-key.pem",
+            "server_cert" : "server.cer",
+            "ca_cert" : "root.cer"
+        }         
+    });
 
 class IEC104TestComp : public IEC104
 {
 public:
     IEC104TestComp() : IEC104()
     {
-        // CS104_Connection new_connection =
-        //     CS104_Connection_create("127.0.0.1", TEST_PORT);
-        // if (new_connection != nullptr)
-        // {
-        //     cout << "Connexion initialisée" << endl;
-        // }
-        // m_connections.push_back(new_connection);
     }
 };
 
@@ -47,39 +127,19 @@ class IEC104Test : public testing::Test
 {
 protected:
 
-    struct sTestInfo {
-        int callbackCalled;
-        Reading* storedReading;
-    };
-
-    // Per-test-suite set-up.
-    // Called before the first test in this test suite.
-    // Can be omitted if not needed.
-    static void SetUpTestSuite()
+    void SetUp()
     {
-        // Avoid reallocating static objects if called in subclasses of FooTest.
-        if (iec104 == nullptr)
-        {
-            iec104 = new IEC104TestComp();
-            iec104->setJsonConfig(PROTOCOL_STACK_DEF_INFO, EXCHANGED_DATA_DEF, TLS_DEF);
+        iec104 = new IEC104TestComp();
+        iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
 
-            iec104->registerIngest(NULL, ingestCallback);
-
-            //startIEC104();
-            //thread_ = boost::thread(&IEC104Test::startIEC104);
-        }
+        iec104->registerIngest(NULL, ingestCallback);
     }
 
-    // Per-test-suite tear-down.
-    // Called after the last test in this test suite.
-    // Can be omitted if not needed.
-    static void TearDownTestSuite()
+    void TearDown()
     {
         iec104->stop();
-        //thread_.interrupt();
-        // delete iec104;
-        // iec104 = nullptr;
-        //thread_.join();
+       
+        delete iec104;
     }
 
     static void startIEC104() { iec104->start(); }
@@ -172,48 +232,14 @@ protected:
 
     static boost::thread thread_;
     static IEC104TestComp* iec104;
-    static json_config config;
     static int ingestCallbackCalled;
     static Reading* storedReading;
 };
 
 boost::thread IEC104Test::thread_;
 IEC104TestComp* IEC104Test::iec104;
-json_config IEC104Test::config;
 int IEC104Test::ingestCallbackCalled;
 Reading* IEC104Test::storedReading;
-
-#if 0
-TEST_F(IEC104Test, IEC104_operation_notConnected)
-{
-    startIEC104();
-
-     vector<string> operations;
-    PLUGIN_PARAMETER iec104client = {"iec104client", "4"};
-    params[0] = &iec104client;
-
-    // ioa
-    PLUGIN_PARAMETER ioa = {"io", "4202832"};
-    params[1] = &ioa;
-
-    // Third value
-    PLUGIN_PARAMETER buf = {"", "4202832"};
-    params[2] = &buf;
-
-    operations.push_back("CS104_Connection_sendInterrogationCommand");
-    operations.push_back("CS104_Connection_sendTestCommandWithTimestamp");
-    operations.push_back("SingleCommandWithCP56Time2a");
-    operations.push_back("DoubleCommandWithCP56Time2a");
-    operations.push_back("StepCommandWithCP56Time2a");
-
-    for (const string& operation : operations)
-    {
-        ASSERT_FALSE(iec104->operation(operation, 3, params));
-    }
-
-    ASSERT_FALSE(IEC104Test::iec104->operation("NULL", 0, params));
-}
-#endif
 
 TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 {
@@ -359,7 +385,11 @@ static void test_ConnectionEventHandler (void* parameter, IMasterConnection conn
 {
     int* connectEventCounter = (int*)parameter;
 
-    printf("event: %i\n", event);
+    char addrBuf[100];
+
+    IMasterConnection_getPeerAddress(connection, addrBuf, 100);
+
+    printf("event: %i (from %s)\n", event, addrBuf);
 
     if (event == CS104_CON_EVENT_CONNECTION_OPENED) {
         *connectEventCounter = *connectEventCounter + 1;
@@ -436,27 +466,5 @@ TEST_F(IEC104Test, IEC104_connectionFails)
 TEST_F(IEC104Test, IEC104_setJsonConfig_Test)
 {
     ASSERT_NO_THROW(
-        iec104->setJsonConfig(config.protocol_stack, config.exchanged_data, config.tls));
-}
-
-/*Public Member Functions*/
-TEST_F(IEC104Test, IEC104_setAssetName_Test)
-{
-    ASSERT_NO_THROW(IEC104Test::iec104->setAssetName("Name"));
-}
-
-/* Static Public Member Functions */
-TEST_F(IEC104Test, IEC104_set_get_CommWttag_Test)
-{
-    IEC104::setCommWttag(false);
-    ASSERT_FALSE(IEC104::getCommWttag());
-
-    IEC104::setCommWttag(true);
-    ASSERT_TRUE(IEC104::getCommWttag());
-}
-
-TEST_F(IEC104Test, IEC104_set_get_Tsiv_Test)
-{
-    IEC104::setTsiv("Test");
-    ASSERT_EQ(IEC104::getTsiv(), "Test");
+        iec104->setJsonConfig(protocol_config, exchanged_data, tls_config));
 }
