@@ -64,6 +64,7 @@ jobs:
           find $HOME/fledge/C/plugins/ -name '*.h' -exec sudo cp -prv '{}' '/usr/include/fledge/' ';'
           find $HOME/fledge/C/services/ -name '*.h' -exec sudo cp -prv '{}' '/usr/include/fledge/' ';'
           find $HOME/fledge/C/tasks/ -name '*.h' -exec sudo cp -prv '{}' '/usr/include/fledge/' ';'
+          find $HOME/fledge/C/thirdparty/Simple-Web-Server/ -name '*.hpp' -exec sudo cp -prv '{}' '/usr/local/fledge/include' ';'
           sudo cp -prv $HOME/fledge/C/thirdparty/rapidjson/include/rapidjson/* /usr/include/fledge/rapidjson/
           sudo mkdir -p /usr/lib/fledge/
           sudo cp -prv /usr/local/fledge/lib/* /usr/lib/fledge/
