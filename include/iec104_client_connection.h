@@ -88,6 +88,7 @@ private:
     int m_interrogationRequestState = 0; /* 0 - idle, 1 - waiting for ACT_CON, 2 - waiting for ACT_TERM */
     uint64_t m_interrogationRequestSent;
     uint64_t m_nextGIStartTime;
+    bool m_endOfInitReceived = false;
 
     uint64_t m_delayExpirationTime;
 

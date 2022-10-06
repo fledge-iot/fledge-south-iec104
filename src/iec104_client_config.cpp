@@ -72,7 +72,8 @@ IEC104ClientConfig::GetTypeIdByName(const string& name)
     return typeId;
 }
 
-bool IEC104ClientConfig::isMessageTypeMatching(int expectedType, int rcvdType)
+bool
+IEC104ClientConfig::isMessageTypeMatching(int expectedType, int rcvdType)
 {
     if (expectedType == rcvdType) {
         return true; /* direct match */

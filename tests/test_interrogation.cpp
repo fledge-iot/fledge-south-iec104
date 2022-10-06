@@ -48,7 +48,7 @@ static string protocol_config = QUOTE({
                 "ioaddr_size" : 3,                             
                 "asdu_size" : 0, 
                 "gi_time" : 60,  
-                "gi_cycle" : 30,                
+                "gi_cycle" : 0,                
                 "gi_all_ca" : true,                             
                 "utc_time" : false,                
                 "cmd_with_timetag" : false,              
@@ -92,7 +92,7 @@ static string protocol_config2 = QUOTE({
                 "ioaddr_size" : 3,                          
                 "asdu_size" : 0, 
                 "gi_time" : 60,  
-                "gi_cycle" : 30,                
+                "gi_cycle" : 0,                
                 "gi_all_ca" : false,                        
                 "utc_time" : false,                
                 "cmd_with_timetag" : false,              
@@ -692,4 +692,60 @@ TEST_F(InterrogationTest, IEC104Client_GIcycleOneSecondNoACT_CON)
     Thread_sleep(500);
 }
 
+TEST_F(InterrogationTest, InterrogationRequestAfter_M_EI_NA_1)
+{
+    iec104->setJsonConfig(protocol_config2, exchanged_data, tls_config);
+
+    asduHandlerCalled = 0;
+    interrogationRequestsReceived = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setInterrogationHandler(slave, interrogationHandler, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(1, clockSyncHandlerCalled);
+    ASSERT_EQ(0, asduHandlerCalled);
+
+    Thread_sleep(1000);
+
+    ASSERT_EQ(1, interrogationRequestsReceived);
+
+    CS101_ASDU asdu = CS101_ASDU_create(alParams, false, CS101_COT_INITIALIZED,
+                    0, 1, false, false);
+
+    InformationObject io = (InformationObject)EndOfInitialization_create(NULL, 0);
+
+    CS101_ASDU_addInformationObject(asdu, io);
+
+    InformationObject_destroy(io);
+
+    CS104_Slave_enqueueASDU(slave, asdu);
+
+    CS101_ASDU_destroy(asdu);
+
+    Thread_sleep(1000);
+
+    ASSERT_EQ(2, interrogationRequestsReceived);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
+}
 

@@ -41,6 +41,7 @@ public:
 
     bool GiForAllCa() {return m_giAllCa;};
     int GiCycle() {return m_giCycle;};
+    bool GiEnabled() {return true;};
     int GiRepeatCount() {return m_giRepeatCount;};
     int GiTime() {return m_giTime;};
 
