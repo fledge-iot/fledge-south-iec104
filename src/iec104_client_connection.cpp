@@ -391,6 +391,9 @@ IEC104ClientConnection::prepareParameters()
 void
 IEC104ClientConnection::startNewInterrogationCycle()
 {
+    /* reset end of init flag */
+    m_endOfInitReceived = false;
+
     if (m_config->GiForAllCa() == false) {
         if (sendInterrogationCommand(broadcastCA())) {
             Logger::getLogger()->debug("Sent interrogation command to broadcase address");
@@ -469,7 +472,7 @@ IEC104ClientConnection::executePeriodicTasks()
     
     if ((m_config->isTimeSyncEnabled() == false) || (m_firstTimeSyncOperationCompleted == true)) 
     {
-        if (m_config->GiCycle() != 0)
+        if (m_config->GiEnabled())
         {
             if (m_firstGISent == false)
             {
@@ -527,7 +530,10 @@ IEC104ClientConnection::executePeriodicTasks()
                 }
                 else 
                 {
-                    if (currentTime > m_nextGIStartTime) {
+                    if ((m_config->GiCycle() > 0) && (currentTime > m_nextGIStartTime)) {
+                        startNewInterrogationCycle();
+                    }
+                    else if (m_endOfInitReceived) {
                         startNewInterrogationCycle();
                     }
                 }
@@ -560,6 +566,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
         {
             case M_EI_NA_1:
                 Logger::getLogger()->info("Received end of initialization");
+                self->m_endOfInitReceived = true;
                 break;
 
             case C_CS_NA_1:
