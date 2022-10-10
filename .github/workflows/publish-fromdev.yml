@@ -1,4 +1,4 @@
-name: Publish
+name: Publish-dev
 
 # Controls when the workflow will run
 on:
