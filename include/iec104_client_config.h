@@ -27,6 +27,7 @@ public:
 
     void importProtocolConfig(const string& protocolConfig);
     void importExchangeConfig(const string& exchangeConfig);
+    void importTlsConfig(const string& tlsConfig);
 
     int CaSize() {return m_caSize;};
     int IOASize() {return m_ioaSize;};
@@ -44,6 +45,11 @@ public:
     bool GiEnabled() {return true;};
     int GiRepeatCount() {return m_giRepeatCount;};
     int GiTime() {return m_giTime;};
+
+    std::string& GetPrivateKeyFile() {return m_privateKeyFile;};
+    std::string& GetClientCertFile() {return m_clientCertFile;};
+    std::string& GetServerCertFile() {return m_serverCertFile;};
+    std::string& GetCaCertFile() {return m_caCertFile;};
 
     static bool isValidIPAddress(const string& addrStr);
 
@@ -87,6 +93,10 @@ private:
     bool m_protocolConfigComplete = false; /* flag if protocol configuration is read */
     bool m_exchangeConfigComplete = false; /* flag if exchange configuration is read */
 
+    std::string m_privateKeyFile = "";
+    std::string m_clientCertFile = "";
+    std::string m_serverCertFile = "";
+    std::string m_caCertFile = "";
 };
 
 #endif /* IEC104_CLIENT_CONFIG_H */

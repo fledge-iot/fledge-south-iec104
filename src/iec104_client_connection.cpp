@@ -2,6 +2,7 @@
 
 #include <logger.h>
 #include <ctime>
+#include <fledge/utils.h>
 
 #include <lib60870/hal_time.h>
 #include <lib60870/hal_thread.h>
@@ -47,7 +48,7 @@ IEC104ClientConnection::Activate()
 
         m_startDtSent = true;
 
-        printf("Activate con to %s\n", m_redGroupConnection->ServerIP().c_str());
+        Logger::getLogger()->info("Sent START-DT to %s\n", m_redGroupConnection->ServerIP().c_str());
 
         m_connectionState = CON_STATE_CONNECTED_ACTIVE;
     }
@@ -653,9 +654,100 @@ IEC104ClientConnection::prepareConnection()
 
     if (m_connection == nullptr)
     {
-        //TODO handle TLS
+        if (m_redGroup->UseTLS()) 
+        {
+            TLSConfiguration tlsConfig = TLSConfiguration_create();
 
-        m_connection = CS104_Connection_create(m_redGroupConnection->ServerIP().c_str(), m_redGroupConnection->TcpPort());
+            bool tlsConfigOk = true;
+
+            string certificateStore = getDataDir() + string("/etc/certs/");
+
+            if (m_config->GetCaCertFile().length()) {
+                string caCertFile = certificateStore + m_config->GetCaCertFile();
+
+                if (access(caCertFile.c_str(), R_OK) == 0) {
+                    
+                    if (TLSConfiguration_addCACertificateFromFile(tlsConfig, caCertFile.c_str()) == false) {
+                        Logger::getLogger()->error("Failed to load CA certificate file: %s", caCertFile.c_str());
+                        tlsConfigOk = false;
+                    }
+
+                    TLSConfiguration_setChainValidation(tlsConfig, true);
+                }
+                else {
+                    Logger::getLogger()->error("Failed to access CA certificate file: %s", caCertFile.c_str());
+                    tlsConfigOk = false;
+                }
+            }
+
+            if (m_config->GetClientCertFile().length() == 0 || m_config->GetPrivateKeyFile().length() == 0) {
+                Logger::getLogger()->error("No private key and/or certificate configured for client");
+                tlsConfigOk = false;
+            }
+            else {
+                string privateKeyFile = certificateStore + m_config->GetPrivateKeyFile();
+
+                if (access(privateKeyFile.c_str(), R_OK) == 0) {
+                    if (TLSConfiguration_setOwnKeyFromFile(tlsConfig, privateKeyFile.c_str(), NULL) == false) {
+                        Logger::getLogger()->error("Failed to load private key file: %s", privateKeyFile.c_str());
+                        tlsConfigOk = false;
+                    }
+                }
+                else {
+                    Logger::getLogger()->error("Failed to access private key file: %s", privateKeyFile.c_str());
+                    tlsConfigOk = false;
+                }
+
+                string clientCertFile = certificateStore + m_config->GetClientCertFile();
+
+                if (access(clientCertFile.c_str(), R_OK) == 0) {
+                    if (TLSConfiguration_setOwnCertificateFromFile(tlsConfig, clientCertFile.c_str()) == false) {
+                        Logger::getLogger()->error("Failed to load client certificate file: %s", clientCertFile.c_str());
+                        tlsConfigOk = false;
+                    }
+                }
+                else {
+                    Logger::getLogger()->error("Failed to access client certificate file: %s", clientCertFile.c_str());
+                    tlsConfigOk = false;
+                }
+            }
+
+            if (m_config->GetServerCertFile().length() > 0) {
+                string serverCertFile = certificateStore + m_config->GetServerCertFile();
+
+                if (access(serverCertFile.c_str(), R_OK) == 0) {
+                    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
+
+                    if (TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, serverCertFile.c_str()) == false) {
+                        Logger::getLogger()->error("Failed to load server certificate file: %s", serverCertFile.c_str());
+                        tlsConfigOk = false;
+                    }
+                }
+                else {
+                    Logger::getLogger()->error("Failed to load server certificate file: %s", serverCertFile.c_str());
+                    tlsConfigOk = false;
+                }
+            }
+
+            if (tlsConfigOk) {
+
+                m_connection = CS104_Connection_createSecure(m_redGroupConnection->ServerIP().c_str(), m_redGroupConnection->TcpPort(), tlsConfig);
+            
+                if (m_connection) {
+                    m_tlsConfig = tlsConfig;
+                }
+                else {
+                    TLSConfiguration_destroy(tlsConfig);
+                }
+            }
+            else {
+                printf("TLS configuration failed\n");
+                Logger::getLogger()->error("TLS configuration failed");
+            }
+        }
+        else {
+            m_connection = CS104_Connection_create(m_redGroupConnection->ServerIP().c_str(), m_redGroupConnection->TcpPort());
+        }
 
         if (m_connection) {
             prepareParameters();
@@ -669,6 +761,9 @@ IEC104ClientConnection::prepareConnection()
             CS104_Connection_setConnectionHandler(m_connection, m_connectionHandler, this);
 
             success = true;
+        }
+        else {
+            Logger::getLogger()->error("Failed to start CS 104 connection");
         }
     }
 
@@ -829,6 +924,11 @@ IEC104ClientConnection::_conThread()
     if (m_connection) { 
         CS104_Connection_destroy(m_connection);
         m_connection = nullptr;
+    }
+
+    if (m_tlsConfig) {
+        TLSConfiguration_destroy(m_tlsConfig);
+        m_tlsConfig = nullptr;
     }
 
     m_conLock.unlock();

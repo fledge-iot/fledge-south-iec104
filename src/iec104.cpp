@@ -13,6 +13,7 @@
 #include <iec104_client_redgroup.h>
 #include <logger.h>
 #include <reading.h>
+#include <fledge/utils.h>
 
 #include <cmath>
 #include <fstream>
@@ -38,6 +39,7 @@ void IEC104::setJsonConfig(const std::string& stack_configuration,
 {
     m_config->importProtocolConfig(stack_configuration);
     m_config->importExchangeConfig(msg_configuration);
+    m_config->importTlsConfig(tls_configuration);
 }
 
 void IEC104::restart()

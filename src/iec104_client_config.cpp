@@ -679,6 +679,44 @@ void IEC104ClientConfig::deleteExchangeDefinitions()
     m_exchangeDefinitions.clear();
 }
 
+void IEC104ClientConfig::importTlsConfig(const string& tlsConfig)
+{
+    Document document;
+
+    if (document.Parse(const_cast<char*>(tlsConfig.c_str())).HasParseError()) {
+        Logger::getLogger()->fatal("Parsing error in TLS configuration");
+
+        printf("Parsing error in TLS configuration\n");
+
+        return;
+    }
+       
+    if (!document.IsObject())
+        return;
+
+    if (!document.HasMember("tls_conf") || !document["tls_conf"].IsObject()) {
+        return;
+    }
+
+    const Value& tlsConf = document["tls_conf"];
+
+    if (tlsConf.HasMember("private_key") && tlsConf["private_key"].IsString()) {
+        m_privateKeyFile = tlsConf["private_key"].GetString();
+    }
+
+    if (tlsConf.HasMember("client_cert") && tlsConf["client_cert"].IsString()) {
+        m_clientCertFile = tlsConf["client_cert"].GetString();
+    }
+
+    if (tlsConf.HasMember("server_cert") && tlsConf["server_cert"].IsString()) {
+        m_serverCertFile = tlsConf["server_cert"].GetString();
+    }
+
+    if (tlsConf.HasMember("ca_cert") && tlsConf["ca_cert"].IsString()) {
+        m_caCertFile = tlsConf["ca_cert"].GetString();
+    }
+}
+
 void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
 {
     m_exchangeConfigComplete = false;
