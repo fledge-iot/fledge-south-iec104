@@ -170,97 +170,123 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
 
             std::string* label = m_config->checkExchangeDataLayer(typeId, ca, ioa);
 
-            if (label)
+            bool typeSupported = true;
+
+            switch (typeId)
             {
-                switch (typeId) 
-                {
-                    case M_ME_NB_1:
+                case M_ME_NB_1:
+                    if (label)
                         handle_M_ME_NB_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case M_SP_NA_1:
+                case M_SP_NA_1:
+                    if (label)
                         handle_M_SP_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case M_SP_TB_1:
+                case M_SP_TB_1:
+                    if (label)
                         handle_M_SP_TB_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case M_DP_NA_1:
+                case M_DP_NA_1:
+                    if (label)
                         handle_M_DP_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case M_DP_TB_1:
+                case M_DP_TB_1:
+                    if (label)
                         handle_M_DP_TB_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case M_ST_NA_1:
+                case M_ST_NA_1:
+                    if (label)
                         handle_M_ST_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case M_ST_TB_1:
+                case M_ST_TB_1:
+                    if (label)
                         handle_M_ST_TB_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case M_ME_NA_1:
+                case M_ME_NA_1:
+                    if (label)
                         handle_M_ME_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case M_ME_TD_1:
+                case M_ME_TD_1:
+                    if (label)
                         handle_M_ME_TD_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case M_ME_TE_1:
+                case M_ME_TE_1:
+                    if (label)
                         handle_M_ME_TE_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case M_ME_NC_1:
+                case M_ME_NC_1:
+                    if (label)
                         handle_M_ME_NC_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case M_ME_TF_1:
+                case M_ME_TF_1:
+                    if (label)
                         handle_M_ME_TF_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case C_SC_NA_1:
-                    case C_SC_TA_1:
+                case C_SC_NA_1:
+                case C_SC_TA_1:
+                    if (label)
                         handle_C_SC_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case C_DC_TA_1:
-                    case C_DC_NA_1:
+                case C_DC_TA_1:
+                case C_DC_NA_1:
+                    if (label)
                         handle_C_DC_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case C_RC_NA_1:
-                    case C_RC_TA_1:
+                case C_RC_NA_1:
+                case C_RC_TA_1:
+                    if (label)
                         handle_C_RC_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case C_SE_NA_1:
-                    case C_SE_TA_1:
+                case C_SE_NA_1:
+                case C_SE_TA_1:
+                    if (label)
                         handle_C_SE_NA_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case C_SE_NB_1:
-                    case C_SE_TB_1:
+                case C_SE_NB_1:
+                case C_SE_TB_1:
+                    if (label)
                         handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    case C_SE_NC_1:
-                    case C_SE_TC_1:
+                case C_SE_NC_1:
+                case C_SE_TC_1:
+                    if (label)
                         handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
-                        break;
+                    break;
 
-                    default:
-                        handledAsdu = false;
-                        break;
+                default:
+                    handledAsdu = false;
+                    break;
+            }
+
+            if (label) {
+                if (handledAsdu) {
+                    labels.push_back(*label);
                 }
-
-                labels.push_back(*label);
+                else {
+                    Logger::getLogger()->warn("ASDU type %s not supported for %s (CA: %i IOA: %i)", mapAsduTypeIdStr[typeId].c_str(), label->c_str(), ca, ioa);
+                }
             }
             else {
-                handledAsdu = false;
+                if (handledAsdu) {
+                    Logger::getLogger()->debug("No data point found in exchange configuration for %s with CA: %i IOA: %i", mapAsduTypeIdStr[typeId].c_str(), ca, ioa);
+                }
             }
 
             InformationObject_destroy(io);
@@ -778,7 +804,7 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SC_NA_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send command - no such data point");
+        Logger::getLogger()->error("Failed to send C_SC_NA_1 command - no such data point");
 
         return false;
     }
@@ -803,7 +829,7 @@ IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool 
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_DC_NA_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send command - no such data point");
+        Logger::getLogger()->error("Failed to send C_DC_NA_1 command - no such data point");
 
         return false;
     }
@@ -828,8 +854,7 @@ IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool se
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_RC_NA_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send command - no such data point");
-        printf("Failed to send command - no such data point");
+        Logger::getLogger()->error("Failed to send C_RC_NA_1 command - no such data point");
 
         return false;
     }
@@ -854,8 +879,7 @@ IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SE_NA_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send command - no such data point");
-        printf("Failed to send command - no such data point");
+        Logger::getLogger()->error("Failed to send C_SE_NA_1 command - no such data point");
 
         return false;
     }
@@ -880,8 +904,7 @@ IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime)
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SE_NB_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send command - no such data point");
-        printf("Failed to send command - no such data point");
+        Logger::getLogger()->error("Failed to send C_SE_NB_1 command - no such data point");
 
         return false;
     }
@@ -908,8 +931,7 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime)
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SE_NC_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send command - no such data point");
-        printf("Failed to send command - no such data point");
+        Logger::getLogger()->error("Failed to send C_SE_NC_1 command - no such data point");
 
         return false;
     }
