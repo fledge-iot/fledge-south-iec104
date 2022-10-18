@@ -72,6 +72,7 @@ private:
 
     std::mutex m_conLock;
     CS104_Connection m_connection = nullptr;
+    TLSConfiguration m_tlsConfig = nullptr;
     
     ConState m_connectionState = CON_STATE_IDLE;
 

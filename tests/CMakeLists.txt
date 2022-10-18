@@ -65,6 +65,9 @@ if (NOT FLEDGE_FOUND)
 endif()
 # On success, FLEDGE_INCLUDE_DIRS and FLEDGE_LIB_DIRS variables are set 
 
+# copy certificates to output
+file(COPY data DESTINATION ${CMAKE_BINARY_DIR})
+
 # Locate GTest
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})

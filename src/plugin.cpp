@@ -138,8 +138,9 @@ static const char *default_config = QUOTE({
         "displayName" : "TLS parameters",
         "order" : "4",
         "default" : QUOTE({      
-            "tls_conf:" : { 
-                "private_key" : "server-key.pem",
+            "tls_conf" : { 
+                "private_key" : "client.key",
+                "client_cert" : "client.cer",
                 "server_cert" : "server.cer",
                 "ca_cert" : "root.cer"
             }         

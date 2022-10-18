@@ -215,6 +215,87 @@ IEC104ClientConfig::isMessageTypeMatching(int expectedType, int rcvdType)
 
             break;
 
+        case C_SC_NA_1:
+            if (rcvdType == C_SC_TA_1) {
+                return true;
+            }
+
+            break;
+
+        case C_SC_TA_1:
+            if (rcvdType == C_SC_NA_1) {
+                return true;
+            }
+
+            break;
+
+        case C_DC_NA_1:
+            if (rcvdType == C_DC_TA_1) {
+                return true;
+            }
+
+            break;
+
+        case C_DC_TA_1:
+            if (rcvdType == C_DC_NA_1) {
+                return true;
+            }
+
+            break;
+
+        case C_RC_NA_1:
+            if (rcvdType == C_RC_TA_1) {
+                return true;
+            }
+
+            break;
+
+        case C_RC_TA_1:
+            if (rcvdType == C_RC_NA_1) {
+                return true;
+            }
+
+            break;
+
+        case C_SE_NA_1:
+            if (rcvdType == C_SE_TA_1) {
+                return true;
+            }
+
+            break;
+
+        case C_SE_TA_1:
+            if (rcvdType == C_SE_NA_1) {
+                return true;
+            }
+
+            break;
+
+        case C_SE_NB_1:
+            if (rcvdType == C_SE_TB_1) {
+                return true;
+            }
+
+            break;
+
+        case C_SE_TB_1:
+            if (rcvdType == C_SE_NB_1) {
+                return true;
+            }
+
+        case C_SE_NC_1:
+            if (rcvdType == C_SE_TC_1) {
+                return true;
+            }
+
+            break;
+
+        case C_SE_TC_1:
+            if (rcvdType == C_SE_NC_1) {
+                return true;
+            }
+
+            break;
 
         default:
             //Type not supported
@@ -234,6 +315,12 @@ IEC104ClientConfig::checkExchangeDataLayer(int typeId, int ca, int ioa)
         if (isMessageTypeMatching(def->typeId, typeId)) {
             return &(def->label);
         }
+        else {
+            Logger::getLogger()->warn("data point %i:%i found but type %i not matching", ca, ioa, def->typeId);
+        }
+    }
+    else {
+        Logger::getLogger()->warn("data point %i:%i not found", ca, ioa);
     }
 
     return nullptr;
@@ -679,6 +766,44 @@ void IEC104ClientConfig::deleteExchangeDefinitions()
     m_exchangeDefinitions.clear();
 }
 
+void IEC104ClientConfig::importTlsConfig(const string& tlsConfig)
+{
+    Document document;
+
+    if (document.Parse(const_cast<char*>(tlsConfig.c_str())).HasParseError()) {
+        Logger::getLogger()->fatal("Parsing error in TLS configuration");
+
+        printf("Parsing error in TLS configuration\n");
+
+        return;
+    }
+       
+    if (!document.IsObject())
+        return;
+
+    if (!document.HasMember("tls_conf") || !document["tls_conf"].IsObject()) {
+        return;
+    }
+
+    const Value& tlsConf = document["tls_conf"];
+
+    if (tlsConf.HasMember("private_key") && tlsConf["private_key"].IsString()) {
+        m_privateKeyFile = tlsConf["private_key"].GetString();
+    }
+
+    if (tlsConf.HasMember("client_cert") && tlsConf["client_cert"].IsString()) {
+        m_clientCertFile = tlsConf["client_cert"].GetString();
+    }
+
+    if (tlsConf.HasMember("server_cert") && tlsConf["server_cert"].IsString()) {
+        m_serverCertFile = tlsConf["server_cert"].GetString();
+    }
+
+    if (tlsConf.HasMember("ca_cert") && tlsConf["ca_cert"].IsString()) {
+        m_caCertFile = tlsConf["ca_cert"].GetString();
+    }
+}
+
 void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
 {
     m_exchangeConfigComplete = false;
@@ -735,8 +860,6 @@ void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
                 string address = protocol[JSON_PROT_ADDR].GetString();
                 string typeIdStr = protocol[JSON_PROT_TYPEID].GetString();
 
-                printf("  address: %s type: %s\n", address.c_str(), typeIdStr.c_str());
-
                 size_t sepPos = address.find("-");
 
                 if (sepPos != std::string::npos) {
@@ -746,8 +869,6 @@ void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
                     int ca = std::stoi(caStr);
                     int ioa = std::stoi(ioaStr);
 
-                    printf("    CA: %i IOA: %i\n", ca, ioa);
-
                     DataExchangeDefinition* def = new DataExchangeDefinition;
 
                     if (def) {
@@ -756,6 +877,7 @@ void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
                         def->label = label;
                         def->typeId = 0;
                         def->typeId = IEC104ClientConfig::GetTypeIdByName(typeIdStr);
+                        Logger::getLogger()->debug("Added exchange data %i:%i type: %i (%s)", ca, ioa, def->typeId, typeIdStr.c_str());
                         ExchangeDefinition()[ca][ioa] = def;
                     }
                 }
