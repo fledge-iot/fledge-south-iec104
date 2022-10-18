@@ -2,7 +2,7 @@
 
 #include <logger.h>
 #include <ctime>
-#include <fledge/utils.h>
+#include <utils.h>
 
 #include <lib60870/hal_time.h>
 #include <lib60870/hal_thread.h>

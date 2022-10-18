@@ -5,8 +5,8 @@
  *
  * Released under the Apache 2.0 Licence
  *
- * Author: Estelle Chigot, Lucas Barret, Chauchadis Rémi, Colin Constans, Akli
- * Rahmoun
+ * Author: Michael Zillgith
+ * 
  */
 
 #include <config_category.h>
