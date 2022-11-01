@@ -141,10 +141,19 @@ static string exchanged_data = QUOTE({
 
 // PLUGIN DEFAULT TLS CONF
 static string tls_config =  QUOTE({       
-        "tls_conf:" : {
-            "private_key" : "server-key.pem",
-            "server_cert" : "server.cer",
-            "ca_cert" : "root.cer"
+        "tls_conf" : {
+            "private_key" : "iec104_client.key",
+            "own_cert" : "iec104_client.cer",
+            "ca_certs" : [
+                {
+                    "cert_file": "iec104_ca.cer"
+                }
+            ],
+            "remote_certs" : [
+                {
+                    "cert_file": "iec104_server.cer"
+                }
+            ]
         }         
     });
 
