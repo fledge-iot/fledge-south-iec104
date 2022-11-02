@@ -5,15 +5,15 @@
  *
  * Released under the Apache 2.0 Licence
  *
- * Author: Estelle Chigot, Lucas Barret, Chauchadis Rémi, Colin Constans, Akli
- * Rahmoun
+ * Author: Michael Zillgith
+ * 
  */
 
 #include <iec104.h>
 #include <iec104_client_redgroup.h>
 #include <logger.h>
 #include <reading.h>
-#include <fledge/utils.h>
+#include <utils.h>
 
 #include <cmath>
 #include <fstream>
