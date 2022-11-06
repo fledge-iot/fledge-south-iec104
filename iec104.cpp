@@ -80,7 +80,7 @@ void IEC104::m_connectionHandler (void* parameter, CS104_Connection connection, 
  *  For CS104 the address parameter has to be ignored
  */
 bool IEC104::m_asduReceivedHandler(void *parameter, int address, CS101_ASDU asdu) {
-    vector<Datapoint *> datapoints;
+    vector<pair<string, Datapoint*>> datapoints;
     auto mclient = static_cast<IEC104Client *>(parameter);
 
     unsigned int ca = CS101_ASDU_getCA(asdu);
@@ -323,7 +323,7 @@ bool IEC104::m_asduReceivedHandler(void *parameter, int address, CS101_ASDU asdu
             return false;
     }
     if (!datapoints.empty())
-        mclient->sendData(asdu, datapoints, label);
+        mclient->sendData(asdu, datapoints);
 
     return true;
 }
@@ -686,7 +686,7 @@ int IEC104::m_watchdog(int delay, int checkRes, bool *flag, std::string id)
 }
 
 
-void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints, const std::string& dataName)
+void IEC104Client::sendData(CS101_ASDU asdu, vector<pair<string, Datapoint*>> datapoints)
 {
     auto* data_header = new vector<Datapoint*>;
 
@@ -708,19 +708,19 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints, cons
 
     DatapointValue header_dpv(data_header, true);
 
-    auto* header_dp = new Datapoint("data_object_header", header_dpv);
+    auto header_dp = Datapoint{"data_object_header", header_dpv};
 
     // We send as many pivot format objects as information objects in the source ASDU
-    for (Datapoint* item_dp : datapoints)
+    for (auto item_dp : datapoints)
     {
-        Reading reading(dataName, {header_dp, item_dp});
+        Reading reading(item_dp.first, {new Datapoint(header_dp), item_dp.second});
         m_iec104->ingest(reading);
     }
 }
 
 
 template <class T>
-void IEC104Client::m_addData(vector<Datapoint*>& datapoints, long ioa,
+void IEC104Client::m_addData(vector<pair<string, Datapoint*>>& datapoints, long ioa,
                              const std::string& dataname, const T value,
                              QualityDescriptor qd, CP56Time2a ts)
 {
@@ -754,7 +754,7 @@ void IEC104Client::m_addData(vector<Datapoint*>& datapoints, long ioa,
 
     DatapointValue dpv(measure_features, true);
 
-    datapoints.push_back(new Datapoint("data_object_item", dpv));
+    datapoints.push_back(make_pair(dataname, new Datapoint("data_object_item", dpv)));
 }
 
 /**
