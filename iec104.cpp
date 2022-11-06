@@ -708,12 +708,12 @@ void IEC104Client::sendData(CS101_ASDU asdu, vector<Datapoint*> datapoints, cons
 
     DatapointValue header_dpv(data_header, true);
 
-    auto* header_dp = new Datapoint("data_object_header", header_dpv);
+    auto header_dp = Datapoint{"data_object_header", header_dpv};
 
     // We send as many pivot format objects as information objects in the source ASDU
     for (Datapoint* item_dp : datapoints)
     {
-        Reading reading(dataName, {header_dp, item_dp});
+        Reading reading(dataName, {new Datapoint(header_dp), item_dp});
         m_iec104->ingest(reading);
     }
 }
