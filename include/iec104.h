@@ -105,23 +105,23 @@ public :
     // giving value type that can't be handled. The real work is forwarded
     // to the private method m_addData
 
-    void addData(std::vector<Datapoint*>& datapoints, long ioa,
+    void addData(std::vector<std::pair<std::string, Datapoint*>>& datapoints, long ioa,
                         const std::string& dataname, const long int value,
                         QualityDescriptor qd, CP56Time2a ts = nullptr)
     { m_addData(datapoints, ioa, dataname, value, qd, ts); }
 
-    void addData(std::vector<Datapoint*>& datapoints, long ioa,
+    void addData(std::vector<std::pair<std::string, Datapoint*>>& datapoints, long ioa,
                         const std::string& dataname, const float value,
                         QualityDescriptor qd, CP56Time2a ts = nullptr)
     { m_addData(datapoints, ioa, dataname, value, qd, ts); }
     // ==================================================================== //
 
     // Sends the datapoints passed as Reading to Fledge
-    void sendData(CS101_ASDU asdu, std::vector<Datapoint*> data, const std::string& dataName);
+    void sendData(CS101_ASDU asdu, std::vector<std::pair<std::string, Datapoint*>> data);
 
 private:
     template <class T>
-    void m_addData(std::vector<Datapoint *> &datapoints, long ioa,
+    void m_addData(std::vector<std::pair<std::string, Datapoint*>> &datapoints, long ioa,
                           const std::string& dataname, const T value,
                           QualityDescriptor qd, CP56Time2a ts);
 
