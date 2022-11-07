@@ -138,12 +138,23 @@ static const char *default_config = QUOTE({
         "displayName" : "TLS parameters",
         "order" : "4",
         "default" : QUOTE({      
-            "tls_conf" : { 
-                "private_key" : "client.key",
-                "client_cert" : "client.cer",
-                "server_cert" : "server.cer",
-                "ca_cert" : "root.cer"
-            }         
+            "tls_conf" : {
+                "private_key" : "iec104_client.key",
+                "own_cert" : "iec104_client.cer",
+                "ca_certs" : [
+                    {
+                        "cert_file": "iec104_ca.cer"
+                    },
+                    {
+                        "cert_file": "iec104_ca2.cer"
+                    }
+                ],
+                "remote_certs" : [
+                    {
+                        "cert_file": "iec104_server.cer"
+                    }
+                ]
+            }      
         })
     }
 });

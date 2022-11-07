@@ -639,7 +639,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                 break;
 
             default:
-                Logger::getLogger()->error("Type of message (%i - COT: %i) not supported", CS101_ASDU_getTypeID(asdu), CS101_ASDU_getCOT(asdu));
+                Logger::getLogger()->debug("Type of message (%i - COT: %i) not supported", CS101_ASDU_getTypeID(asdu), CS101_ASDU_getCOT(asdu));
                 return false;
         }
     }
@@ -662,30 +662,12 @@ IEC104ClientConnection::prepareConnection()
 
             string certificateStore = getDataDir() + string("/etc/certs/");
 
-            if (m_config->GetCaCertFile().length()) {
-                string caCertFile = certificateStore + m_config->GetCaCertFile();
-
-                if (access(caCertFile.c_str(), R_OK) == 0) {
-                    
-                    if (TLSConfiguration_addCACertificateFromFile(tlsConfig, caCertFile.c_str()) == false) {
-                        Logger::getLogger()->error("Failed to load CA certificate file: %s", caCertFile.c_str());
-                        tlsConfigOk = false;
-                    }
-
-                    TLSConfiguration_setChainValidation(tlsConfig, true);
-                }
-                else {
-                    Logger::getLogger()->error("Failed to access CA certificate file: %s", caCertFile.c_str());
-                    tlsConfigOk = false;
-                }
-            }
-
-            if (m_config->GetClientCertFile().length() == 0 || m_config->GetPrivateKeyFile().length() == 0) {
+            if (m_config->GetOwnCertificate().length() == 0 || m_config->GetPrivateKey().length() == 0) {
                 Logger::getLogger()->error("No private key and/or certificate configured for client");
                 tlsConfigOk = false;
             }
             else {
-                string privateKeyFile = certificateStore + m_config->GetPrivateKeyFile();
+                string privateKeyFile = certificateStore + m_config->GetPrivateKey();
 
                 if (access(privateKeyFile.c_str(), R_OK) == 0) {
                     if (TLSConfiguration_setOwnKeyFromFile(tlsConfig, privateKeyFile.c_str(), NULL) == false) {
@@ -698,7 +680,7 @@ IEC104ClientConnection::prepareConnection()
                     tlsConfigOk = false;
                 }
 
-                string clientCertFile = certificateStore + m_config->GetClientCertFile();
+                string clientCertFile = certificateStore + m_config->GetOwnCertificate();
 
                 if (access(clientCertFile.c_str(), R_OK) == 0) {
                     if (TLSConfiguration_setOwnCertificateFromFile(tlsConfig, clientCertFile.c_str()) == false) {
@@ -712,21 +694,48 @@ IEC104ClientConnection::prepareConnection()
                 }
             }
 
-            if (m_config->GetServerCertFile().length() > 0) {
-                string serverCertFile = certificateStore + m_config->GetServerCertFile();
+            if (m_config->GetRemoteCertificates().size() > 0) {
+                TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
 
-                if (access(serverCertFile.c_str(), R_OK) == 0) {
-                    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
+                for (std::string& remoteCert : m_config->GetRemoteCertificates())
+                {
+                    string remoteCertFile = certificateStore + remoteCert;
 
-                    if (TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, serverCertFile.c_str()) == false) {
-                        Logger::getLogger()->error("Failed to load server certificate file: %s", serverCertFile.c_str());
-                        tlsConfigOk = false;
+                    if (access(remoteCertFile.c_str(), R_OK) == 0) {
+                        if (TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, remoteCertFile.c_str()) == false) {
+                            Logger::getLogger()->warn("Failed to load remote certificate file: %s -> ignore certificate", remoteCertFile.c_str());
+                        }
                     }
+                    else {
+                        Logger::getLogger()->warn("Failed to access remote certificate file: %s -> ignore certificate", remoteCertFile.c_str());
+                    }
+
                 }
-                else {
-                    Logger::getLogger()->error("Failed to load server certificate file: %s", serverCertFile.c_str());
-                    tlsConfigOk = false;
+            }
+            else {
+                TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, false);
+            }
+
+            if (m_config->GetCaCertificates().size() > 0) {
+                TLSConfiguration_setChainValidation(tlsConfig, true);
+
+                for (std::string& caCert : m_config->GetCaCertificates())
+                {
+                    string caCertFile = certificateStore + caCert;
+
+                    if (access(caCertFile.c_str(), R_OK) == 0) {
+                        if (TLSConfiguration_addCACertificateFromFile(tlsConfig, caCertFile.c_str()) == false) {
+                            Logger::getLogger()->warn("Failed to load CA certificate file: %s -> ignore certificate", caCertFile.c_str());
+                        }
+                    }
+                    else {
+                        Logger::getLogger()->warn("Failed to access CA certificate file: %s -> ignore certificate", caCertFile.c_str());
+                    }
+
                 }
+            }
+            else {
+                TLSConfiguration_setChainValidation(tlsConfig, false);
             }
 
             if (tlsConfigOk) {

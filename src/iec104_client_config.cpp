@@ -766,14 +766,13 @@ void IEC104ClientConfig::deleteExchangeDefinitions()
     m_exchangeDefinitions.clear();
 }
 
-void IEC104ClientConfig::importTlsConfig(const string& tlsConfig)
+void
+IEC104ClientConfig::importTlsConfig(const string& tlsConfig)
 {
     Document document;
 
     if (document.Parse(const_cast<char*>(tlsConfig.c_str())).HasParseError()) {
         Logger::getLogger()->fatal("Parsing error in TLS configuration");
-
-        printf("Parsing error in TLS configuration\n");
 
         return;
     }
@@ -788,19 +787,41 @@ void IEC104ClientConfig::importTlsConfig(const string& tlsConfig)
     const Value& tlsConf = document["tls_conf"];
 
     if (tlsConf.HasMember("private_key") && tlsConf["private_key"].IsString()) {
-        m_privateKeyFile = tlsConf["private_key"].GetString();
+        m_privateKey = tlsConf["private_key"].GetString();
     }
 
-    if (tlsConf.HasMember("client_cert") && tlsConf["client_cert"].IsString()) {
-        m_clientCertFile = tlsConf["client_cert"].GetString();
+    if (tlsConf.HasMember("own_cert") && tlsConf["own_cert"].IsString()) {
+        m_ownCertificate = tlsConf["own_cert"].GetString();
     }
 
-    if (tlsConf.HasMember("server_cert") && tlsConf["server_cert"].IsString()) {
-        m_serverCertFile = tlsConf["server_cert"].GetString();
+    if (tlsConf.HasMember("ca_certs") && tlsConf["ca_certs"].IsArray()) {
+
+        const Value& caCerts = tlsConf["ca_certs"];
+
+        for (const Value& caCert : caCerts.GetArray()) {
+            if (caCert.HasMember("cert_file")) {
+                if (caCert["cert_file"].IsString()) {
+                    string certFileName = caCert["cert_file"].GetString();
+
+                    m_caCertificates.push_back(certFileName);
+                }
+            }
+        }
     }
 
-    if (tlsConf.HasMember("ca_cert") && tlsConf["ca_cert"].IsString()) {
-        m_caCertFile = tlsConf["ca_cert"].GetString();
+    if (tlsConf.HasMember("remote_certs") && tlsConf["remote_certs"].IsArray()) {
+
+        const Value& remoteCerts = tlsConf["remote_certs"];
+
+        for (const Value& remoteCert : remoteCerts.GetArray()) {
+            if (remoteCert.HasMember("cert_file")) {
+                if (remoteCert["cert_file"].IsString()) {
+                    string certFileName = remoteCert["cert_file"].GetString();
+
+                    m_remoteCertificates.push_back(certFileName);
+                }
+            }
+        }
     }
 }
 
