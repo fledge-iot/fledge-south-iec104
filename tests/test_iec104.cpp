@@ -600,7 +600,7 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdusWithCOT_11)
     CS104_Slave_destroy(slave);
 }
 
-TEST_F(IEC104Test, IEC104_receiveStepPositionInformation)
+TEST_F(IEC104Test, IEC104_receiveSpont_M_ST_TB_1)
 {
     ingestCallbackCalled = 0;
 
@@ -872,6 +872,70 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TF_1)
     ASSERT_EQ((int64_t) CS101_COT_SPONTANEOUS, getIntValue(getChild(*data_object, "do_cot")));
     ASSERT_EQ((int64_t) 4202857, getIntValue(getChild(*data_object, "do_ioa")));
     ASSERT_EQ((int64_t) timestamp, getIntValue(getChild(*data_object, "do_ts")));
+
+    delete storedReading;
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+}
+
+TEST_F(IEC104Test, IEC104_receiveGI_M_ST_NA_1)
+{
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION, 0, 41025, false, false);
+
+
+    InformationObject io = (InformationObject) StepPositionInformation_create(NULL, 4202853, 1, true, IEC60870_QUALITY_GOOD);
+
+    CS101_ASDU_addInformationObject(newAsdu, io);
+
+    InformationObject_destroy(io);
+
+    /* Add ASDU to slave event queue */
+    CS104_Slave_enqueueASDU(slave, newAsdu);
+
+    CS101_ASDU_destroy(newAsdu);
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(ingestCallbackCalled, 1);
+    ASSERT_EQ("TM-3", storedReading->getAssetName());
+    ASSERT_TRUE(hasObject(*storedReading, "data_object"));
+    Datapoint* data_object = getObject(*storedReading, "data_object");
+    ASSERT_NE(nullptr, data_object);
+    ASSERT_TRUE(hasChild(*data_object, "do_type"));
+    ASSERT_TRUE(hasChild(*data_object, "do_ca"));
+    ASSERT_TRUE(hasChild(*data_object, "do_oa"));
+    ASSERT_TRUE(hasChild(*data_object, "do_cot"));
+    ASSERT_TRUE(hasChild(*data_object, "do_test"));
+    ASSERT_TRUE(hasChild(*data_object, "do_negative"));
+    ASSERT_TRUE(hasChild(*data_object, "do_ioa"));
+    ASSERT_TRUE(hasChild(*data_object, "do_value"));
+    ASSERT_TRUE(hasChild(*data_object, "do_quality_iv"));
+    ASSERT_TRUE(hasChild(*data_object, "do_quality_bl"));
+    ASSERT_TRUE(hasChild(*data_object, "do_quality_sb"));
+    ASSERT_TRUE(hasChild(*data_object, "do_quality_nt"));
+    ASSERT_FALSE(hasChild(*data_object, "do_ts"));
+    ASSERT_FALSE(hasChild(*data_object, "do_ts_iv"));
+    ASSERT_FALSE(hasChild(*data_object, "do_ts_su"));
+    ASSERT_FALSE(hasChild(*data_object, "do_ts_sub"));
+
+    ASSERT_EQ("M_ST_NA_1", getStrValue(getChild(*data_object, "do_type")));
+    ASSERT_EQ((int64_t) 41025, getIntValue(getChild(*data_object, "do_ca")));
+    ASSERT_EQ((int64_t) CS101_COT_INTERROGATED_BY_STATION, getIntValue(getChild(*data_object, "do_cot")));
+    ASSERT_EQ((int64_t) 4202853, getIntValue(getChild(*data_object, "do_ioa")));
 
     delete storedReading;
 

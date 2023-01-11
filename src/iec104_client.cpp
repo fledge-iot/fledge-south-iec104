@@ -343,10 +343,8 @@ void IEC104Client::handle_M_SP_TB_1(vector<Datapoint*>& datapoints, string& labe
     QualityDescriptor qd =
         SinglePointInformation_getQuality((SinglePointInformation)io_casted);
 
-
     CP56Time2a ts = SinglePointWithCP56Time2a_getTimestamp(io_casted);
-    bool is_invalid = CP56Time2a_isInvalid(ts);
-    //if (m_tsiv == "PROCESS" || !is_invalid)
+
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
 }
 
@@ -393,8 +391,6 @@ void IEC104Client::handle_M_ST_NA_1(vector<Datapoint*>& datapoints, string& labe
         StepPositionInformation_getQuality((StepPositionInformation)io_casted);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
-
-    StepPositionInformation_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_ST_TB_1(vector<Datapoint*>& datapoints, string& label,
