@@ -267,7 +267,7 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
                 case C_SE_NC_1:
                 case C_SE_TC_1:
                     if (label)
-                        handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
+                        handle_C_SE_NC_1(datapoints, *label, ca, asdu, io, ioa);
                     break;
 
                 default:
