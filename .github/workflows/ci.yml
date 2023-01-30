@@ -79,6 +79,7 @@ jobs:
           cd dependencies
           wget  ${{ env.MBEDTLS_REPO_URL }}
           tar xf v2.28.2.tar.gz
+          mv mbedtls-2.28.2/ mbedtls-2.28
           cd ..
           mkdir build
           cd build
