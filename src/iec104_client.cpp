@@ -267,7 +267,7 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
                 case C_SE_NC_1:
                 case C_SE_TC_1:
                     if (label)
-                        handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
+                        handle_C_SE_NC_1(datapoints, *label, ca, asdu, io, ioa);
                     break;
 
                 default:
@@ -343,10 +343,8 @@ void IEC104Client::handle_M_SP_TB_1(vector<Datapoint*>& datapoints, string& labe
     QualityDescriptor qd =
         SinglePointInformation_getQuality((SinglePointInformation)io_casted);
 
-
     CP56Time2a ts = SinglePointWithCP56Time2a_getTimestamp(io_casted);
-    bool is_invalid = CP56Time2a_isInvalid(ts);
-    //if (m_tsiv == "PROCESS" || !is_invalid)
+
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
 }
 
@@ -393,8 +391,6 @@ void IEC104Client::handle_M_ST_NA_1(vector<Datapoint*>& datapoints, string& labe
         StepPositionInformation_getQuality((StepPositionInformation)io_casted);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
-
-    StepPositionInformation_destroy(io_casted);
 }
 
 void IEC104Client::handle_M_ST_TB_1(vector<Datapoint*>& datapoints, string& label,
@@ -407,15 +403,11 @@ void IEC104Client::handle_M_ST_TB_1(vector<Datapoint*>& datapoints, string& labe
         StepPositionInformation_getValue((StepPositionInformation)io_casted);
     QualityDescriptor qd =
         StepPositionInformation_getQuality((StepPositionInformation)io_casted);
-    if (m_comm_wttag)
-    {
-        CP56Time2a ts = StepPositionWithCP56Time2a_getTimestamp(io_casted);
-        bool is_invalid = CP56Time2a_isInvalid(ts);
 
-        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
-    }
-    else
-        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
+    CP56Time2a ts = StepPositionWithCP56Time2a_getTimestamp(io_casted);
+    bool is_invalid = CP56Time2a_isInvalid(ts);
+
+    datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
 }
 
 void IEC104Client::handle_M_ME_NA_1(vector<Datapoint*>& datapoints, string& label,
@@ -443,16 +435,11 @@ void IEC104Client::handle_M_ME_TD_1(vector<Datapoint*>& datapoints, string& labe
     QualityDescriptor qd =
         MeasuredValueNormalized_getQuality((MeasuredValueNormalized)io_casted);
     
-    if (m_comm_wttag)
-    {
-        CP56Time2a ts =
-            MeasuredValueNormalizedWithCP56Time2a_getTimestamp(io_casted);
-        bool is_invalid = CP56Time2a_isInvalid(ts);
-        //if (m_tsiv == "PROCESS" || !is_invalid)
-        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
-    }
-    else
-        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
+    CP56Time2a ts =
+        MeasuredValueNormalizedWithCP56Time2a_getTimestamp(io_casted);
+    bool is_invalid = CP56Time2a_isInvalid(ts);
+
+    datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
 }
 
 void IEC104Client::handle_M_ME_TE_1(vector<Datapoint*>& datapoints, string& label,
@@ -466,16 +453,11 @@ void IEC104Client::handle_M_ME_TE_1(vector<Datapoint*>& datapoints, string& labe
     QualityDescriptor qd =
         MeasuredValueScaled_getQuality((MeasuredValueScaled)io_casted);
 
-    if (m_comm_wttag)
-    {
-        CP56Time2a ts =
-            MeasuredValueScaledWithCP56Time2a_getTimestamp(io_casted);
-        bool is_invalid = CP56Time2a_isInvalid(ts);
-        //if (m_tsiv == "PROCESS" || !is_invalid)
-        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
-    }
-    else
-        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
+    CP56Time2a ts =
+        MeasuredValueScaledWithCP56Time2a_getTimestamp(io_casted);
+    bool is_invalid = CP56Time2a_isInvalid(ts);
+
+    datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
 }
 
 void IEC104Client::handle_M_ME_NC_1(vector<Datapoint*>& datapoints, string& label,
@@ -501,16 +483,11 @@ void IEC104Client::handle_M_ME_TF_1(vector<Datapoint*>& datapoints, string& labe
     QualityDescriptor qd =
         MeasuredValueShort_getQuality((MeasuredValueShort)io_casted);
 
-    if (m_comm_wttag)
-    {
-        CP56Time2a ts =
-            MeasuredValueShortWithCP56Time2a_getTimestamp(io_casted);
-        bool is_invalid = CP56Time2a_isInvalid(ts);
-        //if (m_tsiv == "PROCESS" || !is_invalid)
-        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
-    }
-    else
-        datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
+    CP56Time2a ts =
+        MeasuredValueShortWithCP56Time2a_getTimestamp(io_casted);
+    bool is_invalid = CP56Time2a_isInvalid(ts);
+
+    datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
 }
 
 void IEC104Client::handle_C_SC_NA_1(vector<Datapoint*>& datapoints, string& label,

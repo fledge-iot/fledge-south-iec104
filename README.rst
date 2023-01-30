@@ -31,7 +31,7 @@ Then, you can build lib60870 with:
 
 .. code-block:: console
 
-  $ cd lib60970-C
+  $ cd lib60870-C
   $ mkdir build
   $ cd build
   $ cmake ..

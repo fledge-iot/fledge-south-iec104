@@ -281,8 +281,6 @@ private:
     }
 
     IEC104* m_iec104;
-
-    bool m_comm_wttag = false;
 };
 
 #endif  // INCLUDE_IEC104_H_
