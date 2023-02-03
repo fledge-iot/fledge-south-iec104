@@ -372,6 +372,22 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
         return;
     }
 
+    if (protocolStack.HasMember("south_monitoring")) {
+        const Value& southMonitoring = protocolStack["south_monitoring"];
+
+        if (southMonitoring.HasMember("connx_status")) {
+            if (southMonitoring["connx_status"].IsString()) {
+                m_connxStatus = southMonitoring["connx_status"].GetString();
+            }
+        }
+
+        if (southMonitoring.HasMember("gi_status")) {
+            if (southMonitoring["gi_status"].IsString()) {
+                m_giStatus = southMonitoring["gi_status"].GetString();
+            }
+        }
+    }
+
     const Value& transportLayer = protocolStack["transport_layer"];
     const Value& applicationLayer = protocolStack["application_layer"];
 

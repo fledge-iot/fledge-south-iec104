@@ -46,6 +46,9 @@ public:
     int GiRepeatCount() {return m_giRepeatCount;};
     int GiTime() {return m_giTime;};
 
+    std::string& GetGiStatusSignal() {return m_giStatus;};
+    std::string& GetConnxStatusSignal() {return m_connxStatus;};
+
     std::string& GetPrivateKey() {return m_privateKey;};
     std::string& GetOwnCertificate() {return m_ownCertificate;};
     std::vector<std::string>& GetRemoteCertificates() {return m_remoteCertificates;};
@@ -92,6 +95,9 @@ private:
 
     bool m_protocolConfigComplete = false; /* flag if protocol configuration is read */
     bool m_exchangeConfigComplete = false; /* flag if exchange configuration is read */
+
+    std::string m_connxStatus = "";
+    std::string m_giStatus = "";
 
     std::string m_privateKey = "";
     std::string m_ownCertificate = "";

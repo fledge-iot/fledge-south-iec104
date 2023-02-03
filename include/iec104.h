@@ -124,9 +124,28 @@ private:
 
     IEC104ClientConfig* m_config;
 
-   // std::map<int, int>::iterator m_listOfCA_it;
+    enum class ConnectionStatus
+    {
+        STARTED,
+        NOT_CONNECTED
+    };
 
-    //std::map<int, int> m_listOfCA;
+    enum class GiStatus
+    {
+        IDLE,
+        STARTED,
+        IN_PROGRESS,
+        FAILED,
+        FINISHED
+    };
+
+    ConnectionStatus m_connStatus = ConnectionStatus::NOT_CONNECTED;
+
+    void updateConnectionStatus(ConnectionStatus newState);
+
+    GiStatus m_giStatus = GiStatus::IDLE;
+
+    void updateGiStatus(GiStatus newState);
 
     std::vector<IEC104ClientConnection*> m_connections = std::vector<IEC104ClientConnection*>();
 
@@ -154,6 +173,8 @@ private:
         DatapointValue dp_value = DatapointValue(value);
         return new Datapoint(dataname, dp_value);
     }
+
+    Datapoint* m_createEvent(const std::string& eventType, const std::string& value);
 
     template <class T>
     Datapoint* m_createDataObject(CS101_ASDU asdu, int64_t ioa, const std::string& dataname, const T value,
