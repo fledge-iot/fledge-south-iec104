@@ -84,6 +84,90 @@ Datapoint* IEC104Client::m_createEvent(const std::string& eventType, const std::
     return new Datapoint("iec104_south_event", dpv);
 }
 
+Datapoint* IEC104Client::m_createQualityUpdateForDataObject(DataExchangeDefinition* dataDefinition, QualityDescriptor* qd, CP56Time2a ts)
+{
+    auto* attributes = new vector<Datapoint*>;
+
+    attributes->push_back(m_createDatapoint("do_type", mapAsduTypeIdStr[dataDefinition->typeId]));
+
+    attributes->push_back(m_createDatapoint("do_ca", (long)dataDefinition->ca));
+
+    attributes->push_back(m_createDatapoint("do_oa", (long)0));
+
+    attributes->push_back(m_createDatapoint("do_cot", (long)CS101_COT_SPONTANEOUS));
+
+    attributes->push_back(m_createDatapoint("do_test", (long)0));
+
+    attributes->push_back(m_createDatapoint("do_negative", (long)0));
+
+    attributes->push_back(m_createDatapoint("do_ioa", (long)dataDefinition->ioa));
+
+    if (qd) {
+        attributes->push_back(m_createDatapoint("do_quality_iv", (*qd & IEC60870_QUALITY_INVALID) ? 1L : 0L));
+
+        attributes->push_back(m_createDatapoint("do_quality_bl", (*qd & IEC60870_QUALITY_BLOCKED) ? 1L : 0L));
+
+        attributes->push_back(m_createDatapoint("do_quality_ov", (*qd & IEC60870_QUALITY_OVERFLOW) ? 1L : 0L));
+
+        attributes->push_back(m_createDatapoint("do_quality_sb", (*qd & IEC60870_QUALITY_SUBSTITUTED) ? 1L : 0L));
+
+        attributes->push_back(m_createDatapoint("do_quality_nt", (*qd & IEC60870_QUALITY_NON_TOPICAL) ? 1L : 0L));
+    }
+
+    if (ts) {
+        attributes->push_back(m_createDatapoint("do_ts", (long)CP56Time2a_toMsTimestamp(ts)));
+
+        attributes->push_back(m_createDatapoint("do_ts_iv", (CP56Time2a_isInvalid(ts)) ? 1L : 0L));
+
+        attributes->push_back(m_createDatapoint("do_ts_su", (CP56Time2a_isSummerTime(ts)) ? 1L : 0L));
+
+        attributes->push_back(m_createDatapoint("do_ts_sub", (CP56Time2a_isSubstituted(ts)) ? 1L : 0L));
+    }
+
+    DatapointValue dpv(attributes, true);
+
+    return new Datapoint("data_object", dpv);
+}
+
+static bool isDataPointInMonitoringDirection(DataExchangeDefinition* dp)
+{
+    if (dp->typeId < 41) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+void IEC104Client::updateQualityForAllDataObjects(QualityDescriptor qd)
+{
+    vector<Datapoint*> datapoints;
+    vector<string> labels;
+
+    for (auto const& exchangeDefintions : m_config->ExchangeDefinition()) {
+        for (auto const& dpPair : exchangeDefintions.second) {
+            DataExchangeDefinition* dp = dpPair.second;
+            
+            if (isDataPointInMonitoringDirection(dp))
+            {
+                //TODO also add timestamp?
+                Datapoint* qualityUpdateDp = m_createQualityUpdateForDataObject(dp, &qd, nullptr);
+
+                if (qualityUpdateDp) {
+                    datapoints.push_back(qualityUpdateDp);
+                    labels.push_back(dp->label);
+                }
+            }
+
+        }
+    }
+
+    if (datapoints.empty() == false) {
+        sendData(datapoints, labels);
+        printf("Send quality update %i\n", qd);
+    }
+}
+
 template <class T>
 Datapoint* IEC104Client::m_createDataObject(CS101_ASDU asdu, int64_t ioa, const std::string& dataname, const T value,
     QualityDescriptor* qd, CP56Time2a ts)
@@ -773,6 +857,8 @@ IEC104Client::_monitoringThread()
     }
 
     updateConnectionStatus(ConnectionStatus::NOT_CONNECTED);
+
+    updateQualityForAllDataObjects(IEC60870_QUALITY_INVALID);
 
     uint64_t backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
 

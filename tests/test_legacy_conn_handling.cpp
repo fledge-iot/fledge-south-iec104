@@ -301,6 +301,40 @@ protected:
         return false;
     }
 
+    static bool IsReadingWithQualityInvalid(Reading* reading)
+    {
+        Datapoint* dataObject = getObject(*reading, "data_object");
+
+        if (dataObject) {
+            Datapoint* do_quality_iv = getChild(*dataObject, "do_quality_iv");
+
+            if (do_quality_iv) {
+                if (getIntValue(do_quality_iv) == 1) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsReadingWithQualityNonTopcial(Reading* reading)
+    {
+        Datapoint* dataObject = getObject(*reading, "data_object");
+
+        if (dataObject) {
+            Datapoint* do_quality_iv = getChild(*dataObject, "do_quality_nt");
+
+            if (do_quality_iv) {
+                if (getIntValue(do_quality_iv) == 1) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     static void ingestCallback(void* parameter, Reading reading)
     {
         LegacyConnectionHandlingTest* self = (LegacyConnectionHandlingTest*)parameter;
@@ -312,6 +346,7 @@ protected:
         for (Datapoint* sdp : dataPoints) {
             printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
         }
+
         self->storedReading = new Reading(reading);
 
         self->storedReadings.push_back(self->storedReading);
@@ -344,12 +379,24 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLost)
 
     CS104_Slave_destroy(slave);
 
-    ASSERT_EQ(2, ingestCallbackCalled);
+    ASSERT_EQ(6, ingestCallbackCalled);
 
-    ASSERT_EQ(2, storedReadings.size());
+    ASSERT_EQ(6, storedReadings.size());
 
-    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[0]));
-    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[1]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
+    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[0]));
+
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
+    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[1]));
+
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2]));
+    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[2]));
+
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
+    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[3]));
+
+    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
+    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[5]));
 }
 
 TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
@@ -378,11 +425,11 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
 
     CS104_Slave_destroy(slave);
 
-    ASSERT_EQ(3, ingestCallbackCalled);
+    ASSERT_EQ(7, ingestCallbackCalled);
     
-    ASSERT_EQ(3, storedReadings.size());
+    ASSERT_EQ(7, storedReadings.size());
 
-    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[0]));
-    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[1]));
-    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[2]));
+    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
+    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[5]));
+    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[6]));
 }

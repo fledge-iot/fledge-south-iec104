@@ -300,7 +300,7 @@ protected:
     {
         ControlCommandsTest* self = (ControlCommandsTest*)parameter;
 
-        printf("asduHandler: type: %i\n", CS101_ASDU_getTypeID(asdu));
+        printf("asduHandler: type: %i COT: %s\n", CS101_ASDU_getTypeID(asdu), CS101_CauseOfTransmission_toString(CS101_ASDU_getCOT(asdu)));
 
         lastConnection = NULL;
         lastOA = CS101_ASDU_getOA(asdu);

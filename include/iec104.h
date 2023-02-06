@@ -176,6 +176,10 @@ private:
 
     Datapoint* m_createEvent(const std::string& eventType, const std::string& value);
 
+    Datapoint* m_createQualityUpdateForDataObject(DataExchangeDefinition* dataDefinition, QualityDescriptor* qd, CP56Time2a ts);
+
+    void updateQualityForAllDataObjects(QualityDescriptor qd);
+
     template <class T>
     Datapoint* m_createDataObject(CS101_ASDU asdu, int64_t ioa, const std::string& dataname, const T value,
         QualityDescriptor* qd, CP56Time2a ts = nullptr);

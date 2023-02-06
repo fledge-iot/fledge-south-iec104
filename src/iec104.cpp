@@ -267,10 +267,12 @@ IEC104::m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime)
 /**
  * SetPoint operation.
  * This is the function used to send an ASDU to the control station
+ * 
  * @param operation     name of the command asdu
- * @param params        data object items of the command to send, composed of a
- * name and a value
+ * @param params        data object items of the command to send, composed of a name and a value
  * @param count         number of parameters
+ * 
+ * @return true when the command has been accepted, false otherwise
  */
 bool
 IEC104::operation(const std::string& operation, int count,
@@ -343,5 +345,6 @@ IEC104::operation(const std::string& operation, int count,
     }
 
     Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
+
     return false;
 }

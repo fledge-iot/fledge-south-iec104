@@ -492,6 +492,8 @@ IEC104ClientConnection::executePeriodicTasks()
                                 Logger::getLogger()->error("Interrogation request timed out (no ACT_CON)");
                                 m_interrogationRequestState = 0;
                                 m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
+
+                                //TODO set gi_status = failed
                             }
                         }
                         else if (m_interrogationRequestState == 2) { /* wait for ACT_TERM */
@@ -500,6 +502,8 @@ IEC104ClientConnection::executePeriodicTasks()
                                 m_nextGIStartTime = m_config->GiCycle();
                                 m_interrogationRequestState = 0;
                                 m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
+
+                                //TODO set gi_status = failed 
                             }
                         }
                     }
@@ -512,9 +516,13 @@ IEC104ClientConnection::executePeriodicTasks()
                                     Logger::getLogger()->debug("Sent GI request to CA=%i", *m_listOfCA_it);
                                     m_interrogationRequestState = 1;
                                     m_interrogationRequestSent = getMonotonicTimeInMs();
+
+                                    //TODO set gi_status = started
                                 }
                                 else {
                                     Logger::getLogger()->error("Failed to send interrogation command to CA=%i!\n", *m_listOfCA_it);
+
+                                    //TODO set gi_status = failed 
                                 }
 
                                 m_listOfCA_it++;
