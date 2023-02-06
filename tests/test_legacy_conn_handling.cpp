@@ -379,9 +379,9 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLost)
 
     CS104_Slave_destroy(slave);
 
-    ASSERT_EQ(6, ingestCallbackCalled);
+    ASSERT_EQ(10, ingestCallbackCalled);
 
-    ASSERT_EQ(6, storedReadings.size());
+    ASSERT_EQ(10, storedReadings.size());
 
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
     ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[0]));
@@ -397,6 +397,11 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLost)
 
     ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
     ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[5]));
+
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[6]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[7]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[8]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[9]));
 }
 
 TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
@@ -425,11 +430,17 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
 
     CS104_Slave_destroy(slave);
 
-    ASSERT_EQ(7, ingestCallbackCalled);
+    ASSERT_EQ(11, ingestCallbackCalled);
     
-    ASSERT_EQ(7, storedReadings.size());
+    ASSERT_EQ(11, storedReadings.size());
 
     ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
     ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[5]));
-    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[6]));
+
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[6]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[7]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[8]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[9]));
+
+    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[10]));
 }

@@ -147,18 +147,23 @@ void IEC104Client::updateQualityForAllDataObjects(QualityDescriptor qd)
     for (auto const& exchangeDefintions : m_config->ExchangeDefinition()) {
         for (auto const& dpPair : exchangeDefintions.second) {
             DataExchangeDefinition* dp = dpPair.second;
-            
-            if (isDataPointInMonitoringDirection(dp))
-            {
-                //TODO also add timestamp?
-                Datapoint* qualityUpdateDp = m_createQualityUpdateForDataObject(dp, &qd, nullptr);
 
-                if (qualityUpdateDp) {
-                    datapoints.push_back(qualityUpdateDp);
-                    labels.push_back(dp->label);
+            if (dp) {
+                if (isDataPointInMonitoringDirection(dp))
+                {
+                    //TODO also add timestamp?
+                    Datapoint* qualityUpdateDp = m_createQualityUpdateForDataObject(dp, &qd, nullptr);
+
+                    if (qualityUpdateDp) {
+                        datapoints.push_back(qualityUpdateDp);
+                        labels.push_back(dp->label);
+                    }
                 }
             }
-
+            else {
+                // TODO Why can this happen? 
+                printf("NO DataExchangeDefinition: first: %i\n", dpPair.first);
+            }
         }
     }
 
@@ -848,6 +853,11 @@ IEC104Client::stop()
 void
 IEC104Client::_monitoringThread()
 {
+    uint64_t qualityUpdateTimeout = 500; /* 500 ms */
+    uint64_t qualityUpdateTimer = 0;
+    bool qualityUpdated = false;
+    bool firstConnected = false;
+
     if (m_started) 
     {
         for (auto clientConnection : m_connections)
@@ -861,6 +871,8 @@ IEC104Client::_monitoringThread()
     updateQualityForAllDataObjects(IEC60870_QUALITY_INVALID);
 
     uint64_t backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
+
+    
 
     while (m_started) 
     {
@@ -889,7 +901,29 @@ IEC104Client::_monitoringThread()
                 }
             }
 
+            if (foundOpenConnections) {
+                firstConnected = true;
+                qualityUpdateTimer = 0;
+                qualityUpdated = false;
+            }
+
             if (foundOpenConnections == false) {
+
+                if (firstConnected) {
+
+                    if (qualityUpdated == false) {
+                        if (qualityUpdateTimer != 0) {
+                            if (getMonotonicTimeInMs() > qualityUpdateTimer) {
+                                updateQualityForAllDataObjects(IEC60870_QUALITY_NON_TOPICAL);
+                                qualityUpdated = true;
+                            }
+                         }
+                        else {
+                            qualityUpdateTimer = getMonotonicTimeInMs() + qualityUpdateTimeout;
+                        }
+                    }
+                
+                }
 
                 updateConnectionStatus(ConnectionStatus::NOT_CONNECTED);
 
