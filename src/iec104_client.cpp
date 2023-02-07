@@ -18,6 +18,7 @@
 #include <fstream>
 #include <iostream>
 #include <utility>
+#include <algorithm>
 
 using namespace std;
 
@@ -139,6 +140,72 @@ static bool isDataPointInMonitoringDirection(DataExchangeDefinition* dp)
     }
 }
 
+static bool isSupportedCommand(int typeId)
+{
+    if ((typeId >= 45) && (typeId <= 51))
+        return true;
+
+    if ((typeId >= 58) && (typeId <= 64))
+        return true;
+
+    return false;
+}
+
+IEC104Client::OutstandingCommand* IEC104Client::checkForOutstandingCommand(int typeId, int ca, int ioa, IEC104ClientConnection* connection)
+{
+    for (OutstandingCommand* command : m_outstandingCommands) {
+        if ((command->typeId == typeId) && (command->ca == ca) && (command->ioa == ioa) && (command->clientCon == connection)) {
+            return command;
+        }
+    }
+
+    return nullptr;
+}
+
+void IEC104Client::checkOutstandingCommandTimeouts()
+{
+    uint64_t currentTime = getMonotonicTimeInMs();
+
+    std::vector<OutstandingCommand*> listOfTimedoutCommands;
+
+    for (OutstandingCommand* command : m_outstandingCommands)
+    {    
+        if (command->actConReceived) {
+            if (command->timeout + m_config->CmdTermTImeout() > currentTime) {
+                printf("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
+                listOfTimedoutCommands.push_back(command);
+            }
+        }
+        else {
+            if (command->timeout + m_config->CmdAckTimeout() > currentTime) {
+                printf("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
+                listOfTimedoutCommands.push_back(command);
+            }
+        }
+    }
+
+    // remove all timed out commands from the list of outstanding commands
+    for (OutstandingCommand* commandToRemove : listOfTimedoutCommands) {
+       
+        // remove object commandToRemove from m_outstandingCommands
+        //m_outstandingCommands.erase(std::remove(m_outstandingCommands.begin(), m_outstandingCommands.end(), commandToRemove), m_outstandingCommands.end());
+
+        //delete commandToRemove;
+
+        removeOutstandingCommand(commandToRemove);
+    }
+}
+
+void IEC104Client::removeOutstandingCommand(OutstandingCommand* command)
+{
+    printf("Remove outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
+
+    // remove object command from m_outstandingCommands
+    m_outstandingCommands.erase(std::remove(m_outstandingCommands.begin(), m_outstandingCommands.end(), command), m_outstandingCommands.end());
+
+    delete command;
+}
+
 void IEC104Client::updateQualityForAllDataObjects(QualityDescriptor qd)
 {
     vector<Datapoint*> datapoints;
@@ -236,6 +303,12 @@ IEC104Client::sendData(vector<Datapoint*> datapoints,
         m_iec104->ingest(labels.at(i), points);
         i++;
     }
+}
+
+IEC104Client::OutstandingCommand::OutstandingCommand(int typeId, int ca, int ioa, IEC104ClientConnection* con):
+    typeId(typeId), ca(ca), ioa(ioa), clientCon(con)
+{
+    timeout = getMonotonicTimeInMs();
 }
 
 void
@@ -355,6 +428,12 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
 
             std::string* label = m_config->checkExchangeDataLayer(typeId, ca, ioa);
 
+            OutstandingCommand* outstandingCommand = nullptr;
+
+            if (isSupportedCommand(typeId)) {
+                outstandingCommand = checkForOutstandingCommand(typeId, ca, ioa, connection);
+            }
+
             bool typeSupported = true;
 
             switch (typeId)
@@ -422,37 +501,37 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
                 case C_SC_NA_1:
                 case C_SC_TA_1:
                     if (label)
-                        handle_C_SC_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        handle_C_SC_NA_1(datapoints, *label, ca, asdu, io, ioa, outstandingCommand);
                     break;
 
                 case C_DC_TA_1:
                 case C_DC_NA_1:
                     if (label)
-                        handle_C_DC_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        handle_C_DC_NA_1(datapoints, *label, ca, asdu, io, ioa, outstandingCommand);
                     break;
 
                 case C_RC_NA_1:
                 case C_RC_TA_1:
                     if (label)
-                        handle_C_RC_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        handle_C_RC_NA_1(datapoints, *label, ca, asdu, io, ioa, outstandingCommand);
                     break;
 
                 case C_SE_NA_1:
                 case C_SE_TA_1:
                     if (label)
-                        handle_C_SE_NA_1(datapoints, *label, ca, asdu, io, ioa);
+                        handle_C_SE_NA_1(datapoints, *label, ca, asdu, io, ioa, outstandingCommand);
                     break;
 
                 case C_SE_NB_1:
                 case C_SE_TB_1:
                     if (label)
-                        handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa);
+                        handle_C_SE_NB_1(datapoints, *label, ca, asdu, io, ioa, outstandingCommand);
                     break;
 
                 case C_SE_NC_1:
                 case C_SE_TC_1:
                     if (label)
-                        handle_C_SE_NC_1(datapoints, *label, ca, asdu, io, ioa);
+                        handle_C_SE_NC_1(datapoints, *label, ca, asdu, io, ioa, outstandingCommand);
                     break;
 
                 default:
@@ -678,12 +757,21 @@ void IEC104Client::handle_M_ME_TF_1(vector<Datapoint*>& datapoints, string& labe
 void IEC104Client::handle_C_SC_NA_1(vector<Datapoint*>& datapoints, string& label,
                              unsigned int ca,
                              CS101_ASDU asdu, InformationObject io,
-                             uint64_t ioa)
+                             uint64_t ioa,
+                             OutstandingCommand* outstandingCommand)
 {
     auto io_casted = (SingleCommandWithCP56Time2a)io;
     int64_t state = SingleCommand_getState((SingleCommand)io_casted);
 
     QualifierOfCommand qu = SingleCommand_getQU((SingleCommand)io_casted);
+
+    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        outstandingCommand->actConReceived = true;
+        outstandingCommand->timeout = getMonotonicTimeInMs();
+    }
+    else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        removeOutstandingCommand(outstandingCommand);
+    }
 
     if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1)
     {
@@ -700,12 +788,21 @@ void IEC104Client::handle_C_SC_NA_1(vector<Datapoint*>& datapoints, string& labe
 void IEC104Client::handle_C_DC_NA_1(vector<Datapoint*>& datapoints, string& label,
                              unsigned int ca,
                              CS101_ASDU asdu, InformationObject io,
-                             uint64_t ioa)
+                             uint64_t ioa,
+                             OutstandingCommand* outstandingCommand)
 {
     auto io_casted = (DoubleCommandWithCP56Time2a)io;
     int64_t state = DoubleCommand_getState((DoubleCommand)io_casted);
 
     QualifierOfCommand qu = DoubleCommand_getQU((DoubleCommand)io_casted);
+
+    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        outstandingCommand->actConReceived = true;
+        outstandingCommand->timeout = getMonotonicTimeInMs();
+    }
+    else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        removeOutstandingCommand(outstandingCommand);
+    }
 
     if (CS101_ASDU_getTypeID(asdu) == C_DC_TA_1)
     {
@@ -720,12 +817,21 @@ void IEC104Client::handle_C_DC_NA_1(vector<Datapoint*>& datapoints, string& labe
 void IEC104Client::handle_C_RC_NA_1(vector<Datapoint*>& datapoints, string& label,
                              unsigned int ca,
                              CS101_ASDU asdu, InformationObject io,
-                             uint64_t ioa)
+                             uint64_t ioa,
+                             OutstandingCommand* outstandingCommand)
 {
     auto io_casted = (StepCommandWithCP56Time2a)io;
     int64_t state = StepCommand_getState((StepCommand)io_casted);
 
     QualifierOfCommand qu = StepCommand_getQU((StepCommand)io_casted);
+
+    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        outstandingCommand->actConReceived = true;
+        outstandingCommand->timeout = getMonotonicTimeInMs();
+    }
+    else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        removeOutstandingCommand(outstandingCommand);
+    }
 
     if (CS101_ASDU_getTypeID(asdu) == C_DC_TA_1)
     {
@@ -740,13 +846,18 @@ void IEC104Client::handle_C_RC_NA_1(vector<Datapoint*>& datapoints, string& labe
 void IEC104Client::handle_C_SE_NA_1(vector<Datapoint*>& datapoints, string& label,
                              unsigned int ca,
                              CS101_ASDU asdu, InformationObject io,
-                             uint64_t ioa)
+                             uint64_t ioa,
+                             OutstandingCommand* outstandingCommand)
 {
     auto io_casted = (SetpointCommandNormalizedWithCP56Time2a)io;
 
     float value = SetpointCommandNormalized_getValue((SetpointCommandNormalized)io_casted);
 
     QualifierOfCommand ql = SetpointCommandNormalized_getQL((SetpointCommandNormalized)io_casted);
+
+    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        removeOutstandingCommand(outstandingCommand);
+    }
 
     if (CS101_ASDU_getTypeID(asdu) == C_SE_TA_1)
     {
@@ -761,13 +872,18 @@ void IEC104Client::handle_C_SE_NA_1(vector<Datapoint*>& datapoints, string& labe
 void IEC104Client::handle_C_SE_NB_1(vector<Datapoint*>& datapoints, string& label,
                              unsigned int ca,
                              CS101_ASDU asdu, InformationObject io,
-                             uint64_t ioa)
+                             uint64_t ioa,
+                             OutstandingCommand* outstandingCommand)
 {
     auto io_casted = (SetpointCommandScaledWithCP56Time2a)io;
 
     int64_t value = SetpointCommandScaled_getValue((SetpointCommandScaled)io_casted);
 
     QualifierOfCommand ql = SetpointCommandScaled_getQL((SetpointCommandScaled)io_casted);
+
+    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        removeOutstandingCommand(outstandingCommand);
+    }
 
     if (CS101_ASDU_getTypeID(asdu) == C_SE_TB_1)
     {
@@ -782,13 +898,18 @@ void IEC104Client::handle_C_SE_NB_1(vector<Datapoint*>& datapoints, string& labe
 void IEC104Client::handle_C_SE_NC_1(vector<Datapoint*>& datapoints, string& label,
                              unsigned int ca,
                              CS101_ASDU asdu, InformationObject io,
-                             uint64_t ioa)
+                             uint64_t ioa,
+                             OutstandingCommand* outstandingCommand)
 {
     auto io_casted = (SetpointCommandShortWithCP56Time2a)io;
 
     float value = SetpointCommandShort_getValue((SetpointCommandShort)io_casted);
 
     QualifierOfCommand ql = SetpointCommandShort_getQL((SetpointCommandShort)io_casted);
+
+    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        removeOutstandingCommand(outstandingCommand);
+    }
 
     if (CS101_ASDU_getTypeID(asdu) == C_SE_TC_1)
     {
@@ -964,6 +1085,8 @@ IEC104Client::_monitoringThread()
 
         m_activeConnectionMtx.unlock();
 
+        checkOutstandingCommandTimeouts();
+
         Thread_sleep(100);
     }
 
@@ -1008,14 +1131,37 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
         return false;
     }
 
+    OutstandingCommand* command = nullptr;
+
+    // check if number of allowed parallel commands is not exceeded.
+    if (m_config->CmdParallel() > 0) {
+        if (m_outstandingCommands.size() < m_config->CmdParallel()) {
+            command = new OutstandingCommand(withTime ? C_SC_TA_1 : C_SC_NA_1, ca, ioa, m_activeConnection);
+        }
+        else {
+            Logger::getLogger()->error("Maximum number of parallel command exceeded -> ignore command");
+
+            return false;
+        }
+    }
+    else {
+        command = new OutstandingCommand(withTime ? C_SC_TA_1 : C_SC_NA_1, ca, ioa, m_activeConnection);
+    }
+
     m_activeConnectionMtx.lock();
 
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSingleCommand(ca, ioa, value, withTime, select);
+
+        if (success) {
+            m_outstandingCommands.push_back(command);   
+        }
     }
     
     m_activeConnectionMtx.unlock();
+
+    if (!success) delete command;
 
     return success;
 }

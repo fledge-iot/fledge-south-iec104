@@ -124,6 +124,27 @@ private:
 
     IEC104ClientConfig* m_config;
 
+    class OutstandingCommand {
+    public:
+
+        explicit OutstandingCommand(int typeId, int ca, int ioa, IEC104ClientConnection* con);
+
+        int typeId;
+        int ca;
+        int ioa;
+        IEC104ClientConnection* clientCon;
+        bool actConReceived = false;
+        uint64_t timeout = 0;
+    };
+
+    std::vector<OutstandingCommand*> m_outstandingCommands;
+
+    OutstandingCommand* checkForOutstandingCommand(int typeId, int ca, int ioa, IEC104ClientConnection* connection);
+
+    void checkOutstandingCommandTimeouts();
+
+    void removeOutstandingCommand(OutstandingCommand* command);
+
     enum class ConnectionStatus
     {
         STARTED,
@@ -254,32 +275,38 @@ private:
     void handle_C_SC_NA_1(std::vector<Datapoint*>& datapoints,
                                 std::string& label,
                                 unsigned int ca, CS101_ASDU asdu,
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
 
     void handle_C_DC_NA_1(std::vector<Datapoint*>& datapoints,
                                 std::string& label,
                                 unsigned int ca, CS101_ASDU asdu,
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
 
     void handle_C_RC_NA_1(vector<Datapoint*>& datapoints,
                                 string& label,
                                 unsigned int ca, CS101_ASDU asdu, 
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
 
     void handle_C_SE_NA_1(vector<Datapoint*>& datapoints,
                                 string& label,
                                 unsigned int ca, CS101_ASDU asdu, 
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
 
     void handle_C_SE_NB_1(vector<Datapoint*>& datapoints,
                                 string& label,
                                 unsigned int ca, CS101_ASDU asdu, 
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
                                 
     void handle_C_SE_NC_1(vector<Datapoint*>& datapoints,
                                 string& label,
                                 unsigned int ca, CS101_ASDU asdu, 
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
 
     // Format 2019-01-01 10:00:00.123456+08:00
     static std::string CP56Time2aToString(const CP56Time2a ts)

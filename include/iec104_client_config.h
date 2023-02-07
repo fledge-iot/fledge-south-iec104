@@ -45,6 +45,10 @@ public:
     bool GiEnabled() {return true;};
     int GiRepeatCount() {return m_giRepeatCount;};
     int GiTime() {return m_giTime;};
+    int CmdAckTimeout() {return 1000;};
+    int CmdTermTImeout() {return 1000;};
+
+    int CmdParallel() {return m_cmdParallel;};
 
     std::string& GetGiStatusSignal() {return m_giStatus;};
     std::string& GetConnxStatusSignal() {return m_connxStatus;};
@@ -77,6 +81,8 @@ private:
     std::map<int, std::map<int, DataExchangeDefinition*>> m_exchangeDefinitions = std::map<int, std::map<int, DataExchangeDefinition*>>();
 
     std::vector<int> m_listOfCAs = std::vector<int>();
+
+    int m_cmdParallel = 0; /* application_layer/cmd_parallel - 0 = no limit - limits the number of commands that can be executed in parallel */
     
     int m_caSize = 2;
     int m_ioaSize = 3;
