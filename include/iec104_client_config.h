@@ -46,7 +46,7 @@ public:
     int GiRepeatCount() {return m_giRepeatCount;};
     int GiTime() {return m_giTime;};
     int CmdAckTimeout() {return 1000;};
-    int CmdTermTImeout() {return 1000;};
+    int CmdTermTimeout() {return 2000;};
 
     int CmdParallel() {return m_cmdParallel;};
 

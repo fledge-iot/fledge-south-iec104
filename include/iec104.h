@@ -145,6 +145,8 @@ private:
 
     void removeOutstandingCommand(OutstandingCommand* command);
 
+    OutstandingCommand* createOutstandingCommandAndCheckLimit(int ca, int ioa, bool withTime, int typeIdWithTimestamp, int typeIdNoTimestamp);
+
     enum class ConnectionStatus
     {
         STARTED,

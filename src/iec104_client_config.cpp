@@ -766,7 +766,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
         }
     }
 
-    if (applicationLayer.HasMember("cmd_parallel")) {
+    if (applicationLayer.HasMember("cmd_parallel")) {              
         if (applicationLayer["cmd_parallel"].IsInt()) {
             int cmdParallel = applicationLayer["cmd_parallel"].GetInt();
 
@@ -778,7 +778,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
             }
         }
         else {
-            Logger::getLogger()->warn("application_layer.cmd_parallel has invalid type -> using default value (0)");
+            printf("application_layer.cmd_parallel has invalid type -> using default value (0)\n");
         }
     }
 

@@ -171,13 +171,13 @@ void IEC104Client::checkOutstandingCommandTimeouts()
     for (OutstandingCommand* command : m_outstandingCommands)
     {    
         if (command->actConReceived) {
-            if (command->timeout + m_config->CmdTermTImeout() > currentTime) {
+            if (command->timeout + m_config->CmdTermTimeout() < currentTime) {
                 printf("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
                 listOfTimedoutCommands.push_back(command);
             }
         }
         else {
-            if (command->timeout + m_config->CmdAckTimeout() > currentTime) {
+            if (command->timeout + m_config->CmdAckTimeout() < currentTime) {
                 printf("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
                 listOfTimedoutCommands.push_back(command);
             }
@@ -765,12 +765,18 @@ void IEC104Client::handle_C_SC_NA_1(vector<Datapoint*>& datapoints, string& labe
 
     QualifierOfCommand qu = SingleCommand_getQU((SingleCommand)io_casted);
 
-    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-        outstandingCommand->actConReceived = true;
-        outstandingCommand->timeout = getMonotonicTimeInMs();
-    }
-    else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-        removeOutstandingCommand(outstandingCommand);
+    printf("C_SC_NA_1 - COT: %s\n", CS101_CauseOfTransmission_toString(CS101_ASDU_getCOT(asdu)));
+
+    if (outstandingCommand) {
+        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+            printf("C_SC_NA_1: received ACT-CON\n");
+            outstandingCommand->actConReceived = true;
+            outstandingCommand->timeout = getMonotonicTimeInMs();
+        }
+        else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_TERMINATION) {
+            printf("C_SC_NA_1: received ACT-TERM\n");
+            removeOutstandingCommand(outstandingCommand);
+        }
     }
 
     if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1)
@@ -796,12 +802,14 @@ void IEC104Client::handle_C_DC_NA_1(vector<Datapoint*>& datapoints, string& labe
 
     QualifierOfCommand qu = DoubleCommand_getQU((DoubleCommand)io_casted);
 
-    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-        outstandingCommand->actConReceived = true;
-        outstandingCommand->timeout = getMonotonicTimeInMs();
-    }
-    else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-        removeOutstandingCommand(outstandingCommand);
+    if (outstandingCommand) {
+        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+            outstandingCommand->actConReceived = true;
+            outstandingCommand->timeout = getMonotonicTimeInMs();
+        }
+        else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_TERMINATION) {
+            removeOutstandingCommand(outstandingCommand);
+        }
     }
 
     if (CS101_ASDU_getTypeID(asdu) == C_DC_TA_1)
@@ -825,12 +833,14 @@ void IEC104Client::handle_C_RC_NA_1(vector<Datapoint*>& datapoints, string& labe
 
     QualifierOfCommand qu = StepCommand_getQU((StepCommand)io_casted);
 
-    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-        outstandingCommand->actConReceived = true;
-        outstandingCommand->timeout = getMonotonicTimeInMs();
-    }
-    else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-        removeOutstandingCommand(outstandingCommand);
+    if (outstandingCommand) {
+        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+            outstandingCommand->actConReceived = true;
+            outstandingCommand->timeout = getMonotonicTimeInMs();
+        }
+        else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_TERMINATION) {
+            removeOutstandingCommand(outstandingCommand);
+        }
     }
 
     if (CS101_ASDU_getTypeID(asdu) == C_DC_TA_1)
@@ -855,8 +865,10 @@ void IEC104Client::handle_C_SE_NA_1(vector<Datapoint*>& datapoints, string& labe
 
     QualifierOfCommand ql = SetpointCommandNormalized_getQL((SetpointCommandNormalized)io_casted);
 
-    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-        removeOutstandingCommand(outstandingCommand);
+    if (outstandingCommand) {
+        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+            removeOutstandingCommand(outstandingCommand);
+        }
     }
 
     if (CS101_ASDU_getTypeID(asdu) == C_SE_TA_1)
@@ -881,8 +893,10 @@ void IEC104Client::handle_C_SE_NB_1(vector<Datapoint*>& datapoints, string& labe
 
     QualifierOfCommand ql = SetpointCommandScaled_getQL((SetpointCommandScaled)io_casted);
 
-    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-        removeOutstandingCommand(outstandingCommand);
+    if (outstandingCommand) {
+        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+            removeOutstandingCommand(outstandingCommand);
+        }
     }
 
     if (CS101_ASDU_getTypeID(asdu) == C_SE_TB_1)
@@ -907,8 +921,10 @@ void IEC104Client::handle_C_SE_NC_1(vector<Datapoint*>& datapoints, string& labe
 
     QualifierOfCommand ql = SetpointCommandShort_getQL((SetpointCommandShort)io_casted);
 
-    if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-        removeOutstandingCommand(outstandingCommand);
+    if (outstandingCommand) {
+        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+            removeOutstandingCommand(outstandingCommand);
+        }
     }
 
     if (CS101_ASDU_getTypeID(asdu) == C_SE_TC_1)
@@ -1118,6 +1134,31 @@ IEC104Client::sendInterrogationCommand(int ca)
     return success;
 }
 
+IEC104Client::OutstandingCommand* IEC104Client::createOutstandingCommandAndCheckLimit(int ca, int ioa, bool withTime, int typeIdWithTimestamp, int typeIdNoTimestamp)
+{
+    OutstandingCommand* command = nullptr;
+
+    // check if number of allowed parallel commands is not exceeded.
+    if (m_config->CmdParallel() > 0) {
+
+        if (m_outstandingCommands.size() < m_config->CmdParallel()) {
+            command = new OutstandingCommand(withTime ? C_SC_TA_1 : C_SC_NA_1, ca, ioa, m_activeConnection);
+        }
+        else {
+            printf("Maximum number of parallel command exceeded -> ignore command\n");
+
+            Logger::getLogger()->warn("Maximum number of parallel command exceeded -> ignore command");
+
+            return nullptr;
+        }
+    }
+    else {
+        command = new OutstandingCommand(withTime ? C_SC_TA_1 : C_SC_NA_1, ca, ioa, m_activeConnection);
+    }
+
+    return command;
+}
+
 bool
 IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select)
 {
@@ -1131,22 +1172,10 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
         return false;
     }
 
-    OutstandingCommand* command = nullptr;
+    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SC_TA_1, C_SC_NA_1);
 
-    // check if number of allowed parallel commands is not exceeded.
-    if (m_config->CmdParallel() > 0) {
-        if (m_outstandingCommands.size() < m_config->CmdParallel()) {
-            command = new OutstandingCommand(withTime ? C_SC_TA_1 : C_SC_NA_1, ca, ioa, m_activeConnection);
-        }
-        else {
-            Logger::getLogger()->error("Maximum number of parallel command exceeded -> ignore command");
-
-            return false;
-        }
-    }
-    else {
-        command = new OutstandingCommand(withTime ? C_SC_TA_1 : C_SC_NA_1, ca, ioa, m_activeConnection);
-    }
+    if (command == nullptr)
+        return false;
 
     m_activeConnectionMtx.lock();
 
@@ -1154,9 +1183,7 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
     {
         success = m_activeConnection->sendSingleCommand(ca, ioa, value, withTime, select);
 
-        if (success) {
-            m_outstandingCommands.push_back(command);   
-        }
+        if (success) m_outstandingCommands.push_back(command);   
     }
     
     m_activeConnectionMtx.unlock();
@@ -1179,14 +1206,23 @@ IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool 
         return false;
     }
 
+    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_DC_TA_1, C_DC_NA_1);
+
+    if (command == nullptr)
+        return false;
+
     m_activeConnectionMtx.lock();
 
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendDoubleCommand(ca, ioa, value, withTime, select);
+
+        if (success) m_outstandingCommands.push_back(command); 
     }
     
     m_activeConnectionMtx.unlock();
+
+    if (!success) delete command;
 
     return success;
 }
@@ -1204,14 +1240,23 @@ IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool se
         return false;
     }
 
+    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_RC_TA_1, C_RC_NA_1);
+
+    if (command == nullptr)
+        return false;
+
     m_activeConnectionMtx.lock();
 
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendStepCommand(ca, ioa, value, withTime, select);
+
+        if (success) m_outstandingCommands.push_back(command); 
     }
     
     m_activeConnectionMtx.unlock();
+
+    if (!success) delete command;
 
     return success;
 }
@@ -1229,14 +1274,23 @@ IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime
         return false;
     }
 
+    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TA_1, C_SE_NA_1);
+
+    if (command == nullptr)
+        return false;
+
     m_activeConnectionMtx.lock();
 
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSetpointNormalized(ca, ioa, value, withTime);
+
+        if (success) m_outstandingCommands.push_back(command); 
     }
     
     m_activeConnectionMtx.unlock();
+
+    if (!success) delete command;
 
     return success;
 }
@@ -1254,16 +1308,23 @@ IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime)
         return false;
     }
 
+    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TB_1, C_SE_NB_1);
+
+    if (command == nullptr)
+        return false;
+
     m_activeConnectionMtx.lock();
 
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSetpointScaled(ca, ioa, value, withTime);
+
+        if (success) m_outstandingCommands.push_back(command); 
     }
     
     m_activeConnectionMtx.unlock();
 
-    if (!success) Logger::getLogger()->warn("Failed to send setpoint(scaled)");
+    if (!success) delete command;
 
     return success;
 }
@@ -1281,14 +1342,23 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime)
         return false;
     }
 
+    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TC_1, C_SE_NC_1);
+
+    if (command == nullptr)
+        return false;
+
     m_activeConnectionMtx.lock();
 
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSetpointShort(ca, ioa, value, withTime);
+
+        if (success) m_outstandingCommands.push_back(command); 
     }
     
     m_activeConnectionMtx.unlock();
+
+    if (!success) delete command;
 
     return success;
 }

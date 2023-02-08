@@ -54,8 +54,8 @@ static string protocol_config = QUOTE({
                 "gi_all_ca" : false,              
                 "utc_time" : false,                
                 "cmd_wttag" : false,              
-                "cmd_parallel" : 0,                            
-                "time_sync" : 0                 
+                "cmd_parallel" : 1,                            
+                "time_sync" : 0    
             }                 
         }                     
     });
@@ -418,6 +418,9 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommand)
     PLUGIN_PARAMETER select = {"", "0"};
     params[3] = &select;
 
+    // quality update for measurement data points
+    ASSERT_EQ(3, ingestCallbackCalled);
+
     bool operationResult = iec104->operation("SingleCommand", 4, params);
 
     ASSERT_TRUE(operationResult);
@@ -443,10 +446,10 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommand)
 
     Thread_sleep(500);
 
-    // expect ingest callback called two timees:
+    // expect ingest callback called two more times:
     //  1. ACT_CON for single command
     //  2. ACT_TERM for single command
-    ASSERT_EQ(2, ingestCallbackCalled);
+    ASSERT_EQ(3 + 2, ingestCallbackCalled);
 
     CS104_Slave_stop(slave);
 
@@ -579,6 +582,9 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommand)
 
     Thread_sleep(500);
 
+    // quality update for measurement data points
+    ASSERT_EQ(3, ingestCallbackCalled);
+
     PLUGIN_PARAMETER* params[4];
 
     PLUGIN_PARAMETER ca = {"ca", "41025"};
@@ -621,10 +627,10 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommand)
 
     Thread_sleep(500);
 
-    // expect ingest callback called two timees:
+    // expect ingest callback called two more times:
     //  1. ACT_CON for single command
     //  2. ACT_TERM for single command
-    ASSERT_EQ(2, ingestCallbackCalled);
+    ASSERT_EQ(3 + 2, ingestCallbackCalled);
 
     CS104_Slave_stop(slave);
 
@@ -652,6 +658,9 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommandWithTimestamp)
     startIEC104();
 
     Thread_sleep(500);
+
+    // quality update for measurement data points
+    ASSERT_EQ(3, ingestCallbackCalled);
 
     PLUGIN_PARAMETER* params[4];
 
@@ -697,10 +706,10 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommandWithTimestamp)
 
     Thread_sleep(500);
 
-    // expect ingest callback called two timees:
+    // expect ingest callback called two more times:
     //  1. ACT_CON for single command
     //  2. ACT_TERM for single command
-    ASSERT_EQ(2, ingestCallbackCalled);
+    ASSERT_EQ(3 + 2, ingestCallbackCalled);
 
     CS104_Slave_stop(slave);
 
@@ -819,10 +828,93 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSetpointCommandShort)
 
     Thread_sleep(500);
 
-    // expect ingest callback called two timees:
+    // expect ingest callback called two more times:
     //  1. ACT_CON for single command
     //  2. ACT_TERM for single command
-    ASSERT_EQ(2, ingestCallbackCalled);
+    ASSERT_EQ(3 + 2, ingestCallbackCalled);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+}
+
+TEST_F(ControlCommandsTest, IEC104Client_sendTwoSingleCommands)
+{
+    asduHandlerCalled = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    PLUGIN_PARAMETER* params[4];
+
+    PLUGIN_PARAMETER ca = {"ca", "41025"};
+    params[0] = &ca;
+
+    // ioa
+    PLUGIN_PARAMETER ioa = {"ioa", "2000"};
+    params[1] = &ioa;
+
+    // Third value
+    PLUGIN_PARAMETER value = {"", "1"};
+    params[2] = &value;
+
+    // Third value
+    PLUGIN_PARAMETER select = {"", "0"};
+    params[3] = &select;
+
+    // quality update for measurement data points
+    ASSERT_EQ(3, ingestCallbackCalled);
+
+    bool operationResult = iec104->operation("SingleCommand", 4, params);
+
+    ASSERT_TRUE(operationResult);
+
+    params[1]->value = "2001";
+
+    operationResult = iec104->operation("SingleCommand", 4, params);
+
+    ASSERT_FALSE(operationResult);
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(1, asduHandlerCalled);
+
+    CS101_ASDU ctAsdu = CS101_ASDU_create(IMasterConnection_getApplicationLayerParameters(lastConnection),
+        false, CS101_COT_ACTIVATION_TERMINATION,lastOA, 41025, false, false);
+
+    InformationObject io = (InformationObject)SingleCommand_create(NULL, 2000, true, false, 0);
+
+    CS101_ASDU_addInformationObject(ctAsdu, io);
+
+    IMasterConnection_sendASDU(lastConnection, ctAsdu);
+
+    InformationObject_destroy(io);
+
+    CS101_ASDU_destroy(ctAsdu);
+
+    ASSERT_EQ(10, lastOA);
+
+    Thread_sleep(500);
+
+    // expect ingest callback called two more times:
+    //  1. ACT_CON for single command
+    //  2. ACT_TERM for single command
+    ASSERT_EQ(3 + 2, ingestCallbackCalled);
 
     CS104_Slave_stop(slave);
 
