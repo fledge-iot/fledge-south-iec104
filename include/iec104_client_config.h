@@ -50,7 +50,6 @@ public:
 
     int CmdParallel() {return m_cmdParallel;};
 
-    std::string& GetGiStatusSignal() {return m_giStatus;};
     std::string& GetConnxStatusSignal() {return m_connxStatus;};
 
     std::string& GetPrivateKey() {return m_privateKey;};
@@ -102,8 +101,7 @@ private:
     bool m_protocolConfigComplete = false; /* flag if protocol configuration is read */
     bool m_exchangeConfigComplete = false; /* flag if exchange configuration is read */
 
-    std::string m_connxStatus = "";
-    std::string m_giStatus = "";
+    std::string m_connxStatus = ""; /* "asset" name for south plugin monitoring event */
 
     std::string m_privateKey = "";
     std::string m_ownCertificate = "";

@@ -343,7 +343,10 @@ IEC104::operation(const std::string& operation, int count,
     {
         return m_setpointShort(count, params, false);
     }
-
+    else if (operation.compare("request_connection_status") == 0) {
+        return m_client->sendConnectionStatus();
+    }
+ 
     Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
 
     return false;

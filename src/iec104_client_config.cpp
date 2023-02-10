@@ -372,18 +372,13 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
         return;
     }
 
-    if (protocolStack.HasMember("south_monitoring")) {
+    if (protocolStack.HasMember("south_monitoring")) 
+    {
         const Value& southMonitoring = protocolStack["south_monitoring"];
 
-        if (southMonitoring.HasMember("connx_status")) {
-            if (southMonitoring["connx_status"].IsString()) {
-                m_connxStatus = southMonitoring["connx_status"].GetString();
-            }
-        }
-
-        if (southMonitoring.HasMember("gi_status")) {
-            if (southMonitoring["gi_status"].IsString()) {
-                m_giStatus = southMonitoring["gi_status"].GetString();
+        if (southMonitoring.HasMember("asset")) {
+            if (southMonitoring["asset"].IsString()) {
+                m_connxStatus = southMonitoring["asset"].GetString();
             }
         }
     }

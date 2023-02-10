@@ -112,6 +112,8 @@ public:
 
     bool sendSetpointShort(int ca, int ioa, float value, bool withTime);
 
+    bool sendConnectionStatus();
+
     bool handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu);
 
     void start();
@@ -170,6 +172,8 @@ private:
 
     void updateGiStatus(GiStatus newState);
 
+    void sendSouthMonitoringEvent(bool connxStatus, bool giStatus);
+
     std::vector<IEC104ClientConnection*> m_connections = std::vector<IEC104ClientConnection*>();
 
     IEC104ClientConnection* m_activeConnection = nullptr;
@@ -196,8 +200,6 @@ private:
         DatapointValue dp_value = DatapointValue(value);
         return new Datapoint(dataname, dp_value);
     }
-
-    Datapoint* m_createEvent(const std::string& eventType, const std::string& value);
 
     Datapoint* m_createQualityUpdateForDataObject(DataExchangeDefinition* dataDefinition, QualityDescriptor* qd, CP56Time2a ts);
 

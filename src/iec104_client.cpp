@@ -74,17 +74,6 @@ IEC104Client::broadcastCA()
     return 0xffff;
 }
 
-Datapoint* IEC104Client::m_createEvent(const std::string& eventType, const std::string& value)
-{
-    auto* eventAttributes = new vector<Datapoint*>;
-
-    eventAttributes->push_back(m_createDatapoint(eventType, value));
-
-    DatapointValue dpv(eventAttributes, true);
-
-    return new Datapoint("iec104_south_event", dpv);
-}
-
 Datapoint* IEC104Client::m_createQualityUpdateForDataObject(DataExchangeDefinition* dataDefinition, QualityDescriptor* qd, CP56Time2a ts)
 {
     auto* attributes = new vector<Datapoint*>;
@@ -312,6 +301,80 @@ IEC104Client::OutstandingCommand::OutstandingCommand(int typeId, int ca, int ioa
 }
 
 void
+IEC104Client::sendSouthMonitoringEvent(bool connxStatus, bool giStatus)
+{
+    if (m_config->GetConnxStatusSignal().empty())
+        return;
+
+    if ((connxStatus == false) && (giStatus == false))
+        return;
+
+    auto* attributes = new vector<Datapoint*>;
+
+    if (connxStatus) {
+        Datapoint* eventDp = nullptr;
+
+        switch (m_connStatus)
+        {
+            case ConnectionStatus::NOT_CONNECTED:
+                eventDp = m_createDatapoint("connx_status", "not connected");
+                break;
+
+            case ConnectionStatus::STARTED:
+                eventDp = m_createDatapoint("connx_status", "started");
+                break;
+        }
+
+        if (eventDp) {
+            attributes->push_back(eventDp);
+        }
+    }
+
+    if (giStatus) {
+        Datapoint* eventDp = nullptr;
+
+        switch(m_giStatus)
+        {
+            case GiStatus::STARTED:
+                eventDp = m_createDatapoint("gi_status", "started");
+                break;
+
+            case GiStatus::IN_PROGRESS:
+                eventDp = m_createDatapoint("gi_status", "in progress");
+                break;
+
+            case GiStatus::FAILED:
+                eventDp = m_createDatapoint("gi_status", "failed");
+                break;
+
+            case GiStatus::FINISHED:
+                eventDp = m_createDatapoint("gi_status", "finished");
+                break;
+
+            case GiStatus::IDLE:
+                eventDp = m_createDatapoint("gi_status", "idle");
+                break;
+        }
+
+        if (eventDp) {
+            attributes->push_back(eventDp);
+        }
+    }
+
+    DatapointValue dpv(attributes, true);
+
+    Datapoint* southEvent = new Datapoint("iec104_south_event", dpv);
+
+    vector<Datapoint*> datapoints;
+    vector<string> labels;
+
+    datapoints.push_back(southEvent);
+    labels.push_back(m_config->GetConnxStatusSignal());
+
+    sendData(datapoints, labels);
+}
+
+void
 IEC104Client::updateConnectionStatus(ConnectionStatus newState)
 {
     if (m_connStatus == newState)
@@ -319,32 +382,7 @@ IEC104Client::updateConnectionStatus(ConnectionStatus newState)
 
     m_connStatus = newState;
 
-    if (m_config->GetConnxStatusSignal().empty())
-        return;
-
-    Datapoint* eventDp = nullptr;
-
-    switch (newState)
-    {
-        case ConnectionStatus::NOT_CONNECTED:
-            eventDp = m_createEvent("connx_status", "not connected");
-            break;
-
-        case ConnectionStatus::STARTED:
-            eventDp = m_createEvent("connx_status", "started");
-            break;
-    }
-
-    vector<Datapoint*> datapoints;
-    vector<string> labels;
-
-    if (eventDp) {
-        datapoints.push_back(eventDp);
-        labels.push_back(m_config->GetConnxStatusSignal());
-
-        sendData(datapoints, labels);
-        printf("send connx_status: %i\n", newState);
-    }
+    sendSouthMonitoringEvent(true, false);
 }
 
 void
@@ -355,45 +393,7 @@ IEC104Client::updateGiStatus(GiStatus newState)
 
     m_giStatus = newState;
 
-    if (m_config->GetGiStatusSignal().empty())
-        return;
-
-    Datapoint* eventDp = nullptr;
-
-    switch(newState)
-    {
-        case GiStatus::STARTED:
-            eventDp = m_createEvent("gi_status", "started");
-            break;
-
-        case GiStatus::IN_PROGRESS:
-            eventDp = m_createEvent("gi_status", "in progress");
-            break;
-
-        case GiStatus::FAILED:
-            eventDp = m_createEvent("gi_status", "failed");
-            break;
-
-        case GiStatus::FINISHED:
-            eventDp = m_createEvent("gi_status", "finished");
-            break;
-
-        case GiStatus::IDLE:
-            // don't send event
-            break;
-    }
-
-    vector<Datapoint*> datapoints;
-    vector<string> labels;
-
-    if (eventDp) {
-        datapoints.push_back(eventDp);
-        labels.push_back(m_config->GetGiStatusSignal());
-
-        sendData(datapoints, labels);
-
-        printf("Send gi_status: %i\n", newState);
-    }
+    sendSouthMonitoringEvent(false, true);
 }
 
 IEC104Client::IEC104Client(IEC104* iec104, IEC104ClientConfig* config)
@@ -1362,3 +1362,12 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime)
 
     return success;
 }
+
+ bool
+ IEC104Client::sendConnectionStatus()
+ {
+    sendSouthMonitoringEvent(true, true);
+
+    return true;
+ }
+ 

@@ -56,8 +56,7 @@ static string protocol_config = QUOTE({
                 "time_sync" : 1                
             },
             "south_monitoring" : {
-                "connx_status": "CONSTAT-1",
-                "gi_status": "GISTAT-1"
+                "asset": "CONSTAT-1"
             }             
         }                     
     });
@@ -443,4 +442,28 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
     ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[9]));
 
     ASSERT_TRUE(IsConnxStatusStarted(storedReadings[10]));
+}
+
+TEST_F(LegacyConnectionHandlingTest, SendConnectionStatusAfterRequestFromNorth)
+{
+    ingestCallbackCalled = 0;
+ 
+    iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    bool operationResult = iec104->operation("request_connection_status", 0, nullptr);
+
+    ASSERT_EQ(5, ingestCallbackCalled);
+    
+    ASSERT_EQ(5, storedReadings.size());
+
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
+
+    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[4]));
 }
