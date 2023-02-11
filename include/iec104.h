@@ -120,6 +120,19 @@ public:
 
     void stop();
 
+    enum class GiStatus
+    {
+        IDLE,
+        STARTED,
+        IN_PROGRESS,
+        FAILED,
+        FINISHED
+    };
+
+    void updateGiStatus(GiStatus newState);
+
+    GiStatus getGiStatus();
+
     static bool isMessageTypeMatching(int expectedType, int rcvdType);
 
 private:
@@ -155,22 +168,11 @@ private:
         NOT_CONNECTED
     };
 
-    enum class GiStatus
-    {
-        IDLE,
-        STARTED,
-        IN_PROGRESS,
-        FAILED,
-        FINISHED
-    };
-
     ConnectionStatus m_connStatus = ConnectionStatus::NOT_CONNECTED;
 
     void updateConnectionStatus(ConnectionStatus newState);
 
     GiStatus m_giStatus = GiStatus::IDLE;
-
-    void updateGiStatus(GiStatus newState);
 
     void sendSouthMonitoringEvent(bool connxStatus, bool giStatus);
 

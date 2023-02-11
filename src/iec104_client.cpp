@@ -396,6 +396,12 @@ IEC104Client::updateGiStatus(GiStatus newState)
     sendSouthMonitoringEvent(false, true);
 }
 
+IEC104Client::GiStatus
+IEC104Client::getGiStatus()
+{
+    return m_giStatus;
+}
+
 IEC104Client::IEC104Client(IEC104* iec104, IEC104ClientConfig* config)
         : m_iec104(iec104),
           m_config(config)
@@ -405,7 +411,16 @@ IEC104Client::IEC104Client(IEC104* iec104, IEC104ClientConfig* config)
 IEC104Client::~IEC104Client()
 {
     stop();
-} 
+}
+
+static bool
+isInterrogationResponse(CS101_ASDU asdu)
+{
+    if (CS101_ASDU_getCOT(asdu) == CS101_COT_INTERROGATED_BY_STATION)
+        return true;
+    else
+        return false;
+}
 
 bool
 IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
@@ -417,6 +432,11 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
 
     IEC60870_5_TypeID typeId = CS101_ASDU_getTypeID(asdu);
     int ca = CS101_ASDU_getCA(asdu);
+
+    if (isInterrogationResponse(asdu)) {
+        if (getGiStatus() == GiStatus::STARTED)
+            updateGiStatus(GiStatus::IN_PROGRESS);
+    }
 
     for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
     {
@@ -1370,4 +1390,3 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime)
 
     return true;
  }
- 

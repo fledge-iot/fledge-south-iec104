@@ -54,7 +54,10 @@ static string protocol_config = QUOTE({
                 "cmd_with_timetag" : false,              
                 "cmd_parallel" : 0,                              
                 "time_sync" : 100                 
-            }                 
+            },
+            "south_monitoring" : {
+                "asset": "CONSTAT-1"
+            }                
         }                     
     });
 
@@ -98,7 +101,10 @@ static string protocol_config2 = QUOTE({
                 "cmd_with_timetag" : false,              
                 "cmd_parallel" : 0,                           
                 "time_sync" : 100                
-            }                 
+            },
+            "south_monitoring" : {
+                "asset": "CONSTAT-1"
+            }              
         }                     
     });
 
@@ -138,7 +144,10 @@ static string protocol_config3 = QUOTE({
                 "cmd_with_timetag" : false,              
                 "cmd_parallel" : 0,                              
                 "time_sync" : 100                
-            }                 
+            },
+            "south_monitoring" : {
+                "asset": "CONSTAT-1"
+            }          
         }                     
     });
 
@@ -346,9 +355,13 @@ protected:
 
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        // for (Datapoint* sdp : dataPoints) {
-        //     printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
-        // }
+        if (reading.getAssetName() == "CONSTAT-1") {
+            for (Datapoint* sdp : dataPoints) {
+                printf("  name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
+            }
+        }
+
+
         storedReading = new Reading(reading);
 
         ingestCallbackCalled++;
