@@ -142,11 +142,16 @@ static bool isSupportedCommand(int typeId)
 
 IEC104Client::OutstandingCommand* IEC104Client::checkForOutstandingCommand(int typeId, int ca, int ioa, IEC104ClientConnection* connection)
 {
+    m_outstandingCommandsMtx.lock();
+
     for (OutstandingCommand* command : m_outstandingCommands) {
         if ((command->typeId == typeId) && (command->ca == ca) && (command->ioa == ioa) && (command->clientCon == connection)) {
+            m_outstandingCommandsMtx.unlock();
             return command;
         }
     }
+
+    m_outstandingCommandsMtx.unlock();
 
     return nullptr;
 }
@@ -157,17 +162,25 @@ void IEC104Client::checkOutstandingCommandTimeouts()
 
     std::vector<OutstandingCommand*> listOfTimedoutCommands;
 
+    m_outstandingCommandsMtx.lock();
+
     for (OutstandingCommand* command : m_outstandingCommands)
     {    
         if (command->actConReceived) {
             if (command->timeout + m_config->CmdTermTimeout() < currentTime) {
                 printf("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
+                
+                Logger::getLogger()->warn("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
+
                 listOfTimedoutCommands.push_back(command);
             }
         }
         else {
             if (command->timeout + m_config->CmdAckTimeout() < currentTime) {
                 printf("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
+
+                Logger::getLogger()->warn("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
+
                 listOfTimedoutCommands.push_back(command);
             }
         }
@@ -175,22 +188,23 @@ void IEC104Client::checkOutstandingCommandTimeouts()
 
     // remove all timed out commands from the list of outstanding commands
     for (OutstandingCommand* commandToRemove : listOfTimedoutCommands) {
-       
-        // remove object commandToRemove from m_outstandingCommands
-        //m_outstandingCommands.erase(std::remove(m_outstandingCommands.begin(), m_outstandingCommands.end(), commandToRemove), m_outstandingCommands.end());
+        // remove object command from m_outstandingCommands
+        m_outstandingCommands.erase(std::remove(m_outstandingCommands.begin(), m_outstandingCommands.end(), commandToRemove), m_outstandingCommands.end());
 
-        //delete commandToRemove;
-
-        removeOutstandingCommand(commandToRemove);
+        delete commandToRemove;
     }
+
+    m_outstandingCommandsMtx.unlock();
 }
 
 void IEC104Client::removeOutstandingCommand(OutstandingCommand* command)
 {
-    printf("Remove outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
+    m_outstandingCommandsMtx.lock();
 
     // remove object command from m_outstandingCommands
     m_outstandingCommands.erase(std::remove(m_outstandingCommands.begin(), m_outstandingCommands.end(), command), m_outstandingCommands.end());
+
+    m_outstandingCommandsMtx.unlock();
 
     delete command;
 }
@@ -216,16 +230,11 @@ void IEC104Client::updateQualityForAllDataObjects(QualityDescriptor qd)
                     }
                 }
             }
-            else {
-                // TODO Why can this happen? 
-                printf("NO DataExchangeDefinition: first: %i\n", dpPair.first);
-            }
         }
     }
 
     if (datapoints.empty() == false) {
         sendData(datapoints, labels);
-        printf("Send quality update %i\n", qd);
     }
 }
 
@@ -411,6 +420,10 @@ IEC104Client::IEC104Client(IEC104* iec104, IEC104ClientConfig* config)
 IEC104Client::~IEC104Client()
 {
     stop();
+
+    for (auto outstandingCommand : m_outstandingCommands) {
+        delete outstandingCommand;
+    }
 }
 
 static bool
@@ -1154,17 +1167,22 @@ IEC104Client::sendInterrogationCommand(int ca)
     return success;
 }
 
-IEC104Client::OutstandingCommand* IEC104Client::createOutstandingCommandAndCheckLimit(int ca, int ioa, bool withTime, int typeIdWithTimestamp, int typeIdNoTimestamp)
+IEC104Client::OutstandingCommand* IEC104Client::addOutstandingCommandAndCheckLimit(int ca, int ioa, bool withTime, int typeIdWithTimestamp, int typeIdNoTimestamp)
 {
     OutstandingCommand* command = nullptr;
 
     // check if number of allowed parallel commands is not exceeded.
+
+    m_outstandingCommandsMtx.lock();
+
     if (m_config->CmdParallel() > 0) {
 
         if (m_outstandingCommands.size() < m_config->CmdParallel()) {
             command = new OutstandingCommand(withTime ? C_SC_TA_1 : C_SC_NA_1, ca, ioa, m_activeConnection);
         }
         else {
+            m_outstandingCommandsMtx.unlock();
+
             printf("Maximum number of parallel command exceeded -> ignore command\n");
 
             Logger::getLogger()->warn("Maximum number of parallel command exceeded -> ignore command");
@@ -1175,6 +1193,11 @@ IEC104Client::OutstandingCommand* IEC104Client::createOutstandingCommandAndCheck
     else {
         command = new OutstandingCommand(withTime ? C_SC_TA_1 : C_SC_NA_1, ca, ioa, m_activeConnection);
     }
+
+    if (command)
+        m_outstandingCommands.push_back(command);
+
+    m_outstandingCommandsMtx.unlock();
 
     return command;
 }
@@ -1192,7 +1215,7 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
         return false;
     }
 
-    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SC_TA_1, C_SC_NA_1);
+    OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SC_TA_1, C_SC_NA_1);
 
     if (command == nullptr)
         return false;
@@ -1202,13 +1225,11 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSingleCommand(ca, ioa, value, withTime, select);
-
-        if (success) m_outstandingCommands.push_back(command);   
     }
     
     m_activeConnectionMtx.unlock();
 
-    if (!success) delete command;
+    if (!success) removeOutstandingCommand(command);
 
     return success;
 }
@@ -1226,7 +1247,7 @@ IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool 
         return false;
     }
 
-    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_DC_TA_1, C_DC_NA_1);
+    OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_DC_TA_1, C_DC_NA_1);
 
     if (command == nullptr)
         return false;
@@ -1236,13 +1257,11 @@ IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool 
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendDoubleCommand(ca, ioa, value, withTime, select);
-
-        if (success) m_outstandingCommands.push_back(command); 
     }
     
     m_activeConnectionMtx.unlock();
 
-    if (!success) delete command;
+    if (!success) removeOutstandingCommand(command);
 
     return success;
 }
@@ -1260,7 +1279,7 @@ IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool se
         return false;
     }
 
-    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_RC_TA_1, C_RC_NA_1);
+    OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_RC_TA_1, C_RC_NA_1);
 
     if (command == nullptr)
         return false;
@@ -1270,13 +1289,11 @@ IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool se
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendStepCommand(ca, ioa, value, withTime, select);
-
-        if (success) m_outstandingCommands.push_back(command); 
     }
     
     m_activeConnectionMtx.unlock();
 
-    if (!success) delete command;
+    if (!success) removeOutstandingCommand(command);
 
     return success;
 }
@@ -1294,7 +1311,7 @@ IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime
         return false;
     }
 
-    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TA_1, C_SE_NA_1);
+    OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TA_1, C_SE_NA_1);
 
     if (command == nullptr)
         return false;
@@ -1304,13 +1321,11 @@ IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSetpointNormalized(ca, ioa, value, withTime);
-
-        if (success) m_outstandingCommands.push_back(command); 
     }
     
     m_activeConnectionMtx.unlock();
 
-    if (!success) delete command;
+    if (!success) removeOutstandingCommand(command);
 
     return success;
 }
@@ -1328,7 +1343,7 @@ IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime)
         return false;
     }
 
-    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TB_1, C_SE_NB_1);
+    OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TB_1, C_SE_NB_1);
 
     if (command == nullptr)
         return false;
@@ -1338,13 +1353,11 @@ IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime)
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSetpointScaled(ca, ioa, value, withTime);
-
-        if (success) m_outstandingCommands.push_back(command); 
     }
     
     m_activeConnectionMtx.unlock();
 
-    if (!success) delete command;
+    if (!success) removeOutstandingCommand(command);
 
     return success;
 }
@@ -1362,7 +1375,7 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime)
         return false;
     }
 
-    OutstandingCommand* command = createOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TC_1, C_SE_NC_1);
+    OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TC_1, C_SE_NC_1);
 
     if (command == nullptr)
         return false;
@@ -1372,13 +1385,11 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime)
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSetpointShort(ca, ioa, value, withTime);
-
-        if (success) m_outstandingCommands.push_back(command); 
     }
     
     m_activeConnectionMtx.unlock();
 
-    if (!success) delete command;
+    if (!success) removeOutstandingCommand(command);
 
     return success;
 }

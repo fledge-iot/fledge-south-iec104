@@ -152,7 +152,8 @@ private:
         uint64_t timeout = 0;
     };
 
-    std::vector<OutstandingCommand*> m_outstandingCommands;
+    std::vector<OutstandingCommand*> m_outstandingCommands; // list of outstanding commands
+    std::mutex m_outstandingCommandsMtx; // protect access to list of outstanding commands
 
     OutstandingCommand* checkForOutstandingCommand(int typeId, int ca, int ioa, IEC104ClientConnection* connection);
 
@@ -160,7 +161,7 @@ private:
 
     void removeOutstandingCommand(OutstandingCommand* command);
 
-    OutstandingCommand* createOutstandingCommandAndCheckLimit(int ca, int ioa, bool withTime, int typeIdWithTimestamp, int typeIdNoTimestamp);
+    OutstandingCommand* addOutstandingCommandAndCheckLimit(int ca, int ioa, bool withTime, int typeIdWithTimestamp, int typeIdNoTimestamp);
 
     enum class ConnectionStatus
     {

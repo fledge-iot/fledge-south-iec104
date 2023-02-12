@@ -302,16 +302,25 @@ class ConnectionHandlingTest : public testing::Test
 {
 protected:
 
-    struct sTestInfo {
-        int callbackCalled;
-        Reading* storedReading;
-    };
+    IEC104TestComp* iec104 = nullptr;
+    int ingestCallbackCalled = 0;
+    Reading* storedReading = nullptr;
+    int clockSyncHandlerCalled = 0;
+    std::vector<Reading*> storedReadings;
+
+    int asduHandlerCalled = 0;
+    IMasterConnection lastConnection = nullptr;
+    int lastOA = 0;
+    int openConnections = 0;
+    int activations = 0;
+    int deactivations = 0;
+    int maxConnections = 0;
 
     void SetUp()
     {
         iec104 = new IEC104TestComp();
 
-        iec104->registerIngest(NULL, ingestCallback);
+        iec104->registerIngest(this, ingestCallback);
     }
 
     void TearDown()
@@ -319,7 +328,10 @@ protected:
         iec104->stop();
 
         delete iec104;
-        iec104 = nullptr;
+     
+        for (auto reading : storedReadings) {
+            delete reading;
+        }
     }
 
     static bool hasChild(Datapoint& dp, std::string childLabel)
@@ -393,6 +405,8 @@ protected:
 
     static void ingestCallback(void* parameter, Reading reading)
     {
+        ConnectionHandlingTest* self = (ConnectionHandlingTest*)parameter;
+
         printf("ingestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
 
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
@@ -400,14 +414,18 @@ protected:
         // for (Datapoint* sdp : dataPoints) {
         //     printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
         // }
-        storedReading = new Reading(reading);
+        self->storedReading = new Reading(reading);
 
-        ingestCallbackCalled++;
+        self->storedReadings.push_back(self->storedReading);
+
+        self->ingestCallbackCalled++;
     }
 
     static bool clockSynchronizationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
     {
-        clockSyncHandlerCalled++;
+        ConnectionHandlingTest* self = (ConnectionHandlingTest*)parameter;
+
+        self->clockSyncHandlerCalled++;
 
         return true;
     }
@@ -418,8 +436,8 @@ protected:
 
         printf("asduHandler: type: %i\n", CS101_ASDU_getTypeID(asdu));
 
-        lastConnection = NULL;
-        lastOA = CS101_ASDU_getOA(asdu);
+        self->lastConnection = NULL;
+        self->lastOA = CS101_ASDU_getOA(asdu);
 
         int ca = CS101_ASDU_getCA(asdu);
 
@@ -434,7 +452,7 @@ protected:
 
                 if (ca == 41025 && ioa == 2000) {
                     IMasterConnection_sendACT_CON(connection, asdu, false);
-                    lastConnection = connection;
+                    self->lastConnection = connection;
                 }
             }
             else if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1) {
@@ -442,7 +460,7 @@ protected:
 
                 if (ca == 41025 && ioa == 2001) {
                     IMasterConnection_sendACT_CON(connection, asdu, false);
-                    lastConnection = connection;
+                    self->lastConnection = connection;
                 }
             }
             else if (CS101_ASDU_getTypeID(asdu) == C_DC_NA_1) {
@@ -450,7 +468,7 @@ protected:
 
                 if (ca == 41025 && ioa == 2002) {
                     IMasterConnection_sendACT_CON(connection, asdu, false);
-                    lastConnection = connection;
+                    self->lastConnection = connection;
                 }
             }
 
@@ -458,7 +476,7 @@ protected:
         }
 
         if (CS101_ASDU_getTypeID(asdu) != C_IC_NA_1)
-            asduHandlerCalled++;
+            self->asduHandlerCalled++;
 
         return true;
     }
@@ -483,33 +501,7 @@ protected:
         if (self->openConnections > self->maxConnections)
             self->maxConnections = self->openConnections;
     }
-
-    static boost::thread thread_;
-    IEC104TestComp* iec104 = nullptr;
-    static int ingestCallbackCalled;
-    static Reading* storedReading;
-    static int clockSyncHandlerCalled;
-    static int asduHandlerCalled;
-    static IMasterConnection lastConnection;
-    static int lastOA;
-
-    static int openConnections;
-    int maxConnections = 0;
-    static int activations;
-    static int deactivations;
 };
-
-boost::thread ConnectionHandlingTest::thread_;
-int ConnectionHandlingTest::ingestCallbackCalled;
-Reading* ConnectionHandlingTest::storedReading;
-int ConnectionHandlingTest::asduHandlerCalled;
-int ConnectionHandlingTest::clockSyncHandlerCalled;
-IMasterConnection ConnectionHandlingTest::lastConnection;
-int ConnectionHandlingTest::lastOA;
-int ConnectionHandlingTest::openConnections;
-int ConnectionHandlingTest::activations;
-int ConnectionHandlingTest::deactivations;
-
 
 TEST_F(ConnectionHandlingTest, TwoConnectionsSingleRedundancyGroup)
 {
@@ -593,8 +585,6 @@ TEST_F(ConnectionHandlingTest, TwoConnectionsOnlyOneConfiguredToConnect)
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
-
-    iec104->stop();
 }
 
 TEST_F(ConnectionHandlingTest, SingleConnectionTLS)

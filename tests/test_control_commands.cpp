@@ -700,6 +700,8 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommandWithTimestamp)
 
     InformationObject_destroy(io);
 
+    free(timestamp);
+
     CS101_ASDU_destroy(ctAsdu);
 
     ASSERT_EQ(10, lastOA);

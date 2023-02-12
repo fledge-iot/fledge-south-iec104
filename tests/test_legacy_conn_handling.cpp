@@ -187,6 +187,10 @@ protected:
         iec104->stop();
 
         delete iec104;
+
+        for (auto reading : storedReadings) {
+            delete reading;
+        }
     }
 
     void startIEC104() { iec104->start(); }
@@ -275,6 +279,40 @@ protected:
 
             if (connxStatus) {
                 if (getStrValue(connxStatus) == "started") {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsGiStatusStarted(Reading* reading)
+    {
+        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+
+        if (southEvent) {
+            Datapoint* connxStatus = getChild(*southEvent, "gi_status");
+
+            if (connxStatus) {
+                if (getStrValue(connxStatus) == "started") {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsGiStatusFailed(Reading* reading)
+    {
+        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+
+        if (southEvent) {
+            Datapoint* connxStatus = getChild(*southEvent, "gi_status");
+
+            if (connxStatus) {
+                if (getStrValue(connxStatus) == "failed") {
                     return true;
                 }
             }
@@ -378,29 +416,33 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLost)
 
     CS104_Slave_destroy(slave);
 
-    ASSERT_EQ(10, ingestCallbackCalled);
+    ASSERT_EQ(12, ingestCallbackCalled);
 
-    ASSERT_EQ(10, storedReadings.size());
+    ASSERT_EQ(12, storedReadings.size());
 
-    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
-    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[0]));
+    int i = 0;
 
-    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
-    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[1]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[i]));
+    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[i++]));
 
-    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2]));
-    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[2]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[i]));
+    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[i++]));
 
-    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
-    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[3]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[i]));
+    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[i++]));
 
-    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
-    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[5]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[i]));
+    ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[i++]));
 
-    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[6]));
-    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[7]));
-    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[8]));
-    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[9]));
+    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[i++]));
+    ASSERT_TRUE(IsGiStatusStarted(storedReadings[i++]));
+    ASSERT_TRUE(IsGiStatusFailed(storedReadings[i++]));
+    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[i++]));
+
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[i++]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[i++]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[i++]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[i++]));
 }
 
 TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
@@ -429,19 +471,21 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
 
     CS104_Slave_destroy(slave);
 
-    ASSERT_EQ(11, ingestCallbackCalled);
+    ASSERT_EQ(13, ingestCallbackCalled);
     
-    ASSERT_EQ(11, storedReadings.size());
+    ASSERT_EQ(13, storedReadings.size());
 
     ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
-    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[5]));
+    ASSERT_TRUE(IsGiStatusStarted(storedReadings[5]));
+    ASSERT_TRUE(IsGiStatusFailed(storedReadings[6]));
+    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[7]));
 
-    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[6]));
-    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[7]));
     ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[8]));
     ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[9]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[10]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[11]));
 
-    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[10]));
+    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[12]));
 }
 
 TEST_F(LegacyConnectionHandlingTest, SendConnectionStatusAfterRequestFromNorth)
