@@ -395,6 +395,8 @@ IEC104ClientConnection::startNewInterrogationCycle()
     /* reset end of init flag */
     m_endOfInitReceived = false;
 
+    m_client->createListOfDatapointsInStationGroup();
+
     if (m_config->GiForAllCa() == false) {
         if (sendInterrogationCommand(broadcastCA())) {
             Logger::getLogger()->debug("Sent interrogation command to broadcase address");
@@ -501,6 +503,8 @@ IEC104ClientConnection::executePeriodicTasks()
                                     m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
 
                                     m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
+
+                                    m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
                                 }
                             }
                         }
@@ -515,6 +519,8 @@ IEC104ClientConnection::executePeriodicTasks()
                                     m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
 
                                     m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
+
+                                    m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
                                 }
                             }
                         }
@@ -535,6 +541,8 @@ IEC104ClientConnection::executePeriodicTasks()
                                     Logger::getLogger()->error("Failed to send interrogation command to CA=%i!\n", *m_listOfCA_it);
 
                                     m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
+
+                                    m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
                                 }
 
                                 m_listOfCA_it++;
@@ -641,6 +649,8 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 
                             if (CS101_ASDU_isNegative(asdu)) {
                                 self->m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
+
+                                self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
                             }
                             else {
                                 self->m_client->updateGiStatus(IEC104Client::GiStatus::STARTED); //TODO is IN_PROGRESS?
@@ -658,6 +668,8 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 
                             if ((giStatus == IEC104Client::GiStatus::STARTED) || (giStatus == IEC104Client::GiStatus::IN_PROGRESS)) {
                                 self->m_client->updateGiStatus(IEC104Client::GiStatus::FINISHED);
+
+                                self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
                             }
                         }
                         else {
@@ -669,6 +681,8 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 
                         if ((giStatus == IEC104Client::GiStatus::STARTED) || (giStatus == IEC104Client::GiStatus::IN_PROGRESS)) {
                             self->m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
+
+                            self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
                         }
                     }
                 }

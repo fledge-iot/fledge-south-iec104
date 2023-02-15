@@ -167,7 +167,7 @@ void IEC104Client::checkOutstandingCommandTimeouts()
     for (OutstandingCommand* command : m_outstandingCommands)
     {    
         if (command->actConReceived) {
-            if (command->timeout + m_config->CmdTermTimeout() < currentTime) {
+            if (command->timeout + m_config->CmdExecTimeout() < currentTime) {
                 printf("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
                 
                 Logger::getLogger()->warn("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
@@ -176,7 +176,7 @@ void IEC104Client::checkOutstandingCommandTimeouts()
             }
         }
         else {
-            if (command->timeout + m_config->CmdAckTimeout() < currentTime) {
+            if (command->timeout + m_config->CmdExecTimeout() < currentTime) {
                 printf("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
 
                 Logger::getLogger()->warn("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
@@ -235,6 +235,84 @@ void IEC104Client::updateQualityForAllDataObjects(QualityDescriptor qd)
 
     if (datapoints.empty() == false) {
         sendData(datapoints, labels);
+    }
+}
+
+static bool isInStationGroup(DataExchangeDefinition* dp)
+{
+    if (dp->giGroups & 1) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+void IEC104Client::updateQualityForAllDataObjectsInStationGroup(QualityDescriptor qd)
+{
+    vector<Datapoint*> datapoints;
+    vector<string> labels;
+
+    for (auto const& exchangeDefintions : m_config->ExchangeDefinition()) {
+        for (auto const& dpPair : exchangeDefintions.second) {
+            DataExchangeDefinition* dp = dpPair.second;
+
+            if (dp && isInStationGroup(dp)) {
+
+                if (isDataPointInMonitoringDirection(dp))
+                {
+                    Datapoint* qualityUpdateDp = m_createQualityUpdateForDataObject(dp, &qd, nullptr);
+
+                    if (qualityUpdateDp) {
+                        datapoints.push_back(qualityUpdateDp);
+                        labels.push_back(dp->label);
+                    }
+                }
+            }
+        }
+    }
+
+    if (datapoints.empty() == false) {
+        sendData(datapoints, labels);
+    }
+}
+
+void IEC104Client::updateQualityForDataObjectsNotReceivedInGIResponse(QualityDescriptor qd)
+{
+    vector<Datapoint*> datapoints;
+    vector<string> labels;
+
+    for (DataExchangeDefinition* dp : m_listOfStationGroupDatapoints) {
+        Datapoint* qualityUpdateDp = m_createQualityUpdateForDataObject(dp, &qd, nullptr);
+
+        if (qualityUpdateDp) {
+            datapoints.push_back(qualityUpdateDp);
+            labels.push_back(dp->label);
+        }
+    }
+
+    if (datapoints.empty() == false) {
+        sendData(datapoints, labels);
+    }
+}
+
+void IEC104Client::removeFromListOfDatapoints(std::vector<DataExchangeDefinition*>& list, DataExchangeDefinition* toRemove)
+{
+    list.erase(std::remove(list.begin(), list.end(), toRemove), list.end());
+}
+
+void IEC104Client::createListOfDatapointsInStationGroup()
+{
+    m_listOfStationGroupDatapoints.clear();
+
+    for (auto const& exchangeDefintions : m_config->ExchangeDefinition()) {
+        for (auto const& dpPair : exchangeDefintions.second) {
+            DataExchangeDefinition* dp = dpPair.second;
+
+            if (dp && isInStationGroup(dp)) {
+                m_listOfStationGroupDatapoints.push_back(dp);
+            }
+        }
     }
 }
 
@@ -465,6 +543,16 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
 
             if (isSupportedCommand(typeId)) {
                 outstandingCommand = checkForOutstandingCommand(typeId, ca, ioa, connection);
+            }
+
+            if ((label != nullptr) && isInterrogationResponse(asdu)) {
+                DataExchangeDefinition* exgDef = m_config->ExchangeDefinition()[ca][ioa];
+
+                if (exgDef) {
+                    if (isInStationGroup(exgDef)) {
+                        removeFromListOfDatapoints(m_listOfStationGroupDatapoints, exgDef);
+                    }
+                }
             }
 
             bool typeSupported = true;

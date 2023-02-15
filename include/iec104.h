@@ -135,7 +135,15 @@ public:
 
     static bool isMessageTypeMatching(int expectedType, int rcvdType);
 
+    void updateQualityForAllDataObjectsInStationGroup(QualityDescriptor qd);
+
+    void createListOfDatapointsInStationGroup();
+
+    void updateQualityForDataObjectsNotReceivedInGIResponse(QualityDescriptor qd);
+
 private:
+
+    std::vector<DataExchangeDefinition*> m_listOfStationGroupDatapoints;
 
     IEC104ClientConfig* m_config;
 
@@ -207,6 +215,8 @@ private:
     Datapoint* m_createQualityUpdateForDataObject(DataExchangeDefinition* dataDefinition, QualityDescriptor* qd, CP56Time2a ts);
 
     void updateQualityForAllDataObjects(QualityDescriptor qd);
+
+    void removeFromListOfDatapoints(std::vector<DataExchangeDefinition*>& list, DataExchangeDefinition* toRemove);
 
     template <class T>
     Datapoint* m_createDataObject(CS101_ASDU asdu, int64_t ioa, const std::string& dataname, const T value,

@@ -163,7 +163,8 @@ static string exchanged_data = QUOTE({
                        {
                           "name":"iec104",
                           "address":"41025-4202832",
-                          "typeid":"M_ME_NA_1"
+                          "typeid":"M_ME_NA_1",
+                          "gi_groups":"station"
                        }
                     ]
                 },
@@ -173,7 +174,8 @@ static string exchanged_data = QUOTE({
                        {
                           "name":"iec104",
                           "address":"41025-4202852",
-                          "typeid":"M_ME_NA_1"
+                          "typeid":"M_ME_NA_1",
+                          "gi_groups":"station"
                        }
                     ]
                 },
@@ -183,7 +185,8 @@ static string exchanged_data = QUOTE({
                        {
                           "name":"iec104",
                           "address":"41025-4206948",
-                          "typeid":"M_SP_TB_1"
+                          "typeid":"M_SP_TB_1",
+                          "gi_groups":"station"
                        }
                     ]
                 },
@@ -262,13 +265,21 @@ class InterrogationTest : public testing::Test
 {
 protected:
 
+    IEC104TestComp* iec104 = nullptr;
+    int ingestCallbackCalled = 0;
+    Reading* storedReading;
+    std::vector<Reading*> storedReadings;
+    int clockSyncHandlerCalled = 0;
+    int asduHandlerCalled = 0;
+    IMasterConnection lastConnection = nullptr;
+    int lastOA = 0;
+    int interrogationRequestsReceived = 0;
+
     void SetUp()
     {
-        clockSyncHandlerCalled = 0;
-
         iec104 = new IEC104TestComp();
 
-        iec104->registerIngest(NULL, ingestCallback);
+        iec104->registerIngest(this, ingestCallback);
     }
 
     void TearDown()
@@ -276,6 +287,10 @@ protected:
         iec104->stop();
 
         delete iec104;
+
+        for (auto reading : storedReadings) {
+            delete reading;
+        }
     }
 
     void startIEC104() { iec104->start(); }
@@ -349,8 +364,44 @@ protected:
         return nullptr;
     }
 
+    static bool IsReadingWithQualityInvalid(Reading* reading)
+    {
+        Datapoint* dataObject = getObject(*reading, "data_object");
+
+        if (dataObject) {
+            Datapoint* do_quality_iv = getChild(*dataObject, "do_quality_iv");
+
+            if (do_quality_iv) {
+                if (getIntValue(do_quality_iv) == 1) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsReadingWithQualityNonTopcial(Reading* reading)
+    {
+        Datapoint* dataObject = getObject(*reading, "data_object");
+
+        if (dataObject) {
+            Datapoint* do_quality_iv = getChild(*dataObject, "do_quality_nt");
+
+            if (do_quality_iv) {
+                if (getIntValue(do_quality_iv) == 1) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     static void ingestCallback(void* parameter, Reading reading)
     {
+        InterrogationTest* self = (InterrogationTest*)parameter;
+
         printf("ingestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
 
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
@@ -361,10 +412,11 @@ protected:
             }
         }
 
+        self->storedReading = new Reading(reading);
 
-        storedReading = new Reading(reading);
+        self->storedReadings.push_back(self->storedReading);
 
-        ingestCallbackCalled++;
+        self->ingestCallbackCalled++;
     }
 
     static bool clockSynchronizationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
@@ -388,8 +440,8 @@ protected:
 
         printf("asduHandler: type: %i\n", CS101_ASDU_getTypeID(asdu));
 
-        lastConnection = NULL;
-        lastOA = CS101_ASDU_getOA(asdu);
+        self->lastConnection = NULL;
+        self->lastOA = CS101_ASDU_getOA(asdu);
 
         int ca = CS101_ASDU_getCA(asdu);
 
@@ -402,7 +454,7 @@ protected:
 
             if (ca == 41025 && ioa == 2000) {
                 IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+                self->lastConnection = connection;
             }
 
             
@@ -412,7 +464,7 @@ protected:
 
             if (ca == 41025 && ioa == 2001) {
                 IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+                self->lastConnection = connection;
             }
         }
         else if (CS101_ASDU_getTypeID(asdu) == C_DC_NA_1) {
@@ -420,11 +472,11 @@ protected:
 
             if (ca == 41025 && ioa == 2002) {
                 IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+                self->lastConnection = connection;
             }
         }
 
-        asduHandlerCalled++;
+        self->asduHandlerCalled++;
 
         return true;
     }
@@ -433,7 +485,7 @@ protected:
     {
         InterrogationTest* self = (InterrogationTest*)parameter;
 
-        interrogationRequestsReceived++;
+        self->interrogationRequestsReceived++;
 
         printf("Received interrogation for group %i\n", qoi);
 
@@ -524,32 +576,13 @@ protected:
     {
         InterrogationTest* self = (InterrogationTest*)parameter;
 
-        interrogationRequestsReceived++;
+        self->interrogationRequestsReceived++;
 
         printf("Received interrogation for group %i\n", qoi);
 
         return true;
     }
-
-    static boost::thread thread_;
-    IEC104TestComp* iec104;
-    static int ingestCallbackCalled;
-    static Reading* storedReading;
-    int clockSyncHandlerCalled = 0;
-    static int asduHandlerCalled;
-    static IMasterConnection lastConnection;
-    static int lastOA;
-    static int interrogationRequestsReceived;
 };
-
-boost::thread InterrogationTest::thread_;
-int InterrogationTest::ingestCallbackCalled;
-Reading* InterrogationTest::storedReading;
-int InterrogationTest::asduHandlerCalled;
-int InterrogationTest::interrogationRequestsReceived;
-IMasterConnection InterrogationTest::lastConnection;
-int InterrogationTest::lastOA;
-
 
 TEST_F(InterrogationTest, IEC104Client_startupProcedureSeparateRequestForEachCA)
 {
@@ -769,5 +802,14 @@ TEST_F(InterrogationTest, InterrogationRequestAfter_M_EI_NA_1)
     CS104_Slave_destroy(slave);
 
     Thread_sleep(500);
+
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
+
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[7]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[8]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[9]));
 }
 
