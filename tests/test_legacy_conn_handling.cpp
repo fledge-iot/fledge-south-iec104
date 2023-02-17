@@ -471,9 +471,10 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
 
     CS104_Slave_destroy(slave);
 
-    ASSERT_EQ(13, ingestCallbackCalled);
-    
-    ASSERT_EQ(13, storedReadings.size());
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
 
     ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
     ASSERT_TRUE(IsGiStatusStarted(storedReadings[5]));

@@ -186,6 +186,8 @@ class IEC104Test : public testing::Test
 {
 protected:
 
+    IEC104TestComp* iec104;
+
     void SetUp()
     {
         iec104 = new IEC104TestComp();
@@ -205,7 +207,7 @@ protected:
         delete iec104;
     }
 
-    static void startIEC104() { iec104->start(); }
+    void startIEC104() { iec104->start(); }
 
     int ingestCallbackCalled = 0;
     Reading* storedReading = nullptr;
@@ -301,13 +303,7 @@ protected:
 
         self->ingestCallbackCalled++;
     }
-
-    static boost::thread thread_;
-    static IEC104TestComp* iec104;
 };
-
-boost::thread IEC104Test::thread_;
-IEC104TestComp* IEC104Test::iec104;
 
 TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 {
