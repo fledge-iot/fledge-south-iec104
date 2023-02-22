@@ -372,6 +372,17 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
         return;
     }
 
+    if (protocolStack.HasMember("south_monitoring")) 
+    {
+        const Value& southMonitoring = protocolStack["south_monitoring"];
+
+        if (southMonitoring.HasMember("asset")) {
+            if (southMonitoring["asset"].IsString()) {
+                m_connxStatus = southMonitoring["asset"].GetString();
+            }
+        }
+    }
+
     const Value& transportLayer = protocolStack["transport_layer"];
     const Value& applicationLayer = protocolStack["application_layer"];
 
@@ -750,6 +761,38 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
         }
     }
 
+    if (applicationLayer.HasMember("cmd_parallel")) {              
+        if (applicationLayer["cmd_parallel"].IsInt()) {
+            int cmdParallel = applicationLayer["cmd_parallel"].GetInt();
+
+            if (cmdParallel >= 0) {
+                m_cmdParallel = cmdParallel;
+            }
+            else {
+                Logger::getLogger()->warn("application_layer.cmd_parallel has invalid value -> using default value (0)");
+            }
+        }
+        else {
+            printf("application_layer.cmd_parallel has invalid type -> using default value (0)\n");
+        }
+    }
+
+    if (applicationLayer.HasMember("cmd_exec_timeout")) {              
+        if (applicationLayer["cmd_exec_timeout"].IsInt()) {
+            int cmdExecTimeout = applicationLayer["cmd_exec_timeout"].GetInt();
+
+            if (cmdExecTimeout >= 0) {
+                m_cmdExecTimeout = cmdExecTimeout;
+            }
+            else {
+                Logger::getLogger()->warn("application_layer.cmd_exec_timeout has invalid value -> using default value (1000)");
+            }
+        }
+        else {
+            printf("application_layer.cmd_exec_timeout has invalid type -> using default value (1000)\n");
+        }
+    }
+
     m_protocolConfigComplete = true;
 }
 
@@ -825,6 +868,26 @@ IEC104ClientConfig::importTlsConfig(const string& tlsConfig)
     }
 }
 
+static vector<string> tokenizeString(string& str, string delimiter)
+{
+    vector<string> tokens;
+
+    size_t pos = 0;
+    std::string token;
+
+    str = str + delimiter;
+
+    while ((pos = str.find(delimiter)) != std::string::npos) {
+        token = str.substr(0, pos);
+
+        tokens.push_back(token);
+
+        str.erase(0, pos + delimiter.length());
+    }
+
+    return tokens;
+}
+
 void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
 {
     m_exchangeConfigComplete = false;
@@ -873,13 +936,30 @@ void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
             
             string protocolName = protocol[JSON_PROT_NAME].GetString();
 
-            if (protocolName == PROTOCOL_IEC104) {
+            if (protocolName == PROTOCOL_IEC104)
+            {
+                int giGroups = 0;
 
                 if (!protocol.HasMember(JSON_PROT_ADDR) || !protocol[JSON_PROT_ADDR].IsString()) return;
                 if (!protocol.HasMember(JSON_PROT_TYPEID) || !protocol[JSON_PROT_TYPEID].IsString()) return;
 
                 string address = protocol[JSON_PROT_ADDR].GetString();
                 string typeIdStr = protocol[JSON_PROT_TYPEID].GetString();
+
+                if (protocol.HasMember("gi_groups")) {
+
+                    if (protocol["gi_groups"].IsString()) {
+                        string giGroupsStr = protocol["gi_groups"].GetString();
+
+                        vector<string> tokens = tokenizeString(giGroupsStr, " ");
+
+                        for (string token : tokens) {
+                            if (token == "station") {
+                                giGroups = 1;
+                            }
+                        }
+                    }
+                }
 
                 size_t sepPos = address.find("-");
 
@@ -898,6 +978,8 @@ void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
                         def->label = label;
                         def->typeId = 0;
                         def->typeId = IEC104ClientConfig::GetTypeIdByName(typeIdStr);
+                        def->giGroups = giGroups;
+
                         Logger::getLogger()->debug("Added exchange data %i:%i type: %i (%s)", ca, ioa, def->typeId, typeIdStr.c_str());
                         ExchangeDefinition()[ca][ioa] = def;
                     }

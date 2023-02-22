@@ -112,21 +112,78 @@ public:
 
     bool sendSetpointShort(int ca, int ioa, float value, bool withTime);
 
+    bool sendConnectionStatus();
+
     bool handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu);
 
     void start();
 
     void stop();
 
+    enum class GiStatus
+    {
+        IDLE,
+        STARTED,
+        IN_PROGRESS,
+        FAILED,
+        FINISHED
+    };
+
+    void updateGiStatus(GiStatus newState);
+
+    GiStatus getGiStatus();
+
     static bool isMessageTypeMatching(int expectedType, int rcvdType);
+
+    void updateQualityForAllDataObjectsInStationGroup(QualityDescriptor qd);
+
+    void createListOfDatapointsInStationGroup();
+
+    void updateQualityForDataObjectsNotReceivedInGIResponse(QualityDescriptor qd);
 
 private:
 
+    std::vector<DataExchangeDefinition*> m_listOfStationGroupDatapoints;
+
     IEC104ClientConfig* m_config;
 
-   // std::map<int, int>::iterator m_listOfCA_it;
+    class OutstandingCommand {
+    public:
 
-    //std::map<int, int> m_listOfCA;
+        explicit OutstandingCommand(int typeId, int ca, int ioa, IEC104ClientConnection* con);
+
+        int typeId;
+        int ca;
+        int ioa;
+        IEC104ClientConnection* clientCon;
+        bool actConReceived = false;
+        uint64_t timeout = 0;
+    };
+
+    std::vector<OutstandingCommand*> m_outstandingCommands; // list of outstanding commands
+    std::mutex m_outstandingCommandsMtx; // protect access to list of outstanding commands
+
+    OutstandingCommand* checkForOutstandingCommand(int typeId, int ca, int ioa, IEC104ClientConnection* connection);
+
+    void checkOutstandingCommandTimeouts();
+
+    void removeOutstandingCommand(OutstandingCommand* command);
+
+    OutstandingCommand* addOutstandingCommandAndCheckLimit(int ca, int ioa, bool withTime, int typeIdWithTimestamp, int typeIdNoTimestamp);
+
+    enum class ConnectionStatus
+    {
+        STARTED,
+        NOT_CONNECTED
+    };
+
+    ConnectionStatus m_connStatus = ConnectionStatus::NOT_CONNECTED;
+
+    void updateConnectionStatus(ConnectionStatus newState);
+
+    GiStatus m_giStatus = GiStatus::IDLE;
+
+    void sendSouthMonitoringEvent(bool connxStatus, bool giStatus);
 
     std::vector<IEC104ClientConnection*> m_connections = std::vector<IEC104ClientConnection*>();
 
@@ -154,6 +211,12 @@ private:
         DatapointValue dp_value = DatapointValue(value);
         return new Datapoint(dataname, dp_value);
     }
+
+    Datapoint* m_createQualityUpdateForDataObject(DataExchangeDefinition* dataDefinition, QualityDescriptor* qd, CP56Time2a ts);
+
+    void updateQualityForAllDataObjects(QualityDescriptor qd);
+
+    void removeFromListOfDatapoints(std::vector<DataExchangeDefinition*>& list, DataExchangeDefinition* toRemove);
 
     template <class T>
     Datapoint* m_createDataObject(CS101_ASDU asdu, int64_t ioa, const std::string& dataname, const T value,
@@ -229,32 +292,38 @@ private:
     void handle_C_SC_NA_1(std::vector<Datapoint*>& datapoints,
                                 std::string& label,
                                 unsigned int ca, CS101_ASDU asdu,
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
 
     void handle_C_DC_NA_1(std::vector<Datapoint*>& datapoints,
                                 std::string& label,
                                 unsigned int ca, CS101_ASDU asdu,
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
 
     void handle_C_RC_NA_1(vector<Datapoint*>& datapoints,
                                 string& label,
                                 unsigned int ca, CS101_ASDU asdu, 
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
 
     void handle_C_SE_NA_1(vector<Datapoint*>& datapoints,
                                 string& label,
                                 unsigned int ca, CS101_ASDU asdu, 
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
 
     void handle_C_SE_NB_1(vector<Datapoint*>& datapoints,
                                 string& label,
                                 unsigned int ca, CS101_ASDU asdu, 
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
                                 
     void handle_C_SE_NC_1(vector<Datapoint*>& datapoints,
                                 string& label,
                                 unsigned int ca, CS101_ASDU asdu, 
-                                InformationObject io, uint64_t ioa);
+                                InformationObject io, uint64_t ioa,
+                                OutstandingCommand* outstandingCommand);
 
     // Format 2019-01-01 10:00:00.123456+08:00
     static std::string CP56Time2aToString(const CP56Time2a ts)

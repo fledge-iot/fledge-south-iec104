@@ -186,22 +186,33 @@ class IEC104Test : public testing::Test
 {
 protected:
 
+    IEC104TestComp* iec104;
+
     void SetUp()
     {
         iec104 = new IEC104TestComp();
         iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
 
-        iec104->registerIngest(NULL, ingestCallback);
+        iec104->registerIngest(this, ingestCallback);
     }
 
     void TearDown()
     {
         iec104->stop();
+
+        for (auto reading : storedReadings) {
+            delete reading;
+        }
        
         delete iec104;
     }
 
-    static void startIEC104() { iec104->start(); }
+    void startIEC104() { iec104->start(); }
+
+    int ingestCallbackCalled = 0;
+    Reading* storedReading = nullptr;
+    int clockSyncHandlerCalled = 0;
+    std::vector<Reading*> storedReadings;
 
     static bool hasChild(Datapoint& dp, std::string childLabel)
     {
@@ -272,9 +283,10 @@ protected:
         return nullptr;
     }
 
-
     static void ingestCallback(void* parameter, Reading reading)
     {
+        IEC104Test* self = (IEC104Test*)parameter;
+
         printf("ingestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
 
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
@@ -284,25 +296,19 @@ protected:
         // for (Datapoint* sdp : dataPoints) {
         //     printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
         // }
-        storedReading = new Reading(reading);
 
-        ingestCallbackCalled++;
+        self->storedReading = new Reading(reading);
+
+        self->storedReadings.push_back(self->storedReading);
+
+        self->ingestCallbackCalled++;
     }
-
-    static boost::thread thread_;
-    static IEC104TestComp* iec104;
-    static int ingestCallbackCalled;
-    static Reading* storedReading;
 };
-
-boost::thread IEC104Test::thread_;
-IEC104TestComp* IEC104Test::iec104;
-int IEC104Test::ingestCallbackCalled;
-Reading* IEC104Test::storedReading;
 
 TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 {
     ingestCallbackCalled = 0;
+    storedReading = nullptr;
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
@@ -335,7 +341,7 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(ingestCallbackCalled, 1);
+    ASSERT_EQ(ingestCallbackCalled, 9);
     ASSERT_EQ("TS-1", storedReading->getAssetName());
     ASSERT_TRUE(hasObject(*storedReading, "data_object"));
     Datapoint* data_object = getObject(*storedReading, "data_object");
@@ -363,8 +369,6 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
     ASSERT_EQ((int64_t) 4206948, getIntValue(getChild(*data_object, "do_ioa")));
     ASSERT_EQ((int64_t) timestamp, getIntValue(getChild(*data_object, "do_ts")));
 
-    delete storedReading;
-
     CS101_ASDU newAsdu2 = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION, 0, 41025, false, false);
 
     io = (InformationObject) SinglePointInformation_create(NULL, 4206948, true, IEC60870_QUALITY_GOOD);
@@ -380,7 +384,7 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(ingestCallbackCalled, 2);
+    ASSERT_EQ(ingestCallbackCalled, 10);
     ASSERT_EQ("TS-1", storedReading->getAssetName());
     ASSERT_TRUE(hasObject(*storedReading, "data_object"));
     data_object = getObject(*storedReading, "data_object");
@@ -411,8 +415,6 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
     ASSERT_EQ(0, getIntValue(getChild(*data_object, "do_quality_sb")));
     ASSERT_EQ(0, getIntValue(getChild(*data_object, "do_quality_nt")));
 
-    delete storedReading;
-
     CS101_ASDU newAsdu3 = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION, 0, 41025, false, false);
 
     io = (InformationObject) SinglePointInformation_create(NULL, 4206948, true, IEC60870_QUALITY_INVALID | IEC60870_QUALITY_NON_TOPICAL);
@@ -428,14 +430,12 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(ingestCallbackCalled, 3);
+    ASSERT_EQ(ingestCallbackCalled, 11);
     data_object = getObject(*storedReading, "data_object");
     ASSERT_EQ(1, getIntValue(getChild(*data_object, "do_quality_iv")));
     ASSERT_EQ(0, getIntValue(getChild(*data_object, "do_quality_bl")));
     ASSERT_EQ(0, getIntValue(getChild(*data_object, "do_quality_sb")));
     ASSERT_EQ(1, getIntValue(getChild(*data_object, "do_quality_nt")));
-
-    delete storedReading;
 
     CS104_Slave_stop(slave);
 
@@ -533,6 +533,7 @@ TEST_F(IEC104Test, IEC104_setJsonConfig_Test)
 TEST_F(IEC104Test, IEC104_receiveMonitoringAsdusWithCOT_11)
 {
     ingestCallbackCalled = 0;
+    storedReading = nullptr;
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
@@ -565,7 +566,7 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdusWithCOT_11)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(ingestCallbackCalled, 1);
+    ASSERT_EQ(ingestCallbackCalled, 9);
     ASSERT_EQ("TS-1", storedReading->getAssetName());
     ASSERT_TRUE(hasObject(*storedReading, "data_object"));
     Datapoint* data_object = getObject(*storedReading, "data_object");
@@ -593,8 +594,6 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdusWithCOT_11)
     ASSERT_EQ((int64_t) 4206948, getIntValue(getChild(*data_object, "do_ioa")));
     ASSERT_EQ((int64_t) timestamp, getIntValue(getChild(*data_object, "do_ts")));
 
-    delete storedReading;
-
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
@@ -603,6 +602,7 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdusWithCOT_11)
 TEST_F(IEC104Test, IEC104_receiveSpont_M_ST_TB_1)
 {
     ingestCallbackCalled = 0;
+    storedReading = nullptr;
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
@@ -635,7 +635,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ST_TB_1)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(ingestCallbackCalled, 1);
+    ASSERT_EQ(ingestCallbackCalled, 9);
     ASSERT_EQ("TM-4", storedReading->getAssetName());
     ASSERT_TRUE(hasObject(*storedReading, "data_object"));
     Datapoint* data_object = getObject(*storedReading, "data_object");
@@ -663,8 +663,6 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ST_TB_1)
     ASSERT_EQ((int64_t) 4202854, getIntValue(getChild(*data_object, "do_ioa")));
     ASSERT_EQ((int64_t) timestamp, getIntValue(getChild(*data_object, "do_ts")));
 
-    delete storedReading;
-
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
@@ -673,6 +671,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ST_TB_1)
 TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TD_1)
 {
     ingestCallbackCalled = 0;
+    storedReading = nullptr;
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
@@ -705,7 +704,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TD_1)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(ingestCallbackCalled, 1);
+    ASSERT_EQ(ingestCallbackCalled, 9);
     ASSERT_EQ("TM-5", storedReading->getAssetName());
     ASSERT_TRUE(hasObject(*storedReading, "data_object"));
     Datapoint* data_object = getObject(*storedReading, "data_object");
@@ -733,8 +732,6 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TD_1)
     ASSERT_EQ((int64_t) 4202855, getIntValue(getChild(*data_object, "do_ioa")));
     ASSERT_EQ((int64_t) timestamp, getIntValue(getChild(*data_object, "do_ts")));
 
-    delete storedReading;
-
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
@@ -743,6 +740,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TD_1)
 TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TE_1)
 {
     ingestCallbackCalled = 0;
+    storedReading = nullptr;
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
@@ -775,7 +773,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TE_1)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(ingestCallbackCalled, 1);
+    ASSERT_EQ(ingestCallbackCalled, 9);
     ASSERT_EQ("TM-6", storedReading->getAssetName());
     ASSERT_TRUE(hasObject(*storedReading, "data_object"));
     Datapoint* data_object = getObject(*storedReading, "data_object");
@@ -803,8 +801,6 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TE_1)
     ASSERT_EQ((int64_t) 4202856, getIntValue(getChild(*data_object, "do_ioa")));
     ASSERT_EQ((int64_t) timestamp, getIntValue(getChild(*data_object, "do_ts")));
 
-    delete storedReading;
-
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
@@ -813,6 +809,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TE_1)
 TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TF_1)
 {
     ingestCallbackCalled = 0;
+    storedReading = nullptr;
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
@@ -845,7 +842,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TF_1)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(ingestCallbackCalled, 1);
+    ASSERT_EQ(ingestCallbackCalled, 9);
     ASSERT_EQ("TM-7", storedReading->getAssetName());
     ASSERT_TRUE(hasObject(*storedReading, "data_object"));
     Datapoint* data_object = getObject(*storedReading, "data_object");
@@ -873,8 +870,6 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TF_1)
     ASSERT_EQ((int64_t) 4202857, getIntValue(getChild(*data_object, "do_ioa")));
     ASSERT_EQ((int64_t) timestamp, getIntValue(getChild(*data_object, "do_ts")));
 
-    delete storedReading;
-
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
@@ -883,6 +878,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TF_1)
 TEST_F(IEC104Test, IEC104_receiveGI_M_ST_NA_1)
 {
     ingestCallbackCalled = 0;
+    storedReading = nullptr;
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
@@ -910,7 +906,7 @@ TEST_F(IEC104Test, IEC104_receiveGI_M_ST_NA_1)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(ingestCallbackCalled, 1);
+    ASSERT_EQ(ingestCallbackCalled, 9);
     ASSERT_EQ("TM-3", storedReading->getAssetName());
     ASSERT_TRUE(hasObject(*storedReading, "data_object"));
     Datapoint* data_object = getObject(*storedReading, "data_object");
@@ -936,8 +932,6 @@ TEST_F(IEC104Test, IEC104_receiveGI_M_ST_NA_1)
     ASSERT_EQ((int64_t) 41025, getIntValue(getChild(*data_object, "do_ca")));
     ASSERT_EQ((int64_t) CS101_COT_INTERROGATED_BY_STATION, getIntValue(getChild(*data_object, "do_cot")));
     ASSERT_EQ((int64_t) 4202853, getIntValue(getChild(*data_object, "do_ioa")));
-
-    delete storedReading;
 
     CS104_Slave_stop(slave);
 

@@ -54,7 +54,10 @@ static string protocol_config = QUOTE({
                 "cmd_with_timetag" : false,              
                 "cmd_parallel" : 0,                              
                 "time_sync" : 100                 
-            }                 
+            },
+            "south_monitoring" : {
+                "asset": "CONSTAT-1"
+            }                
         }                     
     });
 
@@ -98,7 +101,10 @@ static string protocol_config2 = QUOTE({
                 "cmd_with_timetag" : false,              
                 "cmd_parallel" : 0,                           
                 "time_sync" : 100                
-            }                 
+            },
+            "south_monitoring" : {
+                "asset": "CONSTAT-1"
+            }              
         }                     
     });
 
@@ -138,7 +144,10 @@ static string protocol_config3 = QUOTE({
                 "cmd_with_timetag" : false,              
                 "cmd_parallel" : 0,                              
                 "time_sync" : 100                
-            }                 
+            },
+            "south_monitoring" : {
+                "asset": "CONSTAT-1"
+            }          
         }                     
     });
 
@@ -154,7 +163,8 @@ static string exchanged_data = QUOTE({
                        {
                           "name":"iec104",
                           "address":"41025-4202832",
-                          "typeid":"M_ME_NA_1"
+                          "typeid":"M_ME_NA_1",
+                          "gi_groups":"station"
                        }
                     ]
                 },
@@ -164,7 +174,8 @@ static string exchanged_data = QUOTE({
                        {
                           "name":"iec104",
                           "address":"41025-4202852",
-                          "typeid":"M_ME_NA_1"
+                          "typeid":"M_ME_NA_1",
+                          "gi_groups":"station"
                        }
                     ]
                 },
@@ -174,7 +185,8 @@ static string exchanged_data = QUOTE({
                        {
                           "name":"iec104",
                           "address":"41025-4206948",
-                          "typeid":"M_SP_TB_1"
+                          "typeid":"M_SP_TB_1",
+                          "gi_groups":"station"
                        }
                     ]
                 },
@@ -253,13 +265,21 @@ class InterrogationTest : public testing::Test
 {
 protected:
 
+    IEC104TestComp* iec104 = nullptr;
+    int ingestCallbackCalled = 0;
+    Reading* storedReading;
+    std::vector<Reading*> storedReadings;
+    int clockSyncHandlerCalled = 0;
+    int asduHandlerCalled = 0;
+    IMasterConnection lastConnection = nullptr;
+    int lastOA = 0;
+    int interrogationRequestsReceived = 0;
+
     void SetUp()
     {
-        clockSyncHandlerCalled = 0;
-
         iec104 = new IEC104TestComp();
 
-        iec104->registerIngest(NULL, ingestCallback);
+        iec104->registerIngest(this, ingestCallback);
     }
 
     void TearDown()
@@ -267,6 +287,10 @@ protected:
         iec104->stop();
 
         delete iec104;
+
+        for (auto reading : storedReadings) {
+            delete reading;
+        }
     }
 
     void startIEC104() { iec104->start(); }
@@ -340,18 +364,189 @@ protected:
         return nullptr;
     }
 
+    static bool IsReadingWithQualityInvalid(Reading* reading)
+    {
+        Datapoint* dataObject = getObject(*reading, "data_object");
+
+        if (dataObject) {
+            Datapoint* do_quality_iv = getChild(*dataObject, "do_quality_iv");
+
+            if (do_quality_iv) {
+                if (getIntValue(do_quality_iv) == 1) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsReadingWithQualityGood(Reading* reading)
+    {
+        Datapoint* dataObject = getObject(*reading, "data_object");
+
+        if (dataObject) {
+            Datapoint* do_quality_iv = getChild(*dataObject, "do_quality_iv");
+
+            if (do_quality_iv) {
+                if (getIntValue(do_quality_iv) == 1) {
+                    return false;
+                }
+            }
+
+            Datapoint* do_quality_nt = getChild(*dataObject, "do_quality_nt");
+
+            if (do_quality_nt) {
+                if (getIntValue(do_quality_nt) == 1) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    static bool IsReadingWithQualityNonTopcial(Reading* reading)
+    {
+        Datapoint* dataObject = getObject(*reading, "data_object");
+
+        if (dataObject) {
+            Datapoint* do_quality_nt = getChild(*dataObject, "do_quality_nt");
+
+            if (do_quality_nt) {
+                if (getIntValue(do_quality_nt) == 1) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsConnxStatusStarted(Reading* reading)
+    {
+        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+
+        if (southEvent) {
+            Datapoint* connxStatus = getChild(*southEvent, "connx_status");
+
+            if (connxStatus) {
+                if (getStrValue(connxStatus) == "started") {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsConnxStatusNotConnected(Reading* reading)
+    {
+        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+
+        if (southEvent) {
+            Datapoint* connxStatus = getChild(*southEvent, "connx_status");
+
+            if (connxStatus) {
+                if (getStrValue(connxStatus) == "not connected") {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsGiStatusStarted(Reading* reading)
+    {
+        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+
+        if (southEvent) {
+            Datapoint* connxStatus = getChild(*southEvent, "gi_status");
+
+            if (connxStatus) {
+                if (getStrValue(connxStatus) == "started") {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsGiStatusInProgress(Reading* reading)
+    {
+        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+
+        if (southEvent) {
+            Datapoint* connxStatus = getChild(*southEvent, "gi_status");
+
+            if (connxStatus) {
+                if (getStrValue(connxStatus) == "in progress") {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsGiStatusFailed(Reading* reading)
+    {
+        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+
+        if (southEvent) {
+            Datapoint* connxStatus = getChild(*southEvent, "gi_status");
+
+            if (connxStatus) {
+                if (getStrValue(connxStatus) == "failed") {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsGiStatusFinished(Reading* reading)
+    {
+        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+
+        if (southEvent) {
+            Datapoint* connxStatus = getChild(*southEvent, "gi_status");
+
+            if (connxStatus) {
+                if (getStrValue(connxStatus) == "finished") {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     static void ingestCallback(void* parameter, Reading reading)
     {
+        InterrogationTest* self = (InterrogationTest*)parameter;
+
         printf("ingestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
 
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        // for (Datapoint* sdp : dataPoints) {
-        //     printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
-        // }
-        storedReading = new Reading(reading);
+        if (reading.getAssetName() == "CONSTAT-1") {
+            for (Datapoint* sdp : dataPoints) {
+                printf("  name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
+            }
+        }
 
-        ingestCallbackCalled++;
+        self->storedReading = new Reading(reading);
+
+        self->storedReadings.push_back(self->storedReading);
+
+        self->ingestCallbackCalled++;
     }
 
     static bool clockSynchronizationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
@@ -375,8 +570,8 @@ protected:
 
         printf("asduHandler: type: %i\n", CS101_ASDU_getTypeID(asdu));
 
-        lastConnection = NULL;
-        lastOA = CS101_ASDU_getOA(asdu);
+        self->lastConnection = NULL;
+        self->lastOA = CS101_ASDU_getOA(asdu);
 
         int ca = CS101_ASDU_getCA(asdu);
 
@@ -389,7 +584,7 @@ protected:
 
             if (ca == 41025 && ioa == 2000) {
                 IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+                self->lastConnection = connection;
             }
 
             
@@ -399,7 +594,7 @@ protected:
 
             if (ca == 41025 && ioa == 2001) {
                 IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+                self->lastConnection = connection;
             }
         }
         else if (CS101_ASDU_getTypeID(asdu) == C_DC_NA_1) {
@@ -407,11 +602,11 @@ protected:
 
             if (ca == 41025 && ioa == 2002) {
                 IMasterConnection_sendACT_CON(connection, asdu, false);
-                lastConnection = connection;
+                self->lastConnection = connection;
             }
         }
 
-        asduHandlerCalled++;
+        self->asduHandlerCalled++;
 
         return true;
     }
@@ -420,9 +615,9 @@ protected:
     {
         InterrogationTest* self = (InterrogationTest*)parameter;
 
-        interrogationRequestsReceived++;
+        self->interrogationRequestsReceived++;
 
-        printf("Received interrogation for group %i\n", qoi);
+        printf("CA=%i Received interrogation for group %i\n", CS101_ASDU_getCA(asdu), qoi);
 
         if (qoi == 20) { /* only handle station interrogation */
 
@@ -507,36 +702,72 @@ protected:
         return true;
     }
 
+    static bool interrogationHandler_configuredDatapoints(void* parameter, IMasterConnection connection, CS101_ASDU asdu, uint8_t qoi)
+    {
+        InterrogationTest* self = (InterrogationTest*)parameter;
+
+        self->interrogationRequestsReceived++;
+
+        printf("CA=%i Received interrogation for group %i\n", CS101_ASDU_getCA(asdu), qoi);
+
+        if (qoi == 20) { /* only handle station interrogation */
+
+            CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
+
+            IMasterConnection_sendACT_CON(connection, asdu, false);
+
+            /* The CS101 specification only allows information objects without timestamp in GI responses */
+
+            CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION,
+                    0, 41025, false, false);
+
+            InformationObject io = (InformationObject) MeasuredValueNormalized_create(NULL, 4202832, 0.5, IEC60870_QUALITY_GOOD);
+
+            CS101_ASDU_addInformationObject(newAsdu, io);
+
+            CS101_ASDU_addInformationObject(newAsdu, (InformationObject)
+                MeasuredValueNormalized_create((MeasuredValueNormalized) io, 4202852, 0.6, IEC60870_QUALITY_GOOD));
+
+
+            InformationObject_destroy(io);
+
+            IMasterConnection_sendASDU(connection, newAsdu);
+
+            CS101_ASDU_destroy(newAsdu);
+
+            newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION,
+                        0, 41025, false, false);
+
+            io = (InformationObject) SinglePointInformation_create(NULL, 4206948, true, IEC60870_QUALITY_GOOD);
+
+            CS101_ASDU_addInformationObject(newAsdu, io);
+
+            InformationObject_destroy(io);
+
+            IMasterConnection_sendASDU(connection, newAsdu);
+
+            CS101_ASDU_destroy(newAsdu);
+
+            IMasterConnection_sendACT_TERM(connection, asdu);
+        }
+        else {
+            IMasterConnection_sendACT_CON(connection, asdu, true);
+        }
+
+        return true;
+    }
+
     static bool interrogationHandler_No_ACT_CON(void* parameter, IMasterConnection connection, CS101_ASDU asdu, uint8_t qoi)
     {
         InterrogationTest* self = (InterrogationTest*)parameter;
 
-        interrogationRequestsReceived++;
+        self->interrogationRequestsReceived++;
 
         printf("Received interrogation for group %i\n", qoi);
 
         return true;
     }
-
-    static boost::thread thread_;
-    IEC104TestComp* iec104;
-    static int ingestCallbackCalled;
-    static Reading* storedReading;
-    int clockSyncHandlerCalled = 0;
-    static int asduHandlerCalled;
-    static IMasterConnection lastConnection;
-    static int lastOA;
-    static int interrogationRequestsReceived;
 };
-
-boost::thread InterrogationTest::thread_;
-int InterrogationTest::ingestCallbackCalled;
-Reading* InterrogationTest::storedReading;
-int InterrogationTest::asduHandlerCalled;
-int InterrogationTest::interrogationRequestsReceived;
-IMasterConnection InterrogationTest::lastConnection;
-int InterrogationTest::lastOA;
-
 
 TEST_F(InterrogationTest, IEC104Client_startupProcedureSeparateRequestForEachCA)
 {
@@ -749,12 +980,114 @@ TEST_F(InterrogationTest, InterrogationRequestAfter_M_EI_NA_1)
 
     Thread_sleep(1000);
 
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
+
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
+
+    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
+
+    ASSERT_TRUE(IsGiStatusStarted(storedReadings[5]));
+    ASSERT_TRUE(IsGiStatusInProgress(storedReadings[6]));
+    ASSERT_TRUE(IsGiStatusFinished(storedReadings[7]));
+
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[8]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[9]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[10]));
+
+    ASSERT_TRUE(IsGiStatusStarted(storedReadings[11]));
+    ASSERT_TRUE(IsGiStatusInProgress(storedReadings[12]));
+    ASSERT_TRUE(IsGiStatusFinished(storedReadings[13]));
+
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[14]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[15]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[16]));
+
+    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[17]));
+
     ASSERT_EQ(2, interrogationRequestsReceived);
+}
+
+TEST_F(InterrogationTest, GICycleReceiveConfiguredDatapoints)
+{
+    iec104->setJsonConfig(protocol_config3, exchanged_data, tls_config);
+
+    asduHandlerCalled = 0;
+    interrogationRequestsReceived = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setInterrogationHandler(slave, interrogationHandler_configuredDatapoints, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(1, clockSyncHandlerCalled);
+    ASSERT_EQ(0, asduHandlerCalled);
+    ASSERT_EQ(1, interrogationRequestsReceived);
+
+    Thread_sleep(2250);
+
+    ASSERT_EQ(3, interrogationRequestsReceived);
 
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
 
     Thread_sleep(500);
+
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
+
+    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
+
+    ASSERT_TRUE(IsGiStatusStarted(storedReadings[5]));
+    ASSERT_TRUE(IsGiStatusInProgress(storedReadings[6]));
+
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[7]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[8]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[9]));
+
+    ASSERT_TRUE(IsGiStatusFinished(storedReadings[10]));
+
+    ASSERT_TRUE(IsGiStatusStarted(storedReadings[11]));
+    ASSERT_TRUE(IsGiStatusInProgress(storedReadings[12]));
+
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[13]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[14]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[15]));
+
+    ASSERT_TRUE(IsGiStatusFinished(storedReadings[16]));
+
+    ASSERT_TRUE(IsGiStatusStarted(storedReadings[17]));
+    ASSERT_TRUE(IsGiStatusInProgress(storedReadings[18]));
+
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[19]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[20]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[21]));
+
+    ASSERT_TRUE(IsGiStatusFinished(storedReadings[22]));
+
+    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[23]));
 }
 

@@ -395,6 +395,8 @@ IEC104ClientConnection::startNewInterrogationCycle()
     /* reset end of init flag */
     m_endOfInitReceived = false;
 
+    m_client->createListOfDatapointsInStationGroup();
+
     if (m_config->GiForAllCa() == false) {
         if (sendInterrogationCommand(broadcastCA())) {
             Logger::getLogger()->debug("Sent interrogation command to broadcase address");
@@ -403,6 +405,8 @@ IEC104ClientConnection::startNewInterrogationCycle()
             m_interrogationRequestState = 1;
             m_interrogationRequestSent = getMonotonicTimeInMs();
             m_nextGIStartTime = m_interrogationRequestSent + (m_config->GiCycle() * 1000);
+
+            m_client->updateGiStatus(IEC104Client::GiStatus::STARTED);
         }
         else {
             Logger::getLogger()->error("Failed to send interrogation command to broadcast address");
@@ -415,6 +419,8 @@ IEC104ClientConnection::startNewInterrogationCycle()
 
         if (m_listOfCA_it != m_config->ListOfCAs().end()) {
             m_interrogationInProgress = true;
+
+            m_client->updateGiStatus(IEC104Client::GiStatus::STARTED);
         }
     }
 }
@@ -488,18 +494,34 @@ IEC104ClientConnection::executePeriodicTasks()
                     if (m_interrogationRequestState != 0) {
 
                         if (m_interrogationRequestState == 1) { /* wait for ACT_CON */
-                            if (currentTime > m_interrogationRequestSent + (m_config->GiTime() * 1000)) {
-                                Logger::getLogger()->error("Interrogation request timed out (no ACT_CON)");
-                                m_interrogationRequestState = 0;
-                                m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
+
+                            if (m_config->GiTime() != 0) {
+                                if (currentTime > m_interrogationRequestSent + (m_config->GiTime() * 1000)) {
+                                    Logger::getLogger()->error("Interrogation request timed out (no ACT_CON)");
+
+                                    m_interrogationRequestState = 0;
+                                    m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
+
+                                    m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
+
+                                    m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
+                                }
                             }
                         }
                         else if (m_interrogationRequestState == 2) { /* wait for ACT_TERM */
-                            if (currentTime > m_interrogationRequestSent + (m_config->GiTime() * 1000)) {
-                                Logger::getLogger()->error("Interrogation request timed out (no ACT_TERM)");
-                                m_nextGIStartTime = m_config->GiCycle();
-                                m_interrogationRequestState = 0;
-                                m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
+
+                            if (m_config->GiTime() != 0) {
+                                if (currentTime > m_interrogationRequestSent + (m_config->GiTime() * 1000)) {
+                                    Logger::getLogger()->error("Interrogation request timed out (no ACT_TERM)");
+
+                                    m_nextGIStartTime = m_config->GiCycle();
+                                    m_interrogationRequestState = 0;
+                                    m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
+
+                                    m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
+
+                                    m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
+                                }
                             }
                         }
                     }
@@ -512,9 +534,15 @@ IEC104ClientConnection::executePeriodicTasks()
                                     Logger::getLogger()->debug("Sent GI request to CA=%i", *m_listOfCA_it);
                                     m_interrogationRequestState = 1;
                                     m_interrogationRequestSent = getMonotonicTimeInMs();
+
+                                    m_client->updateGiStatus(IEC104Client::GiStatus::STARTED); //TODO is STARTED or IN_PROGRESS?
                                 }
                                 else {
                                     Logger::getLogger()->error("Failed to send interrogation command to CA=%i!\n", *m_listOfCA_it);
+
+                                    m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
+
+                                    m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
                                 }
 
                                 m_listOfCA_it++;
@@ -618,6 +646,15 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                     if (cot == CS101_COT_ACTIVATION_CON) {
                         if (self->m_interrogationRequestState == 1) {
                             self->m_interrogationRequestState = 2;
+
+                            if (CS101_ASDU_isNegative(asdu)) {
+                                self->m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
+
+                                self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
+                            }
+                            else {
+                                self->m_client->updateGiStatus(IEC104Client::GiStatus::STARTED); //TODO is IN_PROGRESS?
+                            }
                         }
                         else {
                             Logger::getLogger()->warn("Unexpected ACT_CON");
@@ -626,9 +663,26 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                     else if (cot == CS101_COT_ACTIVATION_TERMINATION) {
                         if (self->m_interrogationRequestState == 2) {
                             self->m_interrogationRequestState = 0;
+
+                            auto giStatus = self->m_client->getGiStatus();
+
+                            if ((giStatus == IEC104Client::GiStatus::STARTED) || (giStatus == IEC104Client::GiStatus::IN_PROGRESS)) {
+                                self->m_client->updateGiStatus(IEC104Client::GiStatus::FINISHED);
+
+                                self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
+                            }
                         }
                         else {
                             Logger::getLogger()->warn("Unexpected ACT_TERM");
+                        }
+                    }
+                    else {
+                        auto giStatus = self->m_client->getGiStatus();
+
+                        if ((giStatus == IEC104Client::GiStatus::STARTED) || (giStatus == IEC104Client::GiStatus::IN_PROGRESS)) {
+                            self->m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
+
+                            self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
                         }
                     }
                 }
