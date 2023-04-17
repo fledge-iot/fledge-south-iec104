@@ -79,6 +79,8 @@ private:
     bool m_started = false;
     bool m_startDtSent = false;
 
+    bool m_cnxLostStatusSent = false; /* cnxLostStatus sent after reconnect */
+
     bool m_timeSynchronized = false;
     bool m_timeSyncCommandSent = false;
     bool m_firstTimeSyncOperationCompleted = false;

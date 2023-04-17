@@ -381,6 +381,20 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                 m_connxStatus = southMonitoring["asset"].GetString();
             }
         }
+
+        if (southMonitoring.HasMember("cnx_loss_status_id")) {
+            if (southMonitoring["cnx_loss_status_id"].IsString()) {
+
+                m_cnxLossStatusId = southMonitoring["cnx_loss_status_id"].GetString();
+
+                if (m_cnxLossStatusId.empty()) {
+                    m_sendCnxLossStatus = false;
+                }
+                else {
+                    m_sendCnxLossStatus = true;
+                }
+            }
+        }
     }
 
     const Value& transportLayer = protocolStack["transport_layer"];
@@ -886,6 +900,47 @@ static vector<string> tokenizeString(string& str, string delimiter)
     }
 
     return tokens;
+}
+
+DataExchangeDefinition*
+IEC104ClientConfig::getExchangeDefinitionByLabel(std::string& label)
+{
+    for (auto const& exchangeDefintions : ExchangeDefinition()) {
+        for (auto const& dpPair : exchangeDefintions.second) {
+            DataExchangeDefinition* dp = dpPair.second;
+
+            if (dp) {
+                if (dp->label == label) {
+                    return dp;
+                }
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+DataExchangeDefinition*
+IEC104ClientConfig::getCnxLossStatusDatapoint()
+{
+    if (m_sendCnxLossStatus) {
+        DataExchangeDefinition* cnxLossStatusDp = getExchangeDefinitionByLabel(m_cnxLossStatusId);
+
+        if (cnxLossStatusDp != nullptr) {
+            if ((cnxLossStatusDp->typeId == M_SP_NA_1) || (cnxLossStatusDp->typeId == M_SP_TB_1)) {
+                return cnxLossStatusDp;
+            }
+
+            Logger::getLogger()->warn("data point for cnx_loss_status_id is not a single point status");
+        }
+        else {
+            Logger::getLogger()->warn("data point for cnx_loss_status_id not found in exchange data");
+        }
+
+        m_sendCnxLossStatus = false;
+    }
+
+    return nullptr;
 }
 
 void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)

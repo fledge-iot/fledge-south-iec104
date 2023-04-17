@@ -221,13 +221,25 @@ void IEC104Client::updateQualityForAllDataObjects(QualityDescriptor qd)
             if (dp) {
                 if (isDataPointInMonitoringDirection(dp))
                 {
-                    //TODO also add timestamp?
-                    Datapoint* qualityUpdateDp = m_createQualityUpdateForDataObject(dp, &qd, nullptr);
+                    bool skipDatapoint = false;
 
-                    if (qualityUpdateDp) {
-                        datapoints.push_back(qualityUpdateDp);
-                        labels.push_back(dp->label);
+                    if (m_config->GetCnxLossStatusId().empty() == false) {
+                        if (dp->label == m_config->GetCnxLossStatusId()) {
+                            skipDatapoint = true;
+                        }
                     }
+
+                    if (skipDatapoint == false) {
+                        //TODO also add timestamp?
+
+                        Datapoint* qualityUpdateDp = m_createQualityUpdateForDataObject(dp, &qd, nullptr);
+
+                        if (qualityUpdateDp) {
+                            datapoints.push_back(qualityUpdateDp);
+                            labels.push_back(dp->label);
+                        }
+                    }
+
                 }
             }
         }
@@ -365,6 +377,49 @@ Datapoint* IEC104Client::m_createDataObject(CS101_ASDU asdu, int64_t ioa, const 
     return new Datapoint("data_object", dpv);
 }
 
+Datapoint* IEC104Client::m_createCnxLossStatus(DataExchangeDefinition* dp, uint64_t timestamp)
+{
+    auto* attributes = new vector<Datapoint*>;
+
+    attributes->push_back(m_createDatapoint("do_type", mapAsduTypeIdStr[dp->typeId]));
+
+    attributes->push_back(m_createDatapoint("do_ca", (long)dp->ca));
+
+    attributes->push_back(m_createDatapoint("do_oa", (long)0));
+
+    attributes->push_back(m_createDatapoint("do_cot", (long)3));
+
+    attributes->push_back(m_createDatapoint("do_test", (long)0));
+
+    attributes->push_back(m_createDatapoint("do_negative", (long)0));
+
+    attributes->push_back(m_createDatapoint("do_ioa", (long)dp->ioa));
+
+    attributes->push_back(m_createDatapoint("do_value", 1L));
+
+    attributes->push_back(m_createDatapoint("do_quality_iv", 0L));
+
+    attributes->push_back(m_createDatapoint("do_quality_bl", 0L));
+
+    attributes->push_back(m_createDatapoint("do_quality_ov", 0L));
+
+    attributes->push_back(m_createDatapoint("do_quality_sb", 0L));
+
+    attributes->push_back(m_createDatapoint("do_quality_nt", 0L));
+
+    attributes->push_back(m_createDatapoint("do_ts", (long)timestamp));
+
+    attributes->push_back(m_createDatapoint("do_ts_iv", 0L));
+
+    attributes->push_back(m_createDatapoint("do_ts_su", 0L));
+
+    attributes->push_back(m_createDatapoint("do_ts_sub", 0L));
+
+    DatapointValue dpv(attributes, true);
+
+    return new Datapoint("data_object", dpv);
+}
+
 void
 IEC104Client::sendData(vector<Datapoint*> datapoints,
                             const vector<std::string> labels)
@@ -481,6 +536,27 @@ IEC104Client::updateGiStatus(GiStatus newState)
     m_giStatus = newState;
 
     sendSouthMonitoringEvent(false, true);
+}
+
+bool
+IEC104Client::sendCnxLossStatus()
+{
+    DataExchangeDefinition* dp = m_config->getCnxLossStatusDatapoint();
+
+    if (dp) {
+        Logger::getLogger()->warn("send cnx_loss_status (data point: $s)", dp->label.c_str());
+
+        Datapoint* cnxLossStatusDp = m_createCnxLossStatus(dp, Hal_getTimeInMs());
+
+        std::vector<Datapoint*> points;
+        points.push_back(cnxLossStatusDp);
+        
+        m_iec104->ingest(dp->label, points);
+
+        return true;
+    }
+
+    return false;
 }
 
 IEC104Client::GiStatus

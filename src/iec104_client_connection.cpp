@@ -670,6 +670,10 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                                 self->m_client->updateGiStatus(IEC104Client::GiStatus::FINISHED);
 
                                 self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
+
+                                if (self->m_cnxLostStatusSent == false) {
+                                    self->m_cnxLostStatusSent = self->m_client->sendCnxLossStatus();
+                                }
                             }
                         }
                         else {
@@ -890,6 +894,8 @@ IEC104ClientConnection::_conThread()
                         m_startDtSent = false;
 
                         m_conLock.lock();
+
+                        m_cnxLostStatusSent = false;
 
                         if (m_connection != nullptr) {
                             CS104_Connection_destroy(m_connection);

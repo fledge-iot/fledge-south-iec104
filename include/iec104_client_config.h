@@ -52,6 +52,8 @@ public:
 
     std::string& GetConnxStatusSignal() {return m_connxStatus;};
 
+    std::string& GetCnxLossStatusId() {return m_cnxLossStatusId;};
+
     std::string& GetPrivateKey() {return m_privateKey;};
     std::string& GetOwnCertificate() {return m_ownCertificate;};
     std::vector<std::string>& GetRemoteCertificates() {return m_remoteCertificates;};
@@ -68,6 +70,10 @@ public:
     static int GetTypeIdByName(const string& name);
 
     std::string* checkExchangeDataLayer(int typeId, int ca, int ioa);
+
+    DataExchangeDefinition* getExchangeDefinitionByLabel(std::string& label);
+
+    DataExchangeDefinition* getCnxLossStatusDatapoint();
 
 private:
 
@@ -104,6 +110,9 @@ private:
     bool m_exchangeConfigComplete = false; /* flag if exchange configuration is read */
 
     std::string m_connxStatus = ""; /* "asset" name for south plugin monitoring event */
+
+    bool m_sendCnxLossStatus = false; /* send info when GI is complete after connection loss */
+    std::string m_cnxLossStatusId = ""; /* assed ID of the connection loss indication data point */
 
     std::string m_privateKey = "";
     std::string m_ownCertificate = "";
