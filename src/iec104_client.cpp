@@ -964,7 +964,7 @@ void IEC104Client::handle_C_RC_NA_1(vector<Datapoint*>& datapoints, string& labe
         }
     }
 
-    if (CS101_ASDU_getTypeID(asdu) == C_DC_TA_1)
+    if (CS101_ASDU_getTypeID(asdu) == C_RC_TA_1)
     {
         CP56Time2a ts = StepCommandWithCP56Time2a_getTimestamp(io_casted);
 
