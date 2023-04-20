@@ -131,7 +131,7 @@ public:
 
     void updateGiStatus(GiStatus newState);
 
-    bool sendCnxLossStatus();
+    bool sendCnxLossStatus(bool value);
 
     GiStatus getGiStatus();
 
@@ -149,7 +149,7 @@ private:
 
     IEC104ClientConfig* m_config;
 
-    Datapoint* m_createCnxLossStatus(DataExchangeDefinition* dp, uint64_t timestamp);
+    Datapoint* m_createCnxLossStatus(DataExchangeDefinition* dp, bool value, uint64_t timestamp);
 
     class OutstandingCommand {
     public:

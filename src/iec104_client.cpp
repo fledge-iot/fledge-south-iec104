@@ -377,7 +377,7 @@ Datapoint* IEC104Client::m_createDataObject(CS101_ASDU asdu, int64_t ioa, const 
     return new Datapoint("data_object", dpv);
 }
 
-Datapoint* IEC104Client::m_createCnxLossStatus(DataExchangeDefinition* dp, uint64_t timestamp)
+Datapoint* IEC104Client::m_createCnxLossStatus(DataExchangeDefinition* dp, bool value, uint64_t timestamp)
 {
     auto* attributes = new vector<Datapoint*>;
 
@@ -395,7 +395,10 @@ Datapoint* IEC104Client::m_createCnxLossStatus(DataExchangeDefinition* dp, uint6
 
     attributes->push_back(m_createDatapoint("do_ioa", (long)dp->ioa));
 
-    attributes->push_back(m_createDatapoint("do_value", 1L));
+    if (value)
+        attributes->push_back(m_createDatapoint("do_value", 1L));
+    else
+        attributes->push_back(m_createDatapoint("do_value", 0L));
 
     attributes->push_back(m_createDatapoint("do_quality_iv", 0L));
 
@@ -539,14 +542,14 @@ IEC104Client::updateGiStatus(GiStatus newState)
 }
 
 bool
-IEC104Client::sendCnxLossStatus()
+IEC104Client::sendCnxLossStatus(bool value)
 {
     DataExchangeDefinition* dp = m_config->getCnxLossStatusDatapoint();
 
     if (dp) {
         Logger::getLogger()->warn("send cnx_loss_status (data point: $s)", dp->label.c_str());
 
-        Datapoint* cnxLossStatusDp = m_createCnxLossStatus(dp, Hal_getTimeInMs());
+        Datapoint* cnxLossStatusDp = m_createCnxLossStatus(dp, value, Hal_getTimeInMs());
 
         std::vector<Datapoint*> points;
         points.push_back(cnxLossStatusDp);
