@@ -43,6 +43,7 @@ private:
     void prepareParameters();
     bool prepareConnection();
     void startNewInterrogationCycle();
+    void closeConnection();
 
     typedef enum {
         CON_STATE_IDLE,
@@ -53,7 +54,6 @@ private:
         CON_STATE_WAIT_FOR_RECONNECT,
         CON_STATE_FATAL_ERROR
     } ConState;
-
 
     IEC104ClientConfig* m_config;
     IEC104ClientRedGroup* m_redGroup;
@@ -78,6 +78,8 @@ private:
 
     bool m_started = false;
     bool m_startDtSent = false;
+
+    bool m_cnxLostStatusSent = false; /* cnxLostStatus sent after reconnect */
 
     bool m_timeSynchronized = false;
     bool m_timeSyncCommandSent = false;

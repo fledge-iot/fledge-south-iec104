@@ -73,28 +73,46 @@ IEC104ClientConnection::m_connectionHandler(void* parameter, CS104_Connection co
 
     if (event == CS104_CONNECTION_CLOSED)
     {
+        self->m_conLock.lock();
+
         self->m_connectionState = CON_STATE_CLOSED;
         self->m_connected = false;
         self->m_connecting = false;
+
+        self->m_conLock.unlock();
+
+        self->m_client->sendCnxLossStatus(true);
     }
     else if (event == CS104_CONNECTION_OPENED) 
     {
+        self->m_conLock.lock();
+
         self->m_connectionState = CON_STATE_CONNECTED_INACTIVE;
         self->m_connected = true;
         self->m_connecting = false;
+
+        self->m_conLock.unlock();
     }
     else if (event == CS104_CONNECTION_STARTDT_CON_RECEIVED)
     {
+        self->m_conLock.lock();
+
         self->m_nextTimeSync = getMonotonicTimeInMs();
         self->m_timeSynchronized = false;
         self->m_firstTimeSyncOperationCompleted = false;
         self->m_firstGISent = false;
 
         self->m_connectionState = CON_STATE_CONNECTED_ACTIVE;
+
+        self->m_conLock.unlock();
     }
     else if (event == CS104_CONNECTION_STOPDT_CON_RECEIVED)
     {
+        self->m_conLock.lock();
+
         self->m_connectionState = CON_STATE_CONNECTED_INACTIVE;
+
+        self->m_conLock.unlock();
     }
 }
 
@@ -410,6 +428,8 @@ IEC104ClientConnection::startNewInterrogationCycle()
         }
         else {
             Logger::getLogger()->error("Failed to send interrogation command to broadcast address");
+            m_firstGISent = true;
+            //TODO close connection
         }
     }
     else {
@@ -423,6 +443,24 @@ IEC104ClientConnection::startNewInterrogationCycle()
             m_client->updateGiStatus(IEC104Client::GiStatus::STARTED);
         }
     }
+}
+
+void
+IEC104ClientConnection::closeConnection()
+{
+    Logger::getLogger()->info("Closing connection");
+
+    if (m_connection) {
+        CS104_Connection_close(m_connection);
+    }
+
+    m_conLock.lock();
+
+    m_connectionState = CON_STATE_IDLE;
+
+    m_conLock.unlock();
+
+    Logger::getLogger()->info("Connection closed");
 }
 
 void 
@@ -505,6 +543,8 @@ IEC104ClientConnection::executePeriodicTasks()
                                     m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
 
                                     m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
+
+                                    closeConnection();
                                 }
                             }
                         }
@@ -521,6 +561,8 @@ IEC104ClientConnection::executePeriodicTasks()
                                     m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
 
                                     m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
+
+                                    closeConnection();
                                 }
                             }
                         }
@@ -543,6 +585,8 @@ IEC104ClientConnection::executePeriodicTasks()
                                     m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
 
                                     m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
+
+                                    closeConnection();
                                 }
 
                                 m_listOfCA_it++;
@@ -657,7 +701,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                             }
                         }
                         else {
-                            Logger::getLogger()->warn("Unexpected ACT_CON");
+                            Logger::getLogger()->warn("Unexpected ACT_CON (state: %i)", self->m_interrogationRequestState);
                         }
                     }
                     else if (cot == CS101_COT_ACTIVATION_TERMINATION) {
@@ -670,10 +714,14 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                                 self->m_client->updateGiStatus(IEC104Client::GiStatus::FINISHED);
 
                                 self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
+
+                                if (self->m_cnxLostStatusSent == false) {
+                                    self->m_cnxLostStatusSent = self->m_client->sendCnxLossStatus(false);
+                                }
                             }
                         }
                         else {
-                            Logger::getLogger()->warn("Unexpected ACT_TERM");
+                            Logger::getLogger()->warn("Unexpected ACT_TERM (state: %i)", self->m_interrogationRequestState);
                         }
                     }
                     else {
@@ -683,6 +731,8 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                             self->m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
 
                             self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
+
+                            self->closeConnection();
                         }
                     }
                 }
@@ -890,6 +940,8 @@ IEC104ClientConnection::_conThread()
                         m_startDtSent = false;
 
                         m_conLock.lock();
+
+                        m_cnxLostStatusSent = false;
 
                         if (m_connection != nullptr) {
                             CS104_Connection_destroy(m_connection);

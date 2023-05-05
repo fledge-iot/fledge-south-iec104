@@ -146,6 +146,16 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_DC_TA_1"
                        }
                     ]
+                },                            
+                {
+                    "label":"C-6",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-2005",
+                          "typeid":"C_RC_NA_1"
+                       }
+                    ]
                 }                          
             ]
         }
@@ -347,6 +357,14 @@ protected:
             printf("  C_DC_TA_1 (double-command)\n");
 
             if (ca == 41025 && ioa == 2004) {
+                IMasterConnection_sendACT_CON(connection, asdu, false);
+                lastConnection = connection;
+            }
+        }
+        else if (CS101_ASDU_getTypeID(asdu) == C_RC_NA_1) {
+            printf("  C_RC_NA_1 (step-command wo time)\n");
+
+            if (ca == 41025 && ioa == 2005) {
                 IMasterConnection_sendACT_CON(connection, asdu, false);
                 lastConnection = connection;
             }
@@ -900,6 +918,83 @@ TEST_F(ControlCommandsTest, IEC104Client_sendTwoSingleCommands)
         false, CS101_COT_ACTIVATION_TERMINATION,lastOA, 41025, false, false);
 
     InformationObject io = (InformationObject)SingleCommand_create(NULL, 2000, true, false, 0);
+
+    CS101_ASDU_addInformationObject(ctAsdu, io);
+
+    IMasterConnection_sendASDU(lastConnection, ctAsdu);
+
+    InformationObject_destroy(io);
+
+    CS101_ASDU_destroy(ctAsdu);
+
+    ASSERT_EQ(10, lastOA);
+
+    Thread_sleep(500);
+
+    // expect ingest callback called two more times:
+    //  1. ACT_CON for single command
+    //  2. ACT_TERM for single command
+    ASSERT_EQ(3 + 2, ingestCallbackCalled);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+}
+
+TEST_F(ControlCommandsTest, IEC104Client_sendStepCommand)
+{
+    asduHandlerCalled = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    startIEC104();
+
+    Thread_sleep(500);
+
+    PLUGIN_PARAMETER* params[4];
+
+    PLUGIN_PARAMETER ca = {"ca", "41025"};
+    params[0] = &ca;
+
+    // ioa
+    PLUGIN_PARAMETER ioa = {"ioa", "2005"};
+    params[1] = &ioa;
+
+    // Third value
+    PLUGIN_PARAMETER value = {"", "2"};
+    params[2] = &value;
+
+    // Third value
+    PLUGIN_PARAMETER select = {"", "0"};
+    params[3] = &select;
+
+    // quality update for measurement data points
+    ASSERT_EQ(3, ingestCallbackCalled);
+
+    bool operationResult = iec104->operation("StepCommand", 4, params);
+
+    ASSERT_TRUE(operationResult);
+
+    Thread_sleep(500);
+
+    ASSERT_EQ(1, asduHandlerCalled);
+
+    CS101_ASDU ctAsdu = CS101_ASDU_create(IMasterConnection_getApplicationLayerParameters(lastConnection),
+        false, CS101_COT_ACTIVATION_TERMINATION,lastOA, 41025, false, false);
+
+    InformationObject io = (InformationObject)StepCommand_create(NULL, 2005, IEC60870_STEP_HIGHER, false, 0);
 
     CS101_ASDU_addInformationObject(ctAsdu, io);
 

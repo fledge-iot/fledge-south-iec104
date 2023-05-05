@@ -317,7 +317,7 @@ IEC104::operation(const std::string& operation, int count,
     }
     else if (operation.compare("StepCommand") == 0)
     {
-        return m_stepCommandOperation(count, params, true);
+        return m_stepCommandOperation(count, params, false);
     }
     else if (operation.compare("SetpointNormalizedWithCP56Time2a") == 0)
     {
@@ -344,6 +344,7 @@ IEC104::operation(const std::string& operation, int count,
         return m_setpointShort(count, params, false);
     }
     else if (operation.compare("request_connection_status") == 0) {
+        Logger::getLogger()->info("received request_connection_status", operation.c_str());
         return m_client->sendConnectionStatus();
     }
  
