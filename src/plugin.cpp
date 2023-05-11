@@ -251,6 +251,8 @@ extern "C"
         ConfigCategory config("newConfig", newConfig);
         auto *iec104 = reinterpret_cast<IEC104 *>(*handle);
 
+        iec104->stop();
+
         if (config.itemExists("protocol_stack") &&
             config.itemExists("exchanged_data") &&
             config.itemExists("tls"))
@@ -263,7 +265,11 @@ extern "C"
             iec104->setAssetName(config.getValue("asset"));
             Logger::getLogger()->info(
                 "104 plugin restart after reconfigure asset");
-            iec104->restart();
+            iec104->start();
+        }
+        else {
+            Logger::getLogger()->error(
+                "104 plugin restart failed");
         }
     }
 

@@ -939,21 +939,29 @@ IEC104ClientConnection::_conThread()
                     {
                         m_startDtSent = false;
 
+                        CS104_Connection con = nullptr;
+
                         m_conLock.lock();
 
-                        m_cnxLostStatusSent = false;
+                        con = m_connection;
 
-                        if (m_connection != nullptr) {
-                            CS104_Connection_destroy(m_connection);
+                        m_connection = nullptr;
 
-                            m_connection = nullptr;
+                        m_conLock.unlock();
+
+                        if (con != nullptr) {
+                            CS104_Connection_destroy(con);
                         }
+
+                        m_conLock.lock();
 
                         if (prepareConnection()) {
                             m_connectionState = CON_STATE_CONNECTING;
                             m_connecting = true;
 
                             m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
+
+                            m_conLock.unlock();
 
                             CS104_Connection_connectAsync(m_connection);
 
@@ -962,9 +970,10 @@ IEC104ClientConnection::_conThread()
                         else {
                             m_connectionState = CON_STATE_FATAL_ERROR;
                             Logger::getLogger()->error("Fatal configuration error");
+
+                            m_conLock.unlock();
                         }
-                        
-                        m_conLock.unlock();
+
                     }
                     break;
 
@@ -1017,34 +1026,47 @@ IEC104ClientConnection::_conThread()
 
         if (m_disconnect) {
 
+            CS104_Connection con = nullptr;
+
+            m_conLock.lock();
+
             m_connected = false;
             m_connecting = false;
             m_disconnect = false;
 
-            m_conLock.lock();
+            con = m_connection;
 
-            if (m_connection) {
-                CS104_Connection_destroy(m_connection);
-                m_connection = nullptr;
-            }
+            m_connection = nullptr;
 
             m_conLock.unlock();
+
+            if (con) {
+                CS104_Connection_destroy(con);
+            }         
         }
 
         Thread_sleep(50);
     }
 
+
+    CS104_Connection con = nullptr;
+    TLSConfiguration tlsConfig = nullptr;
+
     m_conLock.lock();
 
-    if (m_connection) { 
-        CS104_Connection_destroy(m_connection);
-        m_connection = nullptr;
-    }
+    con = m_connection;
+    tlsConfig = m_tlsConfig;
 
-    if (m_tlsConfig) {
-        TLSConfiguration_destroy(m_tlsConfig);
-        m_tlsConfig = nullptr;
-    }
+    m_connection = nullptr;
+    m_tlsConfig = nullptr;
 
     m_conLock.unlock();
+
+    if (con) { 
+        CS104_Connection_destroy(con);
+    }
+
+    if (tlsConfig) {
+        TLSConfiguration_destroy(tlsConfig);
+    }
 }

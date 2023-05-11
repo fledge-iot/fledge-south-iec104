@@ -52,7 +52,6 @@ public:
                               const std::string& msg_configuration,
                               const std::string& tls_configuration);
 
-    void restart();
     void start();
     void stop();
 
