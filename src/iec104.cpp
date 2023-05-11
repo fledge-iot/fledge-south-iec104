@@ -37,15 +37,14 @@ void IEC104::setJsonConfig(const std::string& stack_configuration,
                            const std::string& msg_configuration,
                            const std::string& tls_configuration)
 {
+    if (m_config != nullptr) {
+        delete m_config;
+        m_config = new IEC104ClientConfig();
+    }
+
     m_config->importProtocolConfig(stack_configuration);
     m_config->importExchangeConfig(msg_configuration);
     m_config->importTlsConfig(tls_configuration);
-}
-
-void IEC104::restart()
-{
-    stop();
-    start();
 }
 
 void IEC104::start()
