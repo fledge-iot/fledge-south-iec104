@@ -508,7 +508,7 @@ IEC104Client::sendSouthMonitoringEvent(bool connxStatus, bool giStatus)
 
     DatapointValue dpv(attributes, true);
 
-    Datapoint* southEvent = new Datapoint("iec104_south_event", dpv);
+    Datapoint* southEvent = new Datapoint("south_event", dpv);
 
     vector<Datapoint*> datapoints;
     vector<string> labels;
