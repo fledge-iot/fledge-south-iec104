@@ -428,7 +428,7 @@ protected:
 
     static bool IsConnxStatusStarted(Reading* reading)
     {
-        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+        Datapoint* southEvent = getObject(*reading, "south_event");
 
         if (southEvent) {
             Datapoint* connxStatus = getChild(*southEvent, "connx_status");
@@ -445,7 +445,7 @@ protected:
 
     static bool IsConnxStatusNotConnected(Reading* reading)
     {
-        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+        Datapoint* southEvent = getObject(*reading, "south_event");
 
         if (southEvent) {
             Datapoint* connxStatus = getChild(*southEvent, "connx_status");
@@ -462,7 +462,7 @@ protected:
 
     static bool IsGiStatusStarted(Reading* reading)
     {
-        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+        Datapoint* southEvent = getObject(*reading, "south_event");
 
         if (southEvent) {
             Datapoint* connxStatus = getChild(*southEvent, "gi_status");
@@ -479,7 +479,7 @@ protected:
 
     static bool IsGiStatusInProgress(Reading* reading)
     {
-        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+        Datapoint* southEvent = getObject(*reading, "south_event");
 
         if (southEvent) {
             Datapoint* connxStatus = getChild(*southEvent, "gi_status");
@@ -496,7 +496,7 @@ protected:
 
     static bool IsGiStatusFailed(Reading* reading)
     {
-        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+        Datapoint* southEvent = getObject(*reading, "south_event");
 
         if (southEvent) {
             Datapoint* connxStatus = getChild(*southEvent, "gi_status");
@@ -513,7 +513,7 @@ protected:
 
     static bool IsGiStatusFinished(Reading* reading)
     {
-        Datapoint* southEvent = getObject(*reading, "iec104_south_event");
+        Datapoint* southEvent = getObject(*reading, "south_event");
 
         if (southEvent) {
             Datapoint* connxStatus = getChild(*southEvent, "gi_status");
