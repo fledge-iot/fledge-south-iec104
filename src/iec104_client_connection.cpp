@@ -81,7 +81,7 @@ IEC104ClientConnection::m_connectionHandler(void* parameter, CS104_Connection co
 
         self->m_conLock.unlock();
 
-        self->m_client->sendCnxLossStatus(true);
+        self->m_client->sendCnxLossStatus(false);
     }
     else if (event == CS104_CONNECTION_OPENED) 
     {
@@ -716,7 +716,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                                 self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
 
                                 if (self->m_cnxLostStatusSent == false) {
-                                    self->m_cnxLostStatusSent = self->m_client->sendCnxLossStatus(false);
+                                    self->m_cnxLostStatusSent = self->m_client->sendCnxLossStatus(true);
                                 }
                             }
                         }
