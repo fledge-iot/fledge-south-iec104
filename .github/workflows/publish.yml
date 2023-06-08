@@ -15,7 +15,8 @@ env:
   REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
   FLEDGE_IMAGE_NAME: 'fledgepower/fledge'
   FLEDGE_GUI_IMAGE_NAME: 'fledgepower/fledge-gui'
-  IMAGE_TAG: '1.0.0-amd64'
+  #IMAGE_TAG: '1.0.0-amd64'
+  IMAGE_TAG: 'latest'
 
 jobs:
   build-and-push-image:
