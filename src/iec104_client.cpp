@@ -547,7 +547,7 @@ IEC104Client::sendCnxLossStatus(bool value)
     DataExchangeDefinition* dp = m_config->getCnxLossStatusDatapoint();
 
     if (dp) {
-        Logger::getLogger()->warn("send cnx_loss_status (data point: $s)", dp->label.c_str());
+        Logger::getLogger()->warn("send cnx_loss_status (data point: %s)", dp->label.c_str());
 
         Datapoint* cnxLossStatusDp = m_createCnxLossStatus(dp, value, Hal_getTimeInMs());
 

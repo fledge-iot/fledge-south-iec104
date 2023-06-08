@@ -715,9 +715,12 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 
                                 self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
 
+                                /*
                                 if (self->m_cnxLostStatusSent == false) {
                                     self->m_cnxLostStatusSent = self->m_client->sendCnxLossStatus(true);
-                                }
+                                } */
+                                self->m_client->sendCnxLossStatus(true);
+                                self->m_client->sendCnxLossStatus(false); // transient single point reset
                             }
                         }
                         else {
