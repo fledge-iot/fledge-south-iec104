@@ -1,5 +1,4 @@
 #include <config_category.h>
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <iec104.h>
 #include <plugin_api.h>
