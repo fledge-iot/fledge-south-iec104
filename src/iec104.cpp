@@ -277,7 +277,11 @@ bool
 IEC104::operation(const std::string& operation, int count,
                        PLUGIN_PARAMETER** params)
 {
-    printf("IEC104::operation(%s)\n", operation.c_str());
+    if (m_client == nullptr) {
+        Logger::getLogger()->error("operation called but plugin is not yet initialized");
+
+        return false;
+    }
 
     if (operation.compare("CS104_Connection_sendInterrogationCommand") == 0)
     {

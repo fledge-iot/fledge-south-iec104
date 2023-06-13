@@ -448,6 +448,9 @@ IEC104Client::OutstandingCommand::OutstandingCommand(int typeId, int ca, int ioa
 void
 IEC104Client::sendSouthMonitoringEvent(bool connxStatus, bool giStatus)
 {
+    if (m_config == nullptr)
+        return;
+
     if (m_config->GetConnxStatusSignal().empty())
         return;
 
@@ -514,6 +517,7 @@ IEC104Client::sendSouthMonitoringEvent(bool connxStatus, bool giStatus)
     vector<string> labels;
 
     datapoints.push_back(southEvent);
+
     labels.push_back(m_config->GetConnxStatusSignal());
 
     sendData(datapoints, labels);
