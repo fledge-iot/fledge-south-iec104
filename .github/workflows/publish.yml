@@ -77,7 +77,14 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-            
+          args: --sarif-file-output=snyk.sarif
+      
+      # Upload result to GitHub Code Scanning
+      - name: Snyk results upload
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: snyk.sarif
+      
       # Push to ghcr.io (Github Image Registry)
       - name: Push images
         run: |
