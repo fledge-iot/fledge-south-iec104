@@ -54,7 +54,7 @@ IEC104ClientConnection::Activate()
     }
 }
 
-int 
+int
 IEC104ClientConnection::broadcastCA()
 {
     if (m_config->CaSize() == 1)
@@ -63,7 +63,7 @@ IEC104ClientConnection::broadcastCA()
     return 0xffff;
 }
 
-void 
+void
 IEC104ClientConnection::m_connectionHandler(void* parameter, CS104_Connection connection,
                                  CS104_ConnectionEvent event)
 {
@@ -83,7 +83,7 @@ IEC104ClientConnection::m_connectionHandler(void* parameter, CS104_Connection co
 
         self->m_client->sendCnxLossStatus(false);
     }
-    else if (event == CS104_CONNECTION_OPENED) 
+    else if (event == CS104_CONNECTION_OPENED)
     {
         self->m_conLock.lock();
 
@@ -123,7 +123,7 @@ IEC104ClientConnection::sendInterrogationCommand(int ca)
 
     m_conLock.lock();
 
-    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE))
     {
         if (CS104_Connection_sendInterrogationCommand(m_connection, CS101_COT_ACTIVATION, ca, IEC60870_QOI_STATION)) {
             Logger::getLogger()->debug("Interrogation command sent (CA=%i)", ca);
@@ -146,13 +146,13 @@ IEC104ClientConnection::sendSingleCommand(int ca, int ioa, bool value, bool with
 
     m_conLock.lock();
 
-    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE))
     {
         InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
-            
+
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
             cmdObj = (InformationObject)SingleCommandWithCP56Time2a_create(NULL, ioa, value, select, 0, &ts);
@@ -168,7 +168,7 @@ IEC104ClientConnection::sendSingleCommand(int ca, int ioa, bool value, bool with
             }
 
             InformationObject_destroy(cmdObj);
-        }  
+        }
     }
 
     m_conLock.unlock();
@@ -185,13 +185,13 @@ IEC104ClientConnection::sendDoubleCommand(int ca, int ioa, int value, bool withT
 
     m_conLock.lock();
 
-    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE))
     {
         InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
-            
+
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
             cmdObj = (InformationObject)DoubleCommandWithCP56Time2a_create(NULL, ioa, value, select, 0, &ts);
@@ -207,14 +207,14 @@ IEC104ClientConnection::sendDoubleCommand(int ca, int ioa, int value, bool withT
             }
 
             InformationObject_destroy(cmdObj);
-        }  
+        }
     }
 
     m_conLock.unlock();
 
     if (!success) Logger::getLogger()->warn("Failed to send double command");
 
-    return success;    
+    return success;
 }
 
 bool
@@ -224,13 +224,13 @@ IEC104ClientConnection::sendStepCommand(int ca, int ioa, int value, bool withTim
 
     m_conLock.lock();
 
-    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE))
     {
         InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
-            
+
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
             cmdObj = (InformationObject)StepCommandWithCP56Time2a_create(NULL, ioa, (StepCommandValue)value, select, 0, &ts);
@@ -246,7 +246,7 @@ IEC104ClientConnection::sendStepCommand(int ca, int ioa, int value, bool withTim
             }
 
             InformationObject_destroy(cmdObj);
-        }  
+        }
     }
 
     m_conLock.unlock();
@@ -263,13 +263,13 @@ IEC104ClientConnection::sendSetpointNormalized(int ca, int ioa, float value, boo
 
     m_conLock.lock();
 
-    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE))
     {
         InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
-            
+
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
             cmdObj = (InformationObject)SetpointCommandNormalizedWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
@@ -285,7 +285,7 @@ IEC104ClientConnection::sendSetpointNormalized(int ca, int ioa, float value, boo
             }
 
             InformationObject_destroy(cmdObj);
-        }  
+        }
     }
 
     m_conLock.unlock();
@@ -302,13 +302,13 @@ IEC104ClientConnection::sendSetpointScaled(int ca, int ioa, int value, bool with
 
     m_conLock.lock();
 
-    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE))
     {
         InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
-            
+
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
             cmdObj = (InformationObject)SetpointCommandScaledWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
@@ -324,7 +324,7 @@ IEC104ClientConnection::sendSetpointScaled(int ca, int ioa, int value, bool with
             }
 
             InformationObject_destroy(cmdObj);
-        }  
+        }
     }
 
     m_conLock.unlock();
@@ -341,13 +341,13 @@ IEC104ClientConnection::sendSetpointShort(int ca, int ioa, float value, bool wit
 
     m_conLock.lock();
 
-    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
+    if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE))
     {
         InformationObject cmdObj = nullptr;
 
         if (withTime) {
             struct sCP56Time2a ts;
-            
+
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
             cmdObj = (InformationObject)SetpointCommandShortWithCP56Time2a_create(NULL, ioa, value, false, 0, &ts);
@@ -363,7 +363,7 @@ IEC104ClientConnection::sendSetpointShort(int ca, int ioa, float value, bool wit
             }
 
             InformationObject_destroy(cmdObj);
-        }  
+        }
     }
 
     m_conLock.unlock();
@@ -373,7 +373,7 @@ IEC104ClientConnection::sendSetpointShort(int ca, int ioa, float value, bool wit
     return success;
 }
 
-void 
+void
 IEC104ClientConnection::prepareParameters()
 {
     // Transport layer initialization
@@ -463,7 +463,7 @@ IEC104ClientConnection::closeConnection()
     Logger::getLogger()->info("Connection closed");
 }
 
-void 
+void
 IEC104ClientConnection::executePeriodicTasks()
 {
     /* do time synchroniation when enabled */
@@ -475,7 +475,7 @@ IEC104ClientConnection::executePeriodicTasks()
         if ((m_timeSynchronized == false) && (m_firstTimeSyncOperationCompleted == false) && (m_timeSyncCommandSent == false)) {
             sendTimeSyncCommand = true;
         }
-        
+
         /* send periodic time sync command when configured */
         if ((m_timeSynchronized == true) && (m_timeSyncCommandSent == false)) {
             uint64_t currentTime = getMonotonicTimeInMs();
@@ -489,7 +489,7 @@ IEC104ClientConnection::executePeriodicTasks()
 
         if (sendTimeSyncCommand) {
             struct sCP56Time2a ts;
-            
+
             CP56Time2a_createFromMsTimestamp(&ts, Hal_getTimeInMs());
 
             int ca = m_config->TimeSyncCa();
@@ -514,8 +514,8 @@ IEC104ClientConnection::executePeriodicTasks()
             m_conLock.unlock();
         }
     }
-    
-    if ((m_config->isTimeSyncEnabled() == false) || (m_firstTimeSyncOperationCompleted == true)) 
+
+    if ((m_config->isTimeSyncEnabled() == false) || (m_firstTimeSyncOperationCompleted == true))
     {
         if (m_config->GiEnabled())
         {
@@ -523,7 +523,7 @@ IEC104ClientConnection::executePeriodicTasks()
             {
                 startNewInterrogationCycle();
             }
-            else 
+            else
             {
                 uint64_t currentTime = getMonotonicTimeInMs();
 
@@ -601,7 +601,7 @@ IEC104ClientConnection::executePeriodicTasks()
                         }
                     }
                 }
-                else 
+                else
                 {
                     if ((m_config->GiCycle() > 0) && (currentTime > m_nextGIStartTime)) {
                         startNewInterrogationCycle();
@@ -644,7 +644,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 
             case C_CS_NA_1:
                 Logger::getLogger()->info("Received time sync response");
-                
+
                 if (self->m_timeSyncCommandSent == true) {
 
                     if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
@@ -684,7 +684,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                 break;
 
             case C_IC_NA_1:
-                { 
+                {
                     Logger::getLogger()->debug("Receivd C_IC_NA_1 with COT=%i", cot);
 
                     if (cot == CS101_COT_ACTIVATION_CON) {
@@ -754,6 +754,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
     return true;
 }
 
+
 bool
 IEC104ClientConnection::prepareConnection()
 {
@@ -761,13 +762,14 @@ IEC104ClientConnection::prepareConnection()
 
     if (m_connection == nullptr)
     {
-        if (m_redGroup->UseTLS()) 
+        if (m_redGroup->UseTLS())
         {
             TLSConfiguration tlsConfig = TLSConfiguration_create();
 
             bool tlsConfigOk = true;
 
             string certificateStore = getDataDir() + string("/etc/certs/");
+            string certificateStorePem = getDataDir() + string("/etc/certs/pem/");
 
             if (m_config->GetOwnCertificate().length() == 0 || m_config->GetPrivateKey().length() == 0) {
                 Logger::getLogger()->error("No private key and/or certificate configured for client");
@@ -787,7 +789,16 @@ IEC104ClientConnection::prepareConnection()
                     tlsConfigOk = false;
                 }
 
-                string clientCertFile = certificateStore + m_config->GetOwnCertificate();
+                string clientCert =  m_config->GetOwnCertificate();
+                bool isPemClientCertificate = clientCert.rfind(".pem") == clientCert.size() - 4;
+
+                string clientCertFile;
+
+                if(isPemClientCertificate)
+                    clientCertFile = certificateStorePem + clientCert;
+                else
+                    clientCertFile = certificateStore + clientCert;
+
 
                 if (access(clientCertFile.c_str(), R_OK) == 0) {
                     if (TLSConfiguration_setOwnCertificateFromFile(tlsConfig, clientCertFile.c_str()) == false) {
@@ -806,7 +817,14 @@ IEC104ClientConnection::prepareConnection()
 
                 for (std::string& remoteCert : m_config->GetRemoteCertificates())
                 {
-                    string remoteCertFile = certificateStore + remoteCert;
+                    bool isPemRemoteCertificate = remoteCert.rfind(".pem") == remoteCert.size() - 4;
+
+                    string remoteCertFile;
+
+                    if(isPemRemoteCertificate)
+                        remoteCertFile = certificateStorePem + remoteCert;
+                    else
+                        remoteCertFile = certificateStore + remoteCert;
 
                     if (access(remoteCertFile.c_str(), R_OK) == 0) {
                         if (TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, remoteCertFile.c_str()) == false) {
@@ -828,7 +846,14 @@ IEC104ClientConnection::prepareConnection()
 
                 for (std::string& caCert : m_config->GetCaCertificates())
                 {
-                    string caCertFile = certificateStore + caCert;
+                    bool isPemCaCertificate = caCert.rfind(".pem") == caCert.size() - 4;
+
+                    string caCertFile;
+
+                    if(isPemCaCertificate)
+                        caCertFile = certificateStorePem + caCert;
+                    else
+                        caCertFile = certificateStore + caCert;
 
                     if (access(caCertFile.c_str(), R_OK) == 0) {
                         if (TLSConfiguration_addCACertificateFromFile(tlsConfig, caCertFile.c_str()) == false) {
@@ -847,8 +872,10 @@ IEC104ClientConnection::prepareConnection()
 
             if (tlsConfigOk) {
 
+                TLSConfiguration_setRenegotiationTime(tlsConfig, 60000);
+
                 m_connection = CS104_Connection_createSecure(m_redGroupConnection->ServerIP().c_str(), m_redGroupConnection->TcpPort(), tlsConfig);
-            
+
                 if (m_connection) {
                     m_tlsConfig = tlsConfig;
                 }
@@ -889,7 +916,7 @@ IEC104ClientConnection::prepareConnection()
 void
 IEC104ClientConnection::Start()
 {
-    if (m_started == false) 
+    if (m_started == false)
     {
         m_connect = m_redGroupConnection->Conn();
 
@@ -916,7 +943,7 @@ IEC104ClientConnection::Connect()
 void
 IEC104ClientConnection::Stop()
 {
-    if (m_started == true) 
+    if (m_started == true)
     {
         m_started = false;
 
@@ -932,7 +959,7 @@ IEC104ClientConnection::Stop()
 void
 IEC104ClientConnection::_conThread()
 {
-    while (m_started) 
+    while (m_started)
     {
         if (m_connect)
         {
@@ -1005,7 +1032,7 @@ IEC104ClientConnection::_conThread()
                 case CON_STATE_CLOSED:
 
                     // start delay timer for reconnect
-                    
+
                     m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
                     m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
 
@@ -1045,7 +1072,7 @@ IEC104ClientConnection::_conThread()
 
             if (con) {
                 CS104_Connection_destroy(con);
-            }         
+            }
         }
 
         Thread_sleep(50);
@@ -1065,7 +1092,7 @@ IEC104ClientConnection::_conThread()
 
     m_conLock.unlock();
 
-    if (con) { 
+    if (con) {
         CS104_Connection_destroy(con);
     }
 
