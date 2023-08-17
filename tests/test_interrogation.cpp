@@ -531,8 +531,6 @@ protected:
     {
         InterrogationTest* self = (InterrogationTest*)parameter;
 
-        printf("ingestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
-
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
         if (reading.getAssetName() == "CONSTAT-1") {
@@ -922,7 +920,7 @@ TEST_F(InterrogationTest, IEC104Client_GIcycleOneSecondNoACT_CON)
 
     Thread_sleep(2000);
 
-    ASSERT_EQ(2, interrogationRequestsReceived);
+    ASSERT_EQ(1, interrogationRequestsReceived);
 
     CS104_Slave_stop(slave);
 
@@ -974,6 +972,8 @@ TEST_F(InterrogationTest, InterrogationRequestAfter_M_EI_NA_1)
     InformationObject_destroy(io);
 
     CS104_Slave_enqueueASDU(slave, asdu);
+
+    printf("[%lu]Send M_EI_MA_1\n", Hal_getTimeInMs());
 
     CS101_ASDU_destroy(asdu);
 

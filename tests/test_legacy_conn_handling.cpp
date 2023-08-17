@@ -62,6 +62,50 @@ static string protocol_config = QUOTE({
     });
 
 
+static string protocol_config_no_red = QUOTE({
+        "protocol_stack" : {
+            "name" : "iec104client",
+            "version" : "1.0",
+            "transport_layer" : {
+                "redundancy_groups" : [
+                    { 
+                        "connections" : [
+                            {     
+                                "srv_ip" : "127.0.0.1",        
+                                "port" : 2404          
+                            }
+                        ],
+                        "rg_name" : "red-group1",  
+                        "tls" : false,
+                        "k_value" : 12,  
+                        "w_value" : 8,
+                        "t0_timeout" : 10,                 
+                        "t1_timeout" : 15,                 
+                        "t2_timeout" : 10,                 
+                        "t3_timeout" : 20    
+                    }
+                ]                  
+            },                
+            "application_layer" : {                
+                "orig_addr" : 10, 
+                "ca_asdu_size" : 2,                
+                "ioaddr_size" : 3,                             
+                "asdu_size" : 0, 
+                "gi_time" : 60,  
+                "gi_cycle" : 30,                
+                "gi_all_ca" : true,                             
+                "utc_time" : false,                
+                "cmd_with_timetag" : false,              
+                "cmd_parallel" : 0,                              
+                "time_sync" : 1                
+            },
+            "south_monitoring" : {
+                "asset": "CONSTAT-1",
+                "cnx_loss_status_id" : "CNXLOSS-1"
+            }             
+        }                     
+    });
+
 static string exchanged_data = QUOTE({
         "exchanged_data": {
             "name" : "iec104client",        
@@ -398,15 +442,21 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLost)
 {
     ingestCallbackCalled = 0;
  
-    iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
+    iec104->setJsonConfig(protocol_config_no_red, exchanged_data, tls_config);
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
     CS104_Slave_setLocalPort(slave, TEST_PORT);
 
+    printf("Starting CS 104 slave\n");
+
     CS104_Slave_start(slave);
 
+    printf("Slave started\n");
+
     startIEC104();
+
+    printf("Client plugin started\n");
 
     sleep(1);
 
@@ -449,7 +499,7 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
 {
     ingestCallbackCalled = 0;
  
-    iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
+    iec104->setJsonConfig(protocol_config_no_red, exchanged_data, tls_config);
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
 
@@ -493,7 +543,7 @@ TEST_F(LegacyConnectionHandlingTest, SendConnectionStatusAfterRequestFromNorth)
 {
     ingestCallbackCalled = 0;
  
-    iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
+    iec104->setJsonConfig(protocol_config_no_red, exchanged_data, tls_config);
 
     startIEC104();
 

@@ -125,6 +125,8 @@ IEC104ClientConnection::sendInterrogationCommand(int ca)
 
     if ((m_connection != nullptr) && (m_connectionState == CON_STATE_CONNECTED_ACTIVE)) 
     {
+
+
         if (CS104_Connection_sendInterrogationCommand(m_connection, CS101_COT_ACTIVATION, ca, IEC60870_QOI_STATION)) {
             Logger::getLogger()->debug("Interrogation command sent (CA=%i)", ca);
             success = true;
@@ -416,6 +418,9 @@ IEC104ClientConnection::startNewInterrogationCycle()
     m_client->createListOfDatapointsInStationGroup();
 
     if (m_config->GiForAllCa() == false) {
+
+        m_client->updateGiStatus(IEC104Client::GiStatus::STARTED);
+
         if (sendInterrogationCommand(broadcastCA())) {
             Logger::getLogger()->debug("Sent interrogation command to broadcase address");
             m_firstGISent = true;
@@ -423,13 +428,10 @@ IEC104ClientConnection::startNewInterrogationCycle()
             m_interrogationRequestState = 1;
             m_interrogationRequestSent = getMonotonicTimeInMs();
             m_nextGIStartTime = m_interrogationRequestSent + (m_config->GiCycle() * 1000);
-
-            m_client->updateGiStatus(IEC104Client::GiStatus::STARTED);
         }
         else {
             Logger::getLogger()->error("Failed to send interrogation command to broadcast address");
             m_firstGISent = true;
-            //TODO close connection
         }
     }
     else {
@@ -453,12 +455,6 @@ IEC104ClientConnection::closeConnection()
     if (m_connection) {
         CS104_Connection_close(m_connection);
     }
-
-    m_conLock.lock();
-
-    m_connectionState = CON_STATE_IDLE;
-
-    m_conLock.unlock();
 
     Logger::getLogger()->info("Connection closed");
 }
@@ -500,18 +496,18 @@ IEC104ClientConnection::executePeriodicTasks()
             if (ca == -1)
                 ca = broadcastCA();
 
-            m_conLock.lock();
-
-            m_timeSyncCommandSent = true;
-
             if (CS104_Connection_sendClockSyncCommand(m_connection, ca, &ts)) {
                 Logger::getLogger()->info("Sent clock sync command ...");
+
+                m_conLock.lock();
+
+                m_timeSyncCommandSent = true;
+
+                m_conLock.unlock();
             }
             else {
                 Logger::getLogger()->error("Failed to send clock sync command");
             }
-
-            m_conLock.unlock();
         }
     }
     
@@ -697,7 +693,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                                 self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
                             }
                             else {
-                                self->m_client->updateGiStatus(IEC104Client::GiStatus::STARTED); //TODO is IN_PROGRESS?
+                                self->m_client->updateGiStatus(IEC104Client::GiStatus::IN_PROGRESS);
                             }
                         }
                         else {
@@ -715,10 +711,6 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 
                                 self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
 
-                                /*
-                                if (self->m_cnxLostStatusSent == false) {
-                                    self->m_cnxLostStatusSent = self->m_client->sendCnxLossStatus(true);
-                                } */
                                 self->m_client->sendCnxLossStatus(true);
                                 self->m_client->sendCnxLossStatus(false); // transient single point reset
                             }
@@ -735,7 +727,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 
                             self->m_client->updateQualityForDataObjectsNotReceivedInGIResponse(IEC60870_QUALITY_INVALID);
 
-                            self->closeConnection();
+                            self->Disonnect();
                         }
                     }
                 }
@@ -857,7 +849,6 @@ IEC104ClientConnection::prepareConnection()
                 }
             }
             else {
-                printf("TLS configuration failed\n");
                 Logger::getLogger()->error("TLS configuration failed");
             }
         }
@@ -934,101 +925,99 @@ IEC104ClientConnection::_conThread()
 {
     while (m_started) 
     {
-        if (m_connect)
-        {
-            switch (m_connectionState) {
+        switch (m_connectionState) {
 
-                case CON_STATE_IDLE:
-                    {
-                        m_startDtSent = false;
+            case CON_STATE_IDLE:
+                if (m_connect) {
+                    m_startDtSent = false;
 
-                        CS104_Connection con = nullptr;
+                    CS104_Connection con = nullptr;
 
-                        m_conLock.lock();
+                    m_conLock.lock();
 
-                        con = m_connection;
+                    con = m_connection;
 
-                        m_connection = nullptr;
+                    m_connection = nullptr;
+
+                    m_conLock.unlock();
+
+                    if (con != nullptr) {
+                        CS104_Connection_destroy(con);
+                    }
+
+                    m_conLock.lock();
+
+                    if (prepareConnection()) {
+                        m_connectionState = CON_STATE_CONNECTING;
+                        m_connecting = true;
+
+                        m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
 
                         m_conLock.unlock();
 
-                        if (con != nullptr) {
-                            CS104_Connection_destroy(con);
-                        }
+                        CS104_Connection_connectAsync(m_connection);
 
-                        m_conLock.lock();
-
-                        if (prepareConnection()) {
-                            m_connectionState = CON_STATE_CONNECTING;
-                            m_connecting = true;
-
-                            m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
-
-                            m_conLock.unlock();
-
-                            CS104_Connection_connectAsync(m_connection);
-
-                            Logger::getLogger()->info("Connecting");
-                        }
-                        else {
-                            m_connectionState = CON_STATE_FATAL_ERROR;
-                            Logger::getLogger()->error("Fatal configuration error");
-
-                            m_conLock.unlock();
-                        }
-
+                        Logger::getLogger()->info("Connecting");
                     }
-                    break;
+                    else {
+                        m_connectionState = CON_STATE_FATAL_ERROR;
+                        Logger::getLogger()->error("Fatal configuration error");
 
-                case CON_STATE_CONNECTING:
-                    /* wait for connected event or timeout */
-
-                    if (getMonotonicTimeInMs() > m_delayExpirationTime) {
-                        Logger::getLogger()->warn("Timeout while connecting");
-                        m_connectionState = CON_STATE_IDLE;
+                        m_conLock.unlock();
                     }
 
-                    break;
+                }
 
-                case CON_STATE_CONNECTED_INACTIVE:
+                break;
 
-                    /* wait for Activate signal */
+            case CON_STATE_CONNECTING:
+                /* wait for connected event or timeout */
 
-                    break;
+                if (getMonotonicTimeInMs() > m_delayExpirationTime) {
+                    Logger::getLogger()->warn("Timeout while connecting");
+                    m_connectionState = CON_STATE_IDLE;
+                }
 
-                case CON_STATE_CONNECTED_ACTIVE:
+                break;
 
-                    executePeriodicTasks();
+            case CON_STATE_CONNECTED_INACTIVE:
 
-                    break;
+                /* wait for Activate signal */
 
-                case CON_STATE_CLOSED:
+                break;
 
-                    // start delay timer for reconnect
-                    
-                    m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
-                    m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
+            case CON_STATE_CONNECTED_ACTIVE:
 
-                    break;
+                executePeriodicTasks();
 
-                case CON_STATE_WAIT_FOR_RECONNECT:
+                break;
 
-                    // when timeout expired switch to idle state
+            case CON_STATE_CLOSED:
 
-                    if (getMonotonicTimeInMs() >= m_delayExpirationTime) {
-                        m_connectionState = CON_STATE_IDLE;
-                    }
+                // start delay timer for reconnect
+                
+                m_delayExpirationTime = getMonotonicTimeInMs() + 10000;
+                m_connectionState = CON_STATE_WAIT_FOR_RECONNECT;
 
-                    break;
+                break;
 
-                case CON_STATE_FATAL_ERROR:
-                    /* stay in this state until stop is called */
-                    break;
-            }
+            case CON_STATE_WAIT_FOR_RECONNECT:
+
+                // when timeout expired switch to idle state
+
+                if (getMonotonicTimeInMs() >= m_delayExpirationTime) {
+                    m_connectionState = CON_STATE_IDLE;
+                }
+
+                break;
+
+            case CON_STATE_FATAL_ERROR:
+                /* stay in this state until stop is called */
+                break;
         }
 
-        if (m_disconnect) {
-
+        if (m_disconnect)
+        {
             CS104_Connection con = nullptr;
 
             m_conLock.lock();
@@ -1045,7 +1034,7 @@ IEC104ClientConnection::_conThread()
 
             if (con) {
                 CS104_Connection_destroy(con);
-            }         
+            }
         }
 
         Thread_sleep(50);

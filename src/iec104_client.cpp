@@ -1213,8 +1213,6 @@ IEC104Client::_monitoringThread()
 
     uint64_t backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
 
-    
-
     while (m_started) 
     {
         m_activeConnectionMtx.lock();

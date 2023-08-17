@@ -24,10 +24,6 @@ static string protocol_config = QUOTE({
                             {     
                                 "srv_ip" : "127.0.0.1",        
                                 "port" : 2404          
-                            },    
-                            {
-                                "srv_ip" : "127.0.0.1", 
-                                "port" : 2404
                             }
                         ],
                         "rg_name" : "red-group1",  
@@ -45,9 +41,10 @@ static string protocol_config = QUOTE({
                 "orig_addr" : 10, 
                 "ca_asdu_size" : 2,                
                 "ioaddr_size" : 3,                             
-                "asdu_size" : 0, 
+                "asdu_size" : 0,
+                "gi_enabled": false,
                 "gi_time" : 60,  
-                "gi_cycle" : 30,                
+                "gi_cycle" : 0,                
                 "gi_all_ca" : true,                             
                 "utc_time" : false,                
                 "cmd_with_timetag" : false,              
@@ -278,7 +275,9 @@ protected:
 
         IMasterConnection_getPeerAddress(connection, addrBuf, 100);
 
-        printf("Clock sync called froom %s\n", addrBuf);
+        uint64_t ts = CP56Time2a_toMsTimestamp(newTime);
+
+        printf("Clock sync called froom %s: %lu\n", addrBuf, ts);
 
         self->clockSyncHandlerCalled++;
 
@@ -325,7 +324,7 @@ TEST_F(TimeSyncTest, IEC104Client_checkPeriodicTimesync)
 
     startIEC104();
 
-    Thread_sleep(1000);
+    Thread_sleep(500);
 
     ASSERT_EQ(1, clockSyncHandlerCalled);
 
@@ -340,6 +339,10 @@ TEST_F(TimeSyncTest, IEC104Client_checkPeriodicTimesync)
 
 TEST_F(TimeSyncTest, IEC104Client_checkPeriodicTimesyncDenied)
 {
+    Datapoint* dp = nullptr;
+
+    dp->parseJson("test");
+
     iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
 
     CS104_Slave slave = CS104_Slave_create(10, 10);

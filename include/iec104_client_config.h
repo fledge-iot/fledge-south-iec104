@@ -43,7 +43,7 @@ public:
 
     bool GiForAllCa() {return m_giAllCa;};
     int GiCycle() {return m_giCycle;};
-    bool GiEnabled() {return true;};
+    bool GiEnabled() {return m_giEnabled;};
     int GiRepeatCount() {return m_giRepeatCount;};
     int GiTime() {return m_giTime;};
     int CmdExecTimeout() {return m_cmdExecTimeout;};
@@ -99,6 +99,7 @@ private:
 
     int m_timeSyncPeriod = 0; /* application_layer/time_sync_period in s*/
 
+    bool m_giEnabled = true; /* enable GI requests by default */
     bool m_giAllCa = false; /* application_layer/gi_all_ca */
     int m_giCycle = 0; /* application_layer/gi_cycle: cycle time in seconds (0 = cycle disabled)*/
     int m_giRepeatCount = 2; /* application_layer/gi_repeat_count */
