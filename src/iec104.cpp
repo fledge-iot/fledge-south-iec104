@@ -6,7 +6,7 @@
  * Released under the Apache 2.0 Licence
  *
  * Author: Michael Zillgith
- * 
+ *
  */
 
 #include <iec104.h>
@@ -23,7 +23,7 @@
 using namespace std;
 
 /** Constructor for the iec104 plugin */
-IEC104::IEC104() : m_client(nullptr) 
+IEC104::IEC104() : m_client(nullptr)
 {
     m_config = new IEC104ClientConfig();
 }
@@ -108,27 +108,44 @@ void IEC104::registerIngest(void* data, INGEST_CB cb)
     m_data = data;
 }
 
+enum CommandParameters{
+    TYPE,
+    CA,
+    IOA,
+    COT,
+    NEGATIVE,
+    SE,
+    TEST,
+    TS,
+    VALUE
+};
+
 bool
 IEC104::m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
-    if (count > 3) {
+    if (count > 8) {
         // common address of the asdu
-        int ca = atoi(params[0]->value.c_str());
+        int ca = atoi(params[CA]->value.c_str());
 
         // information object address
-        int32_t ioa = atoi(params[1]->value.c_str());
+        int32_t ioa = atoi(params[IOA]->value.c_str());
 
         // command state to send, must be a boolean
         // 0 = off, 1 otherwise
-        bool value = static_cast<bool>(atoi(params[2]->value.c_str()));
+        bool value = static_cast<bool>(atoi(params[VALUE]->value.c_str()));
 
         // select or execute, must be a boolean
         // 0 = execute, otherwise = select
-        bool select = static_cast<bool>(atoi(params[3]->value.c_str()));
+        bool select = static_cast<bool>(atoi(params[SE]->value.c_str()));
 
-        Logger::getLogger()->debug("operate: single command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, withTime);
+        long time = 0;
 
-        return m_client->sendSingleCommand(ca, ioa, value, withTime, select);
+        if(withTime)
+            time = stol(params[TS]->value);
+
+        Logger::getLogger()->debug("operate: single command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
+
+        return m_client->sendSingleCommand(ca, ioa, value, withTime, select, time);
     }
     else {
         Logger::getLogger()->error("operation parameter missing");
@@ -139,24 +156,29 @@ IEC104::m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool with
 bool
 IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
-    if (count > 3) {
+    if (count > 8) {
         // common address of the asdu
-        int ca = atoi(params[0]->value.c_str());
+        int ca = atoi(params[CA]->value.c_str());
 
         // information object address
-        int32_t ioa = atoi(params[1]->value.c_str());
+        int32_t ioa = atoi(params[IOA]->value.c_str());
 
         // the command state to send, 4 possible values
         // (0 = not permitted, 1 = off, 2 = on, 3 = not permitted)
-        int value = atoi(params[2]->value.c_str());
+        int value = atoi(params[VALUE]->value.c_str());
 
         // select or execute, must be a boolean
         // 0 = execute, otherwise = select
-        bool select = static_cast<bool>(atoi(params[3]->value.c_str()));
+        bool select = static_cast<bool>(atoi(params[SE]->value.c_str()));
 
-        Logger::getLogger()->debug("operate: double command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, withTime);
+        long time = 0;
 
-        return m_client->sendDoubleCommand(ca, ioa, value, withTime, select);
+        if(withTime)
+            time = stol(params[TS]->value);
+
+        Logger::getLogger()->debug("operate: double command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
+
+        return m_client->sendDoubleCommand(ca, ioa, value, withTime, select, time);
     }
     else {
         Logger::getLogger()->error("operation parameter missing");
@@ -167,24 +189,29 @@ IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool with
 bool
 IEC104::m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
-    if (count > 3) {
+    if (count > 8) {
         // common address of the asdu
-        int ca = atoi(params[0]->value.c_str());
+        int ca = atoi(params[CA]->value.c_str());
 
         // information object address
-        int32_t ioa = atoi(params[1]->value.c_str());
+        int32_t ioa = atoi(params[IOA]->value.c_str());
 
         // the command state to send, 4 possible values
         // (0 = invalid_0, 1 = lower, 2 = higher, 3 = invalid_3)
-        int value = atoi(params[2]->value.c_str());
+        int value = atoi(params[VALUE]->value.c_str());
 
         // select or execute, must be a boolean
         // 0 = execute, otherwise = select
-        bool select = static_cast<bool>(atoi(params[3]->value.c_str()));
+        bool select = static_cast<bool>(atoi(params[SE]->value.c_str()));
 
-        Logger::getLogger()->debug("operate: step command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, withTime);
+        long time = 0;
 
-        return m_client->sendStepCommand(ca, ioa, value, withTime, select);
+        if(withTime)
+            time = stol(params[TS]->value);
+
+        Logger::getLogger()->debug("operate: step command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
+
+        return m_client->sendStepCommand(ca, ioa, value, withTime, select, time);
     }
     else {
         Logger::getLogger()->error("operation parameter missing");
@@ -195,20 +222,25 @@ IEC104::m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTi
 bool
 IEC104::m_setpointNormalized(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
-    if (count > 2) {
+    if (count > 8) {
         // common address of the asdu
-        int ca = atoi(params[0]->value.c_str());
+        int ca = atoi(params[CA]->value.c_str());
 
         // information object address
-        int32_t ioa = atoi(params[1]->value.c_str());
+        int32_t ioa = atoi(params[IOA]->value.c_str());
 
         // normalized value (range -1.0 ... 1.0)
         // TODO check range?
-        float value = (float)atof(params[2]->value.c_str());
+        float value = (float)atof(params[VALUE]->value.c_str());
 
-        Logger::getLogger()->debug("operate: setpoint command (normalized) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, withTime);
+        long time = 0;
 
-        return m_client->sendSetpointNormalized(ca, ioa, value, withTime);
+        if(withTime)
+            time = stol(params[TS]->value);
+
+        Logger::getLogger()->debug("operate: setpoint command (normalized) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
+
+        return m_client->sendSetpointNormalized(ca, ioa, value, withTime, time);
     }
     else {
         Logger::getLogger()->error("operation parameter missing");
@@ -219,20 +251,25 @@ IEC104::m_setpointNormalized(int count, PLUGIN_PARAMETER** params, bool withTime
 bool
 IEC104::m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
-    if (count > 2) {
+    if (count > 8) {
         // common address of the asdu
-        int ca = atoi(params[0]->value.c_str());
+        int ca = atoi(params[CA]->value.c_str());
 
         // information object address
-        int32_t ioa = atoi(params[1]->value.c_str());
+        int32_t ioa = atoi(params[IOA]->value.c_str());
 
         // scaled value (range -32,768 to +32,767)
         // TODO check range
-        int value = atoi(params[2]->value.c_str());
+        int value = atoi(params[VALUE]->value.c_str());
 
-        Logger::getLogger()->debug("operate: setpoint command (scaled) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, withTime);
+        long time = 0;
 
-        return m_client->sendSetpointScaled(ca, ioa, value, withTime);
+        if(withTime)
+            time = stol(params[TS]->value);
+
+        Logger::getLogger()->debug("operate: setpoint command (scaled) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
+
+        return m_client->sendSetpointScaled(ca, ioa, value, withTime, time);
     }
     else {
         Logger::getLogger()->error("operation parameter missing");
@@ -243,19 +280,24 @@ IEC104::m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime)
 bool
 IEC104::m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
-    if (count > 2) {
+    if (count > 8) {
         // common address of the asdu
-        int ca = atoi(params[0]->value.c_str());
+        int ca = atoi(params[CA]->value.c_str());
 
         // information object address
-        int32_t ioa = atoi(params[1]->value.c_str());
+        int32_t ioa = atoi(params[IOA]->value.c_str());
 
         // short float value
-        float value = (float)atof(params[2]->value.c_str());
+        float value = (float)atof(params[VALUE]->value.c_str());
 
-        Logger::getLogger()->debug("operate: setpoint command (short) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, withTime);
+        long time = 0;
 
-        return m_client->sendSetpointShort(ca, ioa, value, withTime);
+        if(withTime)
+            time = stol(params[TS]->value);
+
+        Logger::getLogger()->debug("operate: setpoint command (short) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
+
+        return m_client->sendSetpointShort(ca, ioa, value, withTime, time);
     }
     else {
         Logger::getLogger()->error("operation parameter missing");
@@ -266,11 +308,11 @@ IEC104::m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime)
 /**
  * SetPoint operation.
  * This is the function used to send an ASDU to the control station
- * 
+ *
  * @param operation     name of the command asdu
  * @param params        data object items of the command to send, composed of a name and a value
  * @param count         number of parameters
- * 
+ *
  * @return true when the command has been accepted, false otherwise
  */
 bool
@@ -283,14 +325,13 @@ IEC104::operation(const std::string& operation, int count,
         return false;
     }
 
-    if (operation.compare("CS104_Connection_sendInterrogationCommand") == 0)
+    if (operation == "CS104_Connection_sendInterrogationCommand")
     {
         int ca = atoi(params[0]->value.c_str());
 
         return m_client->sendInterrogationCommand(ca);
     }
-    else if (operation.compare(
-                    "CS104_Connection_sendTestCommandWithTimestamp") == 0)
+    else if (operation == "CS104_Connection_sendTestCommandWithTimestamp")
     {
         int casdu = atoi(params[0]->value.c_str());
 
@@ -298,59 +339,34 @@ IEC104::operation(const std::string& operation, int count,
 
         return false;
     }
-    else if (operation.compare("SingleCommandWithCP56Time2a") == 0)
-    {
-        return m_singleCommandOperation(count, params, true);
+    else if (operation == "IEC104Command"){
+        std::string type = params[0]->value;
+
+        int typeID = m_config->GetTypeIdByName(type);
+
+        switch (typeID){
+            case C_SC_NA_1: return m_singleCommandOperation(count, params, false);
+            case C_SC_TA_1: return m_singleCommandOperation(count, params, true);
+            case C_DC_NA_1: return m_doubleCommandOperation(count, params, false);
+            case C_DC_TA_1: return m_doubleCommandOperation(count, params, true);
+            case C_RC_NA_1: return m_stepCommandOperation(count, params, false);
+            case C_RC_TA_1: return m_stepCommandOperation(count, params, true);
+            case C_SE_NA_1: return m_setpointNormalized(count, params, false);
+            case C_SE_TA_1: return m_setpointNormalized(count, params, true);
+            case C_SE_NB_1: return m_setpointScaled(count, params, false);
+            case C_SE_TB_1: return m_setpointScaled(count, params, true);
+            case C_SE_NC_1: return m_setpointShort(count, params, false);
+            case C_SE_TC_1: return m_setpointShort(count, params, true);
+            default:
+                Logger::getLogger()->error("Unrecognised command type %s", type.c_str());
+                return false;
+        };
     }
-    else if (operation.compare("SingleCommand") == 0)
-    {
-        return m_singleCommandOperation(count, params, false);
-    }
-    else if (operation.compare("DoubleCommandWithCP56Time2a") == 0)
-    {
-        return m_doubleCommandOperation(count, params, true);
-    }
-    else if (operation.compare("DoubleCommand") == 0)
-    {
-        return m_doubleCommandOperation(count, params, false);
-    }
-    else if (operation.compare("StepCommandWithCP56Time2a") == 0)
-    {
-        return m_stepCommandOperation(count, params, true);
-    }
-    else if (operation.compare("StepCommand") == 0)
-    {
-        return m_stepCommandOperation(count, params, false);
-    }
-    else if (operation.compare("SetpointNormalizedWithCP56Time2a") == 0)
-    {
-        return m_setpointNormalized(count, params, true);
-    }
-    else if (operation.compare("SetpointNormalized") == 0)
-    {
-        return m_setpointNormalized(count, params, false);
-    }
-    else if (operation.compare("SetpointScaledWithCP56Time2a") == 0)
-    {
-        return m_setpointScaled(count, params, true);
-    }
-    else if (operation.compare("SetpointScaled") == 0)
-    {
-        return m_setpointScaled(count, params, false);
-    }
-    else if (operation.compare("SetpointShortWithCP56Time2a") == 0)
-    {
-        return m_setpointShort(count, params, true);
-    }
-    else if (operation.compare("SetpointShort") == 0)
-    {
-        return m_setpointShort(count, params, false);
-    }
-    else if (operation.compare("request_connection_status") == 0) {
+    else if (operation == "request_connection_status") {
         Logger::getLogger()->info("received request_connection_status", operation.c_str());
         return m_client->sendConnectionStatus();
     }
- 
+
     Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
 
     return false;

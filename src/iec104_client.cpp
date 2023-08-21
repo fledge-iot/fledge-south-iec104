@@ -165,11 +165,11 @@ void IEC104Client::checkOutstandingCommandTimeouts()
     m_outstandingCommandsMtx.lock();
 
     for (OutstandingCommand* command : m_outstandingCommands)
-    {    
+    {
         if (command->actConReceived) {
             if (command->timeout + m_config->CmdExecTimeout() < currentTime) {
                 printf("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
-                
+
                 Logger::getLogger()->warn("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
 
                 listOfTimedoutCommands.push_back(command);
@@ -433,7 +433,7 @@ IEC104Client::sendData(vector<Datapoint*> datapoints,
     {
         std::vector<Datapoint*> points;
         points.push_back(item_dp);
-        
+
         m_iec104->ingest(labels.at(i), points);
         i++;
     }
@@ -557,7 +557,7 @@ IEC104Client::sendCnxLossStatus(bool value)
 
         std::vector<Datapoint*> points;
         points.push_back(cnxLossStatusDp);
-        
+
         m_iec104->ingest(dp->label, points);
 
         return true;
@@ -616,7 +616,7 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
     {
         InformationObject io = CS101_ASDU_getElement(asdu, i);
 
-        if (io) 
+        if (io)
         {
             int ioa = InformationObject_getObjectAddress(io);
 
@@ -759,7 +759,7 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
 
             InformationObject_destroy(io);
         }
-        else 
+        else
         {
             Logger::getLogger()->error("ASDU with invalid or unknown information object");
         }
@@ -826,7 +826,7 @@ void IEC104Client::handle_M_DP_NA_1(vector<Datapoint*>& datapoints, string& labe
         DoublePointInformation_getValue((DoublePointInformation)io_casted);
     QualityDescriptor qd =
         DoublePointInformation_getQuality((DoublePointInformation)io_casted);
-    
+
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
 }
 
@@ -902,7 +902,7 @@ void IEC104Client::handle_M_ME_TD_1(vector<Datapoint*>& datapoints, string& labe
         MeasuredValueNormalized_getValue((MeasuredValueNormalized)io_casted);
     QualityDescriptor qd =
         MeasuredValueNormalized_getQuality((MeasuredValueNormalized)io_casted);
-    
+
     CP56Time2a ts =
         MeasuredValueNormalizedWithCP56Time2a_getTimestamp(io_casted);
     bool is_invalid = CP56Time2a_isInvalid(ts);
@@ -1146,15 +1146,15 @@ IEC104Client::prepareConnections()
 {
     std::vector<IEC104ClientRedGroup*>& redGroups = m_config->RedundancyGroups();
 
-    for (auto& redGroup : redGroups) 
+    for (auto& redGroup : redGroups)
     {
         auto& connections = redGroup->Connections();
 
-        for (auto connection : connections) 
+        for (auto connection : connections)
         {
-            IEC104ClientConnection* newConnection = new IEC104ClientConnection(this, redGroup, connection, m_config); 
-            
-            if (newConnection != nullptr) 
+            IEC104ClientConnection* newConnection = new IEC104ClientConnection(this, redGroup, connection, m_config);
+
+            if (newConnection != nullptr)
             {
                 m_connections.push_back(newConnection);
             }
@@ -1173,10 +1173,10 @@ IEC104Client::start()
 
         m_started = true;
         m_monitoringThread = new std::thread(&IEC104Client::_monitoringThread, this);
-    } 
+    }
 }
 
-void 
+void
 IEC104Client::stop()
 {
     if (m_started == true)
@@ -1199,7 +1199,7 @@ IEC104Client::_monitoringThread()
     bool qualityUpdated = false;
     bool firstConnected = false;
 
-    if (m_started) 
+    if (m_started)
     {
         for (auto clientConnection : m_connections)
         {
@@ -1213,11 +1213,11 @@ IEC104Client::_monitoringThread()
 
     uint64_t backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
 
-    while (m_started) 
+    while (m_started)
     {
         m_activeConnectionMtx.lock();
 
-        if (m_activeConnection == nullptr) 
+        if (m_activeConnection == nullptr)
         {
             bool foundOpenConnections = false;
 
@@ -1235,7 +1235,7 @@ IEC104Client::_monitoringThread()
                     m_activeConnection = clientConnection;
 
                     updateConnectionStatus(ConnectionStatus::STARTED);
-                    
+
                     break;
                 }
             }
@@ -1261,12 +1261,12 @@ IEC104Client::_monitoringThread()
                             qualityUpdateTimer = getMonotonicTimeInMs() + qualityUpdateTimeout;
                         }
                     }
-                
+
                 }
 
                 updateConnectionStatus(ConnectionStatus::NOT_CONNECTED);
 
-                if (Hal_getTimeInMs() > backupConnectionStartTime) 
+                if (Hal_getTimeInMs() > backupConnectionStartTime)
                 {
                     /* Connect all disconnected connections */
                     for (auto clientConnection : m_connections)
@@ -1283,7 +1283,7 @@ IEC104Client::_monitoringThread()
         else {
             backupConnectionStartTime = Hal_getTimeInMs() + BACKUP_CONNECTION_TIMEOUT;
 
-            if (m_activeConnection->Connected() == false) 
+            if (m_activeConnection->Connected() == false)
             {
                 m_activeConnection = nullptr;
             }
@@ -1372,7 +1372,7 @@ IEC104Client::OutstandingCommand* IEC104Client::addOutstandingCommandAndCheckLim
 }
 
 bool
-IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select)
+IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select, long time)
 {
     // send single command over active connection
     bool success = false;
@@ -1393,9 +1393,9 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
 
     if (m_activeConnection != nullptr)
     {
-        success = m_activeConnection->sendSingleCommand(ca, ioa, value, withTime, select);
+        success = m_activeConnection->sendSingleCommand(ca, ioa, value, withTime, select, time);
     }
-    
+
     m_activeConnectionMtx.unlock();
 
     if (!success) removeOutstandingCommand(command);
@@ -1404,7 +1404,7 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
 }
 
 bool
-IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select)
+IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select, long time)
 {
     // send double command over active connection
     bool success = false;
@@ -1425,9 +1425,9 @@ IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool 
 
     if (m_activeConnection != nullptr)
     {
-        success = m_activeConnection->sendDoubleCommand(ca, ioa, value, withTime, select);
+        success = m_activeConnection->sendDoubleCommand(ca, ioa, value, withTime, select, time);
     }
-    
+
     m_activeConnectionMtx.unlock();
 
     if (!success) removeOutstandingCommand(command);
@@ -1436,7 +1436,7 @@ IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool 
 }
 
 bool
-IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool select)
+IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool select, long time)
 {
     // send step command over active connection
     bool success = false;
@@ -1457,9 +1457,9 @@ IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool se
 
     if (m_activeConnection != nullptr)
     {
-        success = m_activeConnection->sendStepCommand(ca, ioa, value, withTime, select);
+        success = m_activeConnection->sendStepCommand(ca, ioa, value, withTime, select, time);
     }
-    
+
     m_activeConnectionMtx.unlock();
 
     if (!success) removeOutstandingCommand(command);
@@ -1468,7 +1468,7 @@ IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool se
 }
 
 bool
-IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime)
+IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime, long time)
 {
     // send setpoint command normalized over active connection
     bool success = false;
@@ -1489,9 +1489,9 @@ IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime
 
     if (m_activeConnection != nullptr)
     {
-        success = m_activeConnection->sendSetpointNormalized(ca, ioa, value, withTime);
+        success = m_activeConnection->sendSetpointNormalized(ca, ioa, value, withTime, time);
     }
-    
+
     m_activeConnectionMtx.unlock();
 
     if (!success) removeOutstandingCommand(command);
@@ -1500,7 +1500,7 @@ IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime
 }
 
 bool
-IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime)
+IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime, long time)
 {
     // send setpoint command scaled over active connection
     bool success = false;
@@ -1521,9 +1521,9 @@ IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime)
 
     if (m_activeConnection != nullptr)
     {
-        success = m_activeConnection->sendSetpointScaled(ca, ioa, value, withTime);
+        success = m_activeConnection->sendSetpointScaled(ca, ioa, value, withTime, time);
     }
-    
+
     m_activeConnectionMtx.unlock();
 
     if (!success) removeOutstandingCommand(command);
@@ -1532,7 +1532,7 @@ IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime)
 }
 
 bool
-IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime)
+IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime, long time)
 {
     // send setpoint command short over active connection
     bool success = false;
@@ -1553,9 +1553,9 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime)
 
     if (m_activeConnection != nullptr)
     {
-        success = m_activeConnection->sendSetpointShort(ca, ioa, value, withTime);
+        success = m_activeConnection->sendSetpointShort(ca, ioa, value, withTime, time);
     }
-    
+
     m_activeConnectionMtx.unlock();
 
     if (!success) removeOutstandingCommand(command);
