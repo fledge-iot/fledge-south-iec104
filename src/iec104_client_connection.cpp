@@ -753,13 +753,14 @@ IEC104ClientConnection::prepareConnection()
 
     if (m_connection == nullptr)
     {
-        if (m_redGroup->UseTLS()) 
+        if (m_redGroup->UseTLS())
         {
             TLSConfiguration tlsConfig = TLSConfiguration_create();
 
             bool tlsConfigOk = true;
 
             string certificateStore = getDataDir() + string("/etc/certs/");
+            string certificateStorePem = getDataDir() + string("/etc/certs/pem/");
 
             if (m_config->GetOwnCertificate().length() == 0 || m_config->GetPrivateKey().length() == 0) {
                 Logger::getLogger()->error("No private key and/or certificate configured for client");
@@ -779,7 +780,16 @@ IEC104ClientConnection::prepareConnection()
                     tlsConfigOk = false;
                 }
 
-                string clientCertFile = certificateStore + m_config->GetOwnCertificate();
+                string clientCert =  m_config->GetOwnCertificate();
+                bool isPemClientCertificate = clientCert.rfind(".pem") == clientCert.size() - 4;
+
+                string clientCertFile;
+
+                if(isPemClientCertificate)
+                    clientCertFile = certificateStorePem + clientCert;
+                else
+                    clientCertFile = certificateStore + clientCert;
+
 
                 if (access(clientCertFile.c_str(), R_OK) == 0) {
                     if (TLSConfiguration_setOwnCertificateFromFile(tlsConfig, clientCertFile.c_str()) == false) {
@@ -798,7 +808,14 @@ IEC104ClientConnection::prepareConnection()
 
                 for (std::string& remoteCert : m_config->GetRemoteCertificates())
                 {
-                    string remoteCertFile = certificateStore + remoteCert;
+                    bool isPemRemoteCertificate = remoteCert.rfind(".pem") == remoteCert.size() - 4;
+
+                    string remoteCertFile;
+
+                    if(isPemRemoteCertificate)
+                        remoteCertFile = certificateStorePem + remoteCert;
+                    else
+                        remoteCertFile = certificateStore + remoteCert;
 
                     if (access(remoteCertFile.c_str(), R_OK) == 0) {
                         if (TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, remoteCertFile.c_str()) == false) {
@@ -820,7 +837,14 @@ IEC104ClientConnection::prepareConnection()
 
                 for (std::string& caCert : m_config->GetCaCertificates())
                 {
-                    string caCertFile = certificateStore + caCert;
+                    bool isPemCaCertificate = caCert.rfind(".pem") == caCert.size() - 4;
+
+                    string caCertFile;
+
+                    if(isPemCaCertificate)
+                        caCertFile = certificateStorePem + caCert;
+                    else
+                        caCertFile = certificateStore + caCert;
 
                     if (access(caCertFile.c_str(), R_OK) == 0) {
                         if (TLSConfiguration_addCACertificateFromFile(tlsConfig, caCertFile.c_str()) == false) {
@@ -839,8 +863,10 @@ IEC104ClientConnection::prepareConnection()
 
             if (tlsConfigOk) {
 
+                TLSConfiguration_setRenegotiationTime(tlsConfig, 60000);
+
                 m_connection = CS104_Connection_createSecure(m_redGroupConnection->ServerIP().c_str(), m_redGroupConnection->TcpPort(), tlsConfig);
-            
+
                 if (m_connection) {
                     m_tlsConfig = tlsConfig;
                 }
@@ -849,6 +875,7 @@ IEC104ClientConnection::prepareConnection()
                 }
             }
             else {
+                printf("TLS configuration failed\n");
                 Logger::getLogger()->error("TLS configuration failed");
             }
         }
