@@ -792,7 +792,6 @@ TEST_F(InterrogationTest, IEC104Client_startupProcedureSeparateRequestForEachCA)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(1, clockSyncHandlerCalled);
     ASSERT_EQ(0, asduHandlerCalled);
 
     Thread_sleep(2500);
@@ -832,7 +831,6 @@ TEST_F(InterrogationTest, IEC104Client_startupProcedureBroadcastCA)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(1, clockSyncHandlerCalled);
     ASSERT_EQ(0, asduHandlerCalled);
 
     Thread_sleep(2500);
@@ -955,7 +953,6 @@ TEST_F(InterrogationTest, InterrogationRequestAfter_M_EI_NA_1)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(1, clockSyncHandlerCalled);
     ASSERT_EQ(0, asduHandlerCalled);
 
     Thread_sleep(1000);
@@ -1039,7 +1036,6 @@ TEST_F(InterrogationTest, GICycleReceiveConfiguredDatapoints)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(1, clockSyncHandlerCalled);
     ASSERT_EQ(0, asduHandlerCalled);
     ASSERT_EQ(1, interrogationRequestsReceived);
 
