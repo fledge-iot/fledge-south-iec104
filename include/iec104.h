@@ -9,7 +9,7 @@
  * Released under the Apache 2.0 Licence
  *
  * Author: Michael Zillgith
- * 
+ *
  */
 
 #include <lib60870/cs104_connection.h>
@@ -99,17 +99,17 @@ public:
 
     bool sendInterrogationCommand(int ca);
 
-    bool sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select);
+    bool sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select, long time);
 
-    bool sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select);
+    bool sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select, long time);
 
-    bool sendStepCommand(int ca, int ioa, int value, bool withTime, bool select);
+    bool sendStepCommand(int ca, int ioa, int value, bool withTime, bool select, long time);
 
-    bool sendSetpointNormalized(int ca, int ioa, float value, bool withTime);
+    bool sendSetpointNormalized(int ca, int ioa, float value, bool withTime, long time);
 
-    bool sendSetpointScaled(int ca, int ioa, int value, bool withTime);
+    bool sendSetpointScaled(int ca, int ioa, int value, bool withTime, long time);
 
-    bool sendSetpointShort(int ca, int ioa, float value, bool withTime);
+    bool sendSetpointShort(int ca, int ioa, float value, bool withTime, long time);
 
     bool sendConnectionStatus();
 
@@ -306,25 +306,25 @@ private:
 
     void handle_C_RC_NA_1(vector<Datapoint*>& datapoints,
                                 string& label,
-                                unsigned int ca, CS101_ASDU asdu, 
+                                unsigned int ca, CS101_ASDU asdu,
                                 InformationObject io, uint64_t ioa,
                                 OutstandingCommand* outstandingCommand);
 
     void handle_C_SE_NA_1(vector<Datapoint*>& datapoints,
                                 string& label,
-                                unsigned int ca, CS101_ASDU asdu, 
+                                unsigned int ca, CS101_ASDU asdu,
                                 InformationObject io, uint64_t ioa,
                                 OutstandingCommand* outstandingCommand);
 
     void handle_C_SE_NB_1(vector<Datapoint*>& datapoints,
                                 string& label,
-                                unsigned int ca, CS101_ASDU asdu, 
+                                unsigned int ca, CS101_ASDU asdu,
                                 InformationObject io, uint64_t ioa,
                                 OutstandingCommand* outstandingCommand);
-                                
+
     void handle_C_SE_NC_1(vector<Datapoint*>& datapoints,
                                 string& label,
-                                unsigned int ca, CS101_ASDU asdu, 
+                                unsigned int ca, CS101_ASDU asdu,
                                 InformationObject io, uint64_t ioa,
                                 OutstandingCommand* outstandingCommand);
 

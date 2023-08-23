@@ -30,12 +30,12 @@ public:
 
     bool sendInterrogationCommand(int ca);
 
-    bool sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select);
-    bool sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select);
-    bool sendStepCommand(int ca, int ioa, int value, bool withTime, bool select);
-    bool sendSetpointNormalized(int ca, int ioa, float value, bool withTime);
-    bool sendSetpointScaled(int ca, int ioa, int value, bool withTime);
-    bool sendSetpointShort(int ca, int ioa, float value, bool withTime);
+    bool sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select, long msTimestamp);
+    bool sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select, long msTimestamp);
+    bool sendStepCommand(int ca, int ioa, int value, bool withTime, bool select, long msTimestamp);
+    bool sendSetpointNormalized(int ca, int ioa, float value, bool withTime, long msTimestamp);
+    bool sendSetpointScaled(int ca, int ioa, int value, bool withTime, long msTimestamp);
+    bool sendSetpointShort(int ca, int ioa, float value, bool withTime, long msTimestamp);
 
 private:
 
@@ -73,7 +73,7 @@ private:
     std::mutex m_conLock;
     CS104_Connection m_connection = nullptr;
     TLSConfiguration m_tlsConfig = nullptr;
-    
+
     ConState m_connectionState = CON_STATE_IDLE;
 
     bool m_started = false;
