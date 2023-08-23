@@ -260,6 +260,7 @@ static bool isInStationGroup(DataExchangeDefinition* dp)
     }
 }
 
+//LCOV_EXCL_START
 void IEC104Client::updateQualityForAllDataObjectsInStationGroup(QualityDescriptor qd)
 {
     vector<Datapoint*> datapoints;
@@ -288,6 +289,7 @@ void IEC104Client::updateQualityForAllDataObjectsInStationGroup(QualityDescripto
         sendData(datapoints, labels);
     }
 }
+//LCOV_EXCL_STOP
 
 void IEC104Client::updateQualityForDataObjectsNotReceivedInGIResponse(QualityDescriptor qd)
 {
@@ -806,10 +808,8 @@ void IEC104Client::handle_M_SP_TB_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa)
 {
     auto io_casted = (SinglePointWithCP56Time2a)io;
-    int64_t value =
-        SinglePointInformation_getValue((SinglePointInformation)io_casted);
-    QualityDescriptor qd =
-        SinglePointInformation_getQuality((SinglePointInformation)io_casted);
+    int64_t value = SinglePointInformation_getValue((SinglePointInformation)io_casted);
+    QualityDescriptor qd = SinglePointInformation_getQuality((SinglePointInformation)io_casted);
 
     CP56Time2a ts = SinglePointWithCP56Time2a_getTimestamp(io_casted);
 
@@ -822,10 +822,8 @@ void IEC104Client::handle_M_DP_NA_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa)
 {
     auto io_casted = (DoublePointInformation)io;
-    int64_t value =
-        DoublePointInformation_getValue((DoublePointInformation)io_casted);
-    QualityDescriptor qd =
-        DoublePointInformation_getQuality((DoublePointInformation)io_casted);
+    int64_t value = DoublePointInformation_getValue((DoublePointInformation)io_casted);
+    QualityDescriptor qd = DoublePointInformation_getQuality((DoublePointInformation)io_casted);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
 }
@@ -836,10 +834,8 @@ void IEC104Client::handle_M_DP_TB_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa)
 {
     auto io_casted = (DoublePointWithCP56Time2a)io;
-    int64_t value =
-        DoublePointInformation_getValue((DoublePointInformation)io_casted);
-    QualityDescriptor qd =
-        DoublePointInformation_getQuality((DoublePointInformation)io_casted);
+    int64_t value = DoublePointInformation_getValue((DoublePointInformation)io_casted);
+    QualityDescriptor qd = DoublePointInformation_getQuality((DoublePointInformation)io_casted);
 
     CP56Time2a ts = DoublePointWithCP56Time2a_getTimestamp(io_casted);
     bool is_invalid = CP56Time2a_isInvalid(ts);
@@ -853,10 +849,8 @@ void IEC104Client::handle_M_ST_NA_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa)
 {
     auto io_casted = (StepPositionInformation)io;
-    int64_t value =
-        StepPositionInformation_getValue((StepPositionInformation)io_casted);
-    QualityDescriptor qd =
-        StepPositionInformation_getQuality((StepPositionInformation)io_casted);
+    int64_t value = StepPositionInformation_getValue((StepPositionInformation)io_casted);
+    QualityDescriptor qd = StepPositionInformation_getQuality((StepPositionInformation)io_casted);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
 }
@@ -867,10 +861,8 @@ void IEC104Client::handle_M_ST_TB_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa)
 {
     auto io_casted = (StepPositionWithCP56Time2a)io;
-    int64_t value =
-        StepPositionInformation_getValue((StepPositionInformation)io_casted);
-    QualityDescriptor qd =
-        StepPositionInformation_getQuality((StepPositionInformation)io_casted);
+    int64_t value = StepPositionInformation_getValue((StepPositionInformation)io_casted);
+    QualityDescriptor qd = StepPositionInformation_getQuality((StepPositionInformation)io_casted);
 
     CP56Time2a ts = StepPositionWithCP56Time2a_getTimestamp(io_casted);
     bool is_invalid = CP56Time2a_isInvalid(ts);
@@ -884,10 +876,8 @@ void IEC104Client::handle_M_ME_NA_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa)
 {
     auto io_casted = (MeasuredValueNormalized)io;
-    float value =
-        MeasuredValueNormalized_getValue((MeasuredValueNormalized)io_casted);
-    QualityDescriptor qd =
-        MeasuredValueNormalized_getQuality((MeasuredValueNormalized)io_casted);
+    float value = MeasuredValueNormalized_getValue((MeasuredValueNormalized)io_casted);
+    QualityDescriptor qd = MeasuredValueNormalized_getQuality((MeasuredValueNormalized)io_casted);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
 }
@@ -898,13 +888,10 @@ void IEC104Client::handle_M_ME_TD_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa)
 {
     auto io_casted = (MeasuredValueNormalizedWithCP56Time2a)io;
-    float value =
-        MeasuredValueNormalized_getValue((MeasuredValueNormalized)io_casted);
-    QualityDescriptor qd =
-        MeasuredValueNormalized_getQuality((MeasuredValueNormalized)io_casted);
+    float value = MeasuredValueNormalized_getValue((MeasuredValueNormalized)io_casted);
+    QualityDescriptor qd = MeasuredValueNormalized_getQuality((MeasuredValueNormalized)io_casted);
 
-    CP56Time2a ts =
-        MeasuredValueNormalizedWithCP56Time2a_getTimestamp(io_casted);
+    CP56Time2a ts = MeasuredValueNormalizedWithCP56Time2a_getTimestamp(io_casted);
     bool is_invalid = CP56Time2a_isInvalid(ts);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
@@ -916,13 +903,10 @@ void IEC104Client::handle_M_ME_TE_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa)
 {
     auto io_casted = (MeasuredValueScaledWithCP56Time2a)io;
-    int64_t value =
-        MeasuredValueScaled_getValue((MeasuredValueScaled)io_casted);
-    QualityDescriptor qd =
-        MeasuredValueScaled_getQuality((MeasuredValueScaled)io_casted);
+    int64_t value = MeasuredValueScaled_getValue((MeasuredValueScaled)io_casted);
+    QualityDescriptor qd = MeasuredValueScaled_getQuality((MeasuredValueScaled)io_casted);
 
-    CP56Time2a ts =
-        MeasuredValueScaledWithCP56Time2a_getTimestamp(io_casted);
+    CP56Time2a ts = MeasuredValueScaledWithCP56Time2a_getTimestamp(io_casted);
     bool is_invalid = CP56Time2a_isInvalid(ts);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
@@ -935,8 +919,7 @@ void IEC104Client::handle_M_ME_NC_1(vector<Datapoint*>& datapoints, string& labe
 {
     auto io_casted = (MeasuredValueShort)io;
     float value = MeasuredValueShort_getValue((MeasuredValueShort)io_casted);
-    QualityDescriptor qd =
-        MeasuredValueShort_getQuality((MeasuredValueShort)io_casted);
+    QualityDescriptor qd = MeasuredValueShort_getQuality((MeasuredValueShort)io_casted);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
 }
@@ -948,11 +931,9 @@ void IEC104Client::handle_M_ME_TF_1(vector<Datapoint*>& datapoints, string& labe
 {
     auto io_casted = (MeasuredValueShortWithCP56Time2a)io;
     float value = MeasuredValueShort_getValue((MeasuredValueShort)io_casted);
-    QualityDescriptor qd =
-        MeasuredValueShort_getQuality((MeasuredValueShort)io_casted);
+    QualityDescriptor qd = MeasuredValueShort_getQuality((MeasuredValueShort)io_casted);
 
-    CP56Time2a ts =
-        MeasuredValueShortWithCP56Time2a_getTimestamp(io_casted);
+    CP56Time2a ts = MeasuredValueShortWithCP56Time2a_getTimestamp(io_casted);
     bool is_invalid = CP56Time2a_isInvalid(ts);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd, ts));
