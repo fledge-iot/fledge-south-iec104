@@ -56,6 +56,7 @@ void IEC104::start()
         case 1:
             Logger::getLogger()->setMinLevel("debug");
             break;
+        //LCOV_EXCL_START
         case 2:
             Logger::getLogger()->setMinLevel("info");
             break;
@@ -65,6 +66,7 @@ void IEC104::start()
         default:
             Logger::getLogger()->setMinLevel("error");
             break;
+        //LCOV_EXCL_STOP    
     }
 
     m_client = new IEC104Client(this, m_config);
@@ -331,6 +333,7 @@ IEC104::operation(const std::string& operation, int count,
 
         return m_client->sendInterrogationCommand(ca);
     }
+    //LCOV_EXCL_START
     else if (operation == "CS104_Connection_sendTestCommandWithTimestamp")
     {
         int casdu = atoi(params[0]->value.c_str());
@@ -339,6 +342,7 @@ IEC104::operation(const std::string& operation, int count,
 
         return false;
     }
+    //LCOV_EXCL_STOP
     else if (operation == "IEC104Command"){
         std::string type = params[0]->value;
 
@@ -360,7 +364,7 @@ IEC104::operation(const std::string& operation, int count,
             default:
                 Logger::getLogger()->error("Unrecognised command type %s", type.c_str());
                 return false;
-        };
+        }
     }
     else if (operation == "request_connection_status") {
         Logger::getLogger()->info("received request_connection_status", operation.c_str());

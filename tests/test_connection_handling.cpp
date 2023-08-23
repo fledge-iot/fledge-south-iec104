@@ -345,6 +345,60 @@ static string tls_config_2 =  QUOTE({
         }         
     });
 
+
+static string tls_config_3 =  QUOTE({       
+        "tls_conf" : {
+            "private_key" : "\\",
+            "own_cert" : "\\",
+            "ca_certs" : [
+                {
+                    "cert_file": "\\"
+                }
+            ],
+            "remote_certs" : [
+                {
+                    "cert_file": "\\"
+                }
+            ]
+        }         
+    });
+
+static string tls_config_4 =  QUOTE({       
+        "tls_conf" : {
+            "private_key" : "iec104_client.cer",
+            "own_cert" : "iec104_client.key",
+            "ca_certs" : [
+                {
+                    "cert_file": "iec104_ca.key"
+                }
+            ],
+            "remote_certs" : [
+                {
+                    "cert_file": "iec104_server.key"
+                }
+            ]
+        }         
+    });
+
+static string tls_config_5 =  QUOTE({       
+        "tls_conf" : {
+            "private_key" : "",
+            "own_cert" : "iec104_client.key",
+            "ca_certs" : [
+                {
+                    "cert_file": ""
+                }
+            ],
+            "remote_certs" : [
+                {
+                    "cert_file": "iec104_server.key"
+                }
+            ]
+        }         
+    });
+
+
+
 class IEC104TestComp : public IEC104
 {
 public:
@@ -754,3 +808,153 @@ TEST_F(ConnectionHandlingTest, SingleConnectionTLS)
 
     TLSConfiguration_destroy(tlsConfig);
 }
+
+TEST_F(ConnectionHandlingTest, BrokenTLS1)
+{
+    openConnections = 0;
+    activations = 0;
+    deactivations = 0;
+
+    asduHandlerCalled = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    iec104->setJsonConfig(protocol_config_4, exchanged_data, tls_config_3);
+
+    setenv("FLEDGE_DATA", "./data", 1);
+
+    TLSConfiguration tlsConfig = TLSConfiguration_create();
+
+    TLSConfiguration_addCACertificateFromFile(tlsConfig, "data/etc/certs/iec104_ca.cer");
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "data/etc/certs/iec104_server.cer");
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig, "data/etc/certs/iec104_server.key", NULL);
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "data/etc/certs/iec104_client.cer");
+    TLSConfiguration_setChainValidation(tlsConfig, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
+
+    CS104_Slave slave = CS104_Slave_createSecure(10, 10, tlsConfig);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    ASSERT_EQ(0, openConnections);
+
+    iec104->start();
+
+    Thread_sleep(1000);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+
+    TLSConfiguration_destroy(tlsConfig);
+}
+
+TEST_F(ConnectionHandlingTest, BrokenTLS2)
+{
+    openConnections = 0;
+    activations = 0;
+    deactivations = 0;
+
+    asduHandlerCalled = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    iec104->setJsonConfig(protocol_config_4, exchanged_data, tls_config_4);
+
+    setenv("FLEDGE_DATA", "./data", 1);
+
+    TLSConfiguration tlsConfig = TLSConfiguration_create();
+
+    TLSConfiguration_addCACertificateFromFile(tlsConfig, "data/etc/certs/iec104_ca.cer");
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "data/etc/certs/iec104_server.cer");
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig, "data/etc/certs/iec104_server.key", NULL);
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "data/etc/certs/iec104_client.cer");
+    TLSConfiguration_setChainValidation(tlsConfig, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
+
+    CS104_Slave slave = CS104_Slave_createSecure(10, 10, tlsConfig);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    ASSERT_EQ(0, openConnections);
+
+    iec104->start();
+
+    Thread_sleep(1000);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+
+    TLSConfiguration_destroy(tlsConfig);
+}
+
+TEST_F(ConnectionHandlingTest, BrokenTLS3)
+{
+    openConnections = 0;
+    activations = 0;
+    deactivations = 0;
+
+    asduHandlerCalled = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
+
+    iec104->setJsonConfig(protocol_config_4, exchanged_data, tls_config_5);
+
+    setenv("FLEDGE_DATA", "./data", 1);
+
+    TLSConfiguration tlsConfig = TLSConfiguration_create();
+
+    TLSConfiguration_addCACertificateFromFile(tlsConfig, "data/etc/certs/iec104_ca.cer");
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "data/etc/certs/iec104_server.cer");
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig, "data/etc/certs/iec104_server.key", NULL);
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "data/etc/certs/iec104_client.cer");
+    TLSConfiguration_setChainValidation(tlsConfig, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
+
+    CS104_Slave slave = CS104_Slave_createSecure(10, 10, tlsConfig);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, this);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    ASSERT_EQ(0, openConnections);
+
+    iec104->start();
+
+    Thread_sleep(1000);
+
+    CS104_Slave_stop(slave);
+
+    CS104_Slave_destroy(slave);
+
+    TLSConfiguration_destroy(tlsConfig);
+}
+
+
+

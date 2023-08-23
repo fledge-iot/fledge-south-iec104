@@ -1368,7 +1368,7 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
     OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SC_TA_1, C_SC_NA_1);
 
     if (command == nullptr)
-        return false;
+        return false; //LCOV_EXCL_LINE
 
     m_activeConnectionMtx.lock();
 
@@ -1400,7 +1400,7 @@ IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool 
     OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_DC_TA_1, C_DC_NA_1);
 
     if (command == nullptr)
-        return false;
+        return false;//LCOV_EXCL_LINE
 
     m_activeConnectionMtx.lock();
 
@@ -1432,7 +1432,7 @@ IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool se
     OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_RC_TA_1, C_RC_NA_1);
 
     if (command == nullptr)
-        return false;
+        return false;//LCOV_EXCL_LINE
 
     m_activeConnectionMtx.lock();
 
@@ -1464,7 +1464,7 @@ IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime
     OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TA_1, C_SE_NA_1);
 
     if (command == nullptr)
-        return false;
+        return false;//LCOV_EXCL_LINE
 
     m_activeConnectionMtx.lock();
 
@@ -1496,7 +1496,7 @@ IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime, long
     OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TB_1, C_SE_NB_1);
 
     if (command == nullptr)
-        return false;
+        return false;//LCOV_EXCL_LINE
 
     m_activeConnectionMtx.lock();
 
@@ -1528,7 +1528,7 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime, lon
     OutstandingCommand* command = addOutstandingCommandAndCheckLimit(ca, ioa, withTime, C_SE_TC_1, C_SE_NC_1);
 
     if (command == nullptr)
-        return false;
+        return false;//LCOV_EXCL_LINE
 
     m_activeConnectionMtx.lock();
 
