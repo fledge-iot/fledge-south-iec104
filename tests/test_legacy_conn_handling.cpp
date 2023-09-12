@@ -185,6 +185,85 @@ static string exchanged_data = QUOTE({
         }
     });
 
+static string exchanged_data_2 = QUOTE({
+        "exchanged_data": {
+            "name" : "iec104client",        
+            "version" : "1.0",               
+            "datapoints" : [          
+                {
+                    "label":"TM-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4202832",
+                          "typeid":"M_ME_NA_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"TM-2",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4202852",
+                          "typeid":"M_ME_NA_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"TS-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4206948",
+                          "typeid":"M_SP_TB_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"C-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-2000",
+                          "typeid":"C_SC_NA_1"
+                       }
+                    ]
+                },                          
+                {
+                    "label":"C-2",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-2001",
+                          "typeid":"C_SC_TA_1"
+                       }
+                    ]
+                },                            
+                {
+                    "label":"C-3",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-2002",
+                          "typeid":"C_DC_NA_1"
+                       }
+                    ]
+                },
+                {
+                    "label":"CNXLOSS-1",
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41026-2001",
+                          "typeid":"M_SP_NA_1"
+                       }
+                    ]
+                }                   
+            ]
+        }
+    });
+
 
 // PLUGIN DEFAULT TLS CONF
 static string tls_config =  QUOTE({       
@@ -561,4 +640,38 @@ TEST_F(LegacyConnectionHandlingTest, SendConnectionStatusAfterRequestFromNorth)
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
 
     ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[4]));
+}
+
+TEST_F(LegacyConnectionHandlingTest, ConnectionLostStatus)
+{
+    ingestCallbackCalled = 0;
+ 
+    iec104->setJsonConfig(protocol_config_no_red, exchanged_data_2, tls_config);
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
+
+    printf("Starting CS 104 slave\n");
+
+    CS104_Slave_start(slave);
+
+    printf("Slave started\n");
+
+    startIEC104();
+
+    printf("Client plugin started\n");
+
+    sleep(1);
+
+    CS104_Slave_stop(slave);
+
+    sleep(2);
+
+    CS104_Slave_destroy(slave);
+
+    ASSERT_EQ(11, ingestCallbackCalled);
+
+    ASSERT_EQ(11, storedReadings.size());
+
 }
