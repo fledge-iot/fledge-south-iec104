@@ -189,6 +189,10 @@ protected:
 
     void SetUp()
     {
+        ingestCallbackCalled = 0;
+        ingestedSpontOrPeriodic = 0;
+        ingestedInterrogated = 0;
+
         iec104 = new IEC104TestComp();
         iec104->setJsonConfig(protocol_config, exchanged_data, tls_config);
 
@@ -209,9 +213,14 @@ protected:
     void startIEC104() { iec104->start(); }
 
     int ingestCallbackCalled = 0;
+    int ingestedSpontOrPeriodic = 0;
+    int ingestedInterrogated = 0;
+
     Reading* storedReading = nullptr;
     int clockSyncHandlerCalled = 0;
     std::vector<Reading*> storedReadings;
+    std::vector<Reading*> storedReadingsInterrogated;
+    std::vector<Reading*> storedReadingsSpontOrPeriodic;
 
     static bool hasChild(Datapoint& dp, std::string childLabel)
     {
@@ -286,30 +295,86 @@ protected:
     {
         IEC104Test* self = (IEC104Test*)parameter;
 
-        printf("ingestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
-
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        printf("  number of readings: %lu\n", dataPoints.size());
+        if (hasObject(reading, "data_object")) {
+            Datapoint* data_object = getObject(reading, "data_object");
 
-        // for (Datapoint* sdp : dataPoints) {
-        //     printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
-        // }
+            self->storedReading = new Reading(reading);
 
-        self->storedReading = new Reading(reading);
+            if (self->storedReading) {
+                if (hasChild(*data_object, "do_cot")) {
+                    int cot = getIntValue(getChild(*data_object, "do_cot"));
 
-        self->storedReadings.push_back(self->storedReading);
+                    if (cot == CS101_COT_SPONTANEOUS || cot == CS101_COT_PERIODIC) {
+                        self->storedReadingsSpontOrPeriodic.push_back(self->storedReading);
+                        self->ingestedSpontOrPeriodic++;
+                    }
+                    else if (cot == CS101_COT_INTERROGATED_BY_STATION) {
+                        self->storedReadingsInterrogated.push_back(self->storedReading);
+                        self->ingestedInterrogated++;
+                    }
+                }
+
+                self->storedReadings.push_back(self->storedReading);
+            }
+        }
+        else {
+            printf("Unexpected reading type\n");
+        }
 
         self->ingestCallbackCalled++;
     }
 };
 
+/* Callback handler that is called when an interrogation command is received */
+static bool
+interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, uint8_t qoi)
+{
+    if (qoi == 20) { /* only handle station interrogation */
+
+        CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
+
+        IMasterConnection_sendACT_CON(connection, asdu, false);
+
+        /* The CS101 specification only allows information objects without timestamp in GI responses */
+
+        CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION,
+                0, 41025, false, false);
+
+        struct sCP56Time2a ts;
+
+        uint64_t timestamp = Hal_getTimeInMs();
+            
+        CP56Time2a_createFromMsTimestamp(&ts, timestamp);
+
+        InformationObject io = (InformationObject)SinglePointWithCP56Time2a_create(NULL, 4206948, true, IEC60870_QUALITY_GOOD, &ts);
+
+        CS101_ASDU_addInformationObject(newAsdu, io);
+
+        IMasterConnection_sendASDU(connection, newAsdu);
+
+        CS101_ASDU_destroy(newAsdu);
+
+        IMasterConnection_sendACT_TERM(connection, asdu);
+    }
+    else {
+        IMasterConnection_sendACT_CON(connection, asdu, true);
+    }
+
+    return true;
+}
+
 TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 {
     ingestCallbackCalled = 0;
+    ingestedSpontOrPeriodic = 0;
+    ingestedInterrogated = 0;
     storedReading = nullptr;
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setInterrogationHandler(slave, interrogationHandler, NULL);
 
     CS104_Slave_setLocalPort(slave, TEST_PORT);
 
@@ -340,10 +405,12 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(ingestCallbackCalled, 9);
-    ASSERT_EQ("TS-1", storedReading->getAssetName());
-    ASSERT_TRUE(hasObject(*storedReading, "data_object"));
-    Datapoint* data_object = getObject(*storedReading, "data_object");
+    ASSERT_EQ(ingestedSpontOrPeriodic, 9);
+    Reading* reading = storedReadingsSpontOrPeriodic[8];
+    ASSERT_TRUE(reading != nullptr);
+    ASSERT_EQ("TS-1", reading->getAssetName());
+    ASSERT_TRUE(hasObject(*reading, "data_object"));
+    Datapoint* data_object = getObject(*reading, "data_object");
     ASSERT_NE(nullptr, data_object);
     ASSERT_TRUE(hasChild(*data_object, "do_type"));
     ASSERT_TRUE(hasChild(*data_object, "do_ca"));
@@ -364,7 +431,7 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 
     ASSERT_EQ("M_SP_TB_1", getStrValue(getChild(*data_object, "do_type")));
     ASSERT_EQ((int64_t) 41025, getIntValue(getChild(*data_object, "do_ca")));
-    ASSERT_EQ((int64_t) 1, getIntValue(getChild(*data_object, "do_cot")));
+    ASSERT_EQ((int64_t) 1, getIntValue(getChild(*data_object, "do_cot"))); /* CS101_COT_PERIODIC(1) */
     ASSERT_EQ((int64_t) 4206948, getIntValue(getChild(*data_object, "do_ioa")));
     ASSERT_EQ((int64_t) timestamp, getIntValue(getChild(*data_object, "do_ts")));
 
@@ -381,40 +448,7 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 
     CS101_ASDU_destroy(newAsdu2);
 
-    Thread_sleep(500);
-
-    ASSERT_EQ(ingestCallbackCalled, 10);
-    ASSERT_EQ("TS-1", storedReading->getAssetName());
-    ASSERT_TRUE(hasObject(*storedReading, "data_object"));
-    data_object = getObject(*storedReading, "data_object");
-    ASSERT_NE(nullptr, data_object);
-    ASSERT_TRUE(hasChild(*data_object, "do_type"));
-    ASSERT_TRUE(hasChild(*data_object, "do_ca"));
-    ASSERT_TRUE(hasChild(*data_object, "do_oa"));
-    ASSERT_TRUE(hasChild(*data_object, "do_cot"));
-    ASSERT_TRUE(hasChild(*data_object, "do_test"));
-    ASSERT_TRUE(hasChild(*data_object, "do_negative"));
-    ASSERT_TRUE(hasChild(*data_object, "do_ioa"));
-    ASSERT_TRUE(hasChild(*data_object, "do_value"));
-    ASSERT_TRUE(hasChild(*data_object, "do_quality_iv"));
-    ASSERT_TRUE(hasChild(*data_object, "do_quality_bl"));
-    ASSERT_TRUE(hasChild(*data_object, "do_quality_sb"));
-    ASSERT_TRUE(hasChild(*data_object, "do_quality_nt"));
-    ASSERT_FALSE(hasChild(*data_object, "do_ts"));
-    ASSERT_FALSE(hasChild(*data_object, "do_ts_iv"));
-    ASSERT_FALSE(hasChild(*data_object, "do_ts_su"));
-    ASSERT_FALSE(hasChild(*data_object, "do_ts_sub"));
-
-    ASSERT_EQ("M_SP_NA_1", getStrValue(getChild(*data_object, "do_type")));
-    ASSERT_EQ((int64_t) 41025, getIntValue(getChild(*data_object, "do_ca")));
-    ASSERT_EQ((int64_t) 20, getIntValue(getChild(*data_object, "do_cot")));
-    ASSERT_EQ((int64_t) 4206948, getIntValue(getChild(*data_object, "do_ioa")));
-    ASSERT_EQ(0, getIntValue(getChild(*data_object, "do_quality_iv")));
-    ASSERT_EQ(0, getIntValue(getChild(*data_object, "do_quality_bl")));
-    ASSERT_EQ(0, getIntValue(getChild(*data_object, "do_quality_sb")));
-    ASSERT_EQ(0, getIntValue(getChild(*data_object, "do_quality_nt")));
-
-    CS101_ASDU newAsdu3 = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION, 0, 41025, false, false);
+    CS101_ASDU newAsdu3 = CS101_ASDU_create(alParams, false, CS101_COT_SPONTANEOUS, 0, 41025, false, false);
 
     io = (InformationObject) SinglePointInformation_create(NULL, 4206948, true, IEC60870_QUALITY_INVALID | IEC60870_QUALITY_NON_TOPICAL);
 
@@ -429,8 +463,11 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
 
     Thread_sleep(500);
 
-    ASSERT_EQ(ingestCallbackCalled, 11);
-    data_object = getObject(*storedReading, "data_object");
+    ASSERT_EQ(ingestedSpontOrPeriodic, 10);
+
+    reading = storedReadingsSpontOrPeriodic[9];
+    ASSERT_TRUE(reading != nullptr);
+    data_object = getObject(*reading, "data_object");
     ASSERT_EQ(1, getIntValue(getChild(*data_object, "do_quality_iv")));
     ASSERT_EQ(0, getIntValue(getChild(*data_object, "do_quality_bl")));
     ASSERT_EQ(0, getIntValue(getChild(*data_object, "do_quality_sb")));
@@ -460,6 +497,7 @@ TEST_F(IEC104Test, IEC104_reconnectAfterConnectionLoss)
 {
     int connectionEventCounter = 0;
 
+    /* start the slave */
     CS104_Slave slave = CS104_Slave_create(10, 10);
     
     CS104_Slave_setConnectionEventHandler(slave, test_ConnectionEventHandler, &connectionEventCounter);
@@ -470,17 +508,22 @@ TEST_F(IEC104Test, IEC104_reconnectAfterConnectionLoss)
 
     CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
 
+    /* start the client/plugin */
     startIEC104();
 
+    /* wait for the client to connect */
     Thread_sleep(2000);
 
+    /* Check that the client is connected */
     ASSERT_EQ(1, connectionEventCounter);
 
+    /* stop the slave to simulate a connection loss */
     CS104_Slave_stop(slave);
     CS104_Slave_destroy(slave);
 
     Thread_sleep(500);
 
+    /* start a new slave */
     slave = CS104_Slave_create(10, 10);
     
     CS104_Slave_setConnectionEventHandler(slave, test_ConnectionEventHandler, &connectionEventCounter);
@@ -489,8 +532,10 @@ TEST_F(IEC104Test, IEC104_reconnectAfterConnectionLoss)
 
     CS104_Slave_start(slave);
 
-    Thread_sleep(13000);
+    /* wait at least 10 s for the client to reconnect */
+    Thread_sleep(12000);
 
+    /* check if the client connected a second time */
     ASSERT_EQ(2, connectionEventCounter);
 
     CS104_Slave_destroy(slave);

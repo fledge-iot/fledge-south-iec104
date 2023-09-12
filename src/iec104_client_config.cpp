@@ -739,6 +739,16 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
         }
     }
 
+    if (applicationLayer.HasMember("gi_enabled")) {
+        if (applicationLayer["gi_enabled"].IsBool()) {
+            m_giEnabled = applicationLayer["gi_enabled"].GetBool();
+        }
+        else {
+            printf("applicationLayer.gi_enabled has invalid type -> enable GI by default\n");
+            Logger::getLogger()->warn("applicationLayer.gi_enabled has invalid type -> enable GI by default");
+        }
+    }
+
     if (applicationLayer.HasMember("gi_cycle")) {
         if (applicationLayer["gi_cycle"].IsInt()) {
             int giCycle = applicationLayer["gi_cycle"].GetInt();

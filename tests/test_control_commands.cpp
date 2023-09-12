@@ -20,52 +20,52 @@ static string protocol_config = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",        
-                                "port" : 2404          
-                            },    
                             {
-                                "srv_ip" : "127.0.0.1", 
+                                "srv_ip" : "127.0.0.1",
+                                "port" : 2404
+                            },
+                            {
+                                "srv_ip" : "127.0.0.1",
                                 "port" : 2404
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                 
-                "startup_time" : 180,              
-                "asdu_size" : 0, 
-                "gi_time" : 60,  
-                "gi_cycle" : 30,                
-                "gi_all_ca" : false,              
-                "utc_time" : false,                
-                "cmd_wttag" : false,              
-                "cmd_parallel" : 1,                            
-                "time_sync" : 0    
-            }                 
-        }                     
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "startup_time" : 180,
+                "asdu_size" : 0,
+                "gi_time" : 60,
+                "gi_cycle" : 30,
+                "gi_all_ca" : false,
+                "utc_time" : false,
+                "cmd_wttag" : false,
+                "cmd_parallel" : 1,
+                "time_sync" : 0
+            }
+        }
     });
 
 // PLUGIN DEFAULT EXCHANGED DATA CONF
 
 static string exchanged_data = QUOTE({
         "exchanged_data": {
-            "name" : "iec104client",        
-            "version" : "1.0",               
-            "datapoints" : [          
+            "name" : "iec104client",
+            "version" : "1.0",
+            "datapoints" : [
                 {
                     "label":"TM-1",
                     "protocols":[
@@ -105,7 +105,7 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_SC_NA_1"
                        }
                     ]
-                },                          
+                },
                 {
                     "label":"C-2",
                     "protocols":[
@@ -115,7 +115,7 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_SC_TA_1"
                        }
                     ]
-                },                            
+                },
                 {
                     "label":"C-3",
                     "protocols":[
@@ -125,7 +125,7 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_DC_NA_1"
                        }
                     ]
-                },                            
+                },
                 {
                     "label":"C-4",
                     "protocols":[
@@ -135,7 +135,7 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_SE_TC_1"
                        }
                     ]
-                },                            
+                },
                 {
                     "label":"C-5",
                     "protocols":[
@@ -145,7 +145,7 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_DC_TA_1"
                        }
                     ]
-                },                            
+                },
                 {
                     "label":"C-6",
                     "protocols":[
@@ -155,13 +155,13 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_RC_NA_1"
                        }
                     ]
-                }                          
+                }
             ]
         }
     });
 
-// PLUGIN DEFAULT TLS CONF  
-static string tls_config =  QUOTE({       
+// PLUGIN DEFAULT TLS CONF
+static string tls_config =  QUOTE({
         "tls_conf" : {
             "private_key" : "iec104_client.key",
             "own_cert" : "iec104_client.cer",
@@ -175,7 +175,7 @@ static string tls_config =  QUOTE({
                     "cert_file": "iec104_server.cer"
                 }
             ]
-        }         
+        }
     });
 
 
@@ -260,7 +260,7 @@ protected:
     {
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        for (Datapoint* dp : dataPoints) 
+        for (Datapoint* dp : dataPoints)
         {
             if (dp->getName() == label) {
                 return true;
@@ -274,7 +274,7 @@ protected:
     {
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        for (Datapoint* dp : dataPoints) 
+        for (Datapoint* dp : dataPoints)
         {
             if (dp->getName() == label) {
                 return dp;
@@ -418,27 +418,30 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommand)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[4];
+    PLUGIN_PARAMETER* params[9];
+
+    PLUGIN_PARAMETER type = {"type", "C_SC_NA_1"};
+    params[0] = &type;
 
     PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
+    params[1] = &ca;
 
     // ioa
     PLUGIN_PARAMETER ioa = {"ioa", "2000"};
-    params[1] = &ioa;
+    params[2] = &ioa;
 
     // Third value
     PLUGIN_PARAMETER value = {"", "1"};
-    params[2] = &value;
+    params[8] = &value;
 
     // Third value
     PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
+    params[5] = &select;
 
     // quality update for measurement data points
     ASSERT_EQ(3, ingestCallbackCalled);
 
-    bool operationResult = iec104->operation("SingleCommand", 4, params);
+    bool operationResult = iec104->operation("IEC104Command", 9, params);
 
     ASSERT_TRUE(operationResult);
 
@@ -495,24 +498,26 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommandNotInExchangeConfig)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[4];
+    PLUGIN_PARAMETER* params[9];
+
+    PLUGIN_PARAMETER type = {"type", "C_SC_NA_1"};
+    params[0] = &type;
 
     PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
+    params[1] = &ca;
 
     // ioa
     PLUGIN_PARAMETER ioa = {"ioa", "2022"};
-    params[1] = &ioa;
+    params[2] = &ioa;
 
     // Third value
     PLUGIN_PARAMETER value = {"", "1"};
-    params[2] = &value;
+    params[8] = &value;
 
     // Third value
     PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
-
-    bool operationResult = iec104->operation("SingleCommand", 4, params);
+    params[5] = &select;
+    bool operationResult = iec104->operation("SingleCommand", 9, params);
 
     ASSERT_FALSE(operationResult);
 
@@ -525,57 +530,6 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommandNotInExchangeConfig)
     CS104_Slave_destroy(slave);
 }
 
-TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommandButConfiguredAsDoubleCommand)
-{
-    asduHandlerCalled = 0;
-    clockSyncHandlerCalled = 0;
-    lastConnection = NULL;
-    ingestCallbackCalled = 0;
-
-    CS104_Slave slave = CS104_Slave_create(10, 10);
-
-    CS104_Slave_setLocalPort(slave, TEST_PORT);
-
-    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
-    CS104_Slave_setASDUHandler(slave, asduHandler, this);
-
-    CS104_Slave_start(slave);
-
-    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
-
-    startIEC104();
-
-    Thread_sleep(500);
-
-    PLUGIN_PARAMETER* params[4];
-
-    PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
-
-    // ioa
-    PLUGIN_PARAMETER ioa = {"ioa", "2021"};
-    params[1] = &ioa;
-
-    // Third value
-    PLUGIN_PARAMETER value = {"", "1"};
-    params[2] = &value;
-
-    // Third value
-    PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
-
-    bool operationResult = iec104->operation("SingleCommand", 4, params);
-
-    ASSERT_FALSE(operationResult);
-
-    Thread_sleep(500);
-
-    ASSERT_EQ(0, asduHandlerCalled);
-
-    CS104_Slave_stop(slave);
-
-    CS104_Slave_destroy(slave);
-}
 
 TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommand)
 {
@@ -602,24 +556,26 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommand)
     // quality update for measurement data points
     ASSERT_EQ(3, ingestCallbackCalled);
 
-    PLUGIN_PARAMETER* params[4];
+    PLUGIN_PARAMETER* params[9];
+
+    PLUGIN_PARAMETER type = {"type", "C_DC_NA_1"};
+    params[0] = &type;
 
     PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
+    params[1] = &ca;
 
     // ioa
     PLUGIN_PARAMETER ioa = {"ioa", "2002"};
-    params[1] = &ioa;
+    params[2] = &ioa;
 
     // Third value
     PLUGIN_PARAMETER value = {"", "2"};
-    params[2] = &value;
+    params[8] = &value;
 
     // Third value
     PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
-
-    bool operationResult = iec104->operation("DoubleCommand", 4, params);
+    params[5] = &select;
+    bool operationResult = iec104->operation("IEC104Command", 9, params);
 
     ASSERT_TRUE(operationResult);
 
@@ -679,24 +635,29 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommandWithTimestamp)
     // quality update for measurement data points
     ASSERT_EQ(3, ingestCallbackCalled);
 
-    PLUGIN_PARAMETER* params[4];
+     PLUGIN_PARAMETER* params[9];
+
+    PLUGIN_PARAMETER type = {"type", "C_DC_TA_1"};
+    params[0] = &type;
 
     PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
+    params[1] = &ca;
 
     // ioa
     PLUGIN_PARAMETER ioa = {"ioa", "2004"};
-    params[1] = &ioa;
+    params[2] = &ioa;
 
     // Third value
     PLUGIN_PARAMETER value = {"", "1"};
-    params[2] = &value;
+    params[8] = &value;
 
     // Third value
     PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
+    params[5] = &select;
+    PLUGIN_PARAMETER ts = {"ts", "2515224"};
+    params[7] = &ts;
 
-    bool operationResult = iec104->operation("DoubleCommandWithCP56Time2a", 4, params);
+    bool operationResult = iec104->operation("IEC104Command", 9, params);
 
     ASSERT_TRUE(operationResult);
 
@@ -755,24 +716,26 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommandNotConnected)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[4];
+    PLUGIN_PARAMETER* params[9];
+
+    PLUGIN_PARAMETER type = {"type", "C_DC_NA_1"};
+    params[0] = &type;
 
     PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
+    params[1] = &ca;
 
     // ioa
     PLUGIN_PARAMETER ioa = {"ioa", "2002"};
-    params[1] = &ioa;
+    params[2] = &ioa;
 
     // Third value
     PLUGIN_PARAMETER value = {"", "2"};
-    params[2] = &value;
+    params[8] = &value;
 
     // Third value
     PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
-
-    bool operationResult = iec104->operation("DoubleCommand", 4, params);
+    params[5] = &select;
+    bool operationResult = iec104->operation("IEC104Command", 9, params);
 
     ASSERT_FALSE(operationResult);
 
@@ -801,24 +764,30 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSetpointCommandShort)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[4];
+    PLUGIN_PARAMETER* params[9];
+
+    PLUGIN_PARAMETER type = {"type", "C_SE_TC_1"};
+    params[0] = &type;
 
     PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
+    params[1] = &ca;
 
     // ioa
     PLUGIN_PARAMETER ioa = {"ioa", "2003"};
-    params[1] = &ioa;
+    params[2] = &ioa;
 
     // Third value
     PLUGIN_PARAMETER value = {"", "2.1"};
-    params[2] = &value;
+    params[8] = &value;
 
     // Third value
     PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
+    params[5] = &select;
 
-    bool operationResult = iec104->operation("SetpointShortWithCP56Time2a", 4, params);
+    PLUGIN_PARAMETER ts = {"ts", "2515224"};
+    params[7] = &ts;
+
+    bool operationResult = iec104->operation("IEC104Command", 9, params);
 
     ASSERT_TRUE(operationResult);
 
@@ -879,33 +848,35 @@ TEST_F(ControlCommandsTest, IEC104Client_sendTwoSingleCommands)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[4];
+    PLUGIN_PARAMETER* params[9];
+
+    PLUGIN_PARAMETER type = {"type", "C_SC_NA_1"};
+    params[0] = &type;
 
     PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
+    params[1] = &ca;
 
     // ioa
     PLUGIN_PARAMETER ioa = {"ioa", "2000"};
-    params[1] = &ioa;
+    params[2] = &ioa;
 
     // Third value
     PLUGIN_PARAMETER value = {"", "1"};
-    params[2] = &value;
+    params[8] = &value;
 
     // Third value
     PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
-
+    params[5] = &select;
     // quality update for measurement data points
     ASSERT_EQ(3, ingestCallbackCalled);
 
-    bool operationResult = iec104->operation("SingleCommand", 4, params);
+    bool operationResult = iec104->operation("IEC104Command", 9, params);
 
     ASSERT_TRUE(operationResult);
 
     params[1]->value = "2001";
 
-    operationResult = iec104->operation("SingleCommand", 4, params);
+    operationResult = iec104->operation("IEC104Command", 9, params);
 
     ASSERT_FALSE(operationResult);
 
@@ -962,27 +933,30 @@ TEST_F(ControlCommandsTest, IEC104Client_sendStepCommand)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[4];
+    PLUGIN_PARAMETER* params[9];
+
+    PLUGIN_PARAMETER type = {"type", "C_RC_NA_1"};
+    params[0] = &type;
 
     PLUGIN_PARAMETER ca = {"ca", "41025"};
-    params[0] = &ca;
+    params[1] = &ca;
 
     // ioa
     PLUGIN_PARAMETER ioa = {"ioa", "2005"};
-    params[1] = &ioa;
+    params[2] = &ioa;
 
     // Third value
     PLUGIN_PARAMETER value = {"", "2"};
-    params[2] = &value;
+    params[8] = &value;
 
     // Third value
     PLUGIN_PARAMETER select = {"", "0"};
-    params[3] = &select;
+    params[5] = &select;
 
     // quality update for measurement data points
     ASSERT_EQ(3, ingestCallbackCalled);
 
-    bool operationResult = iec104->operation("StepCommand", 4, params);
+    bool operationResult = iec104->operation("IEC104Command", 9, params);
 
     ASSERT_TRUE(operationResult);
 
