@@ -39,8 +39,9 @@ void IEC104::setJsonConfig(const std::string& stack_configuration,
 {
     if (m_config != nullptr) {
         delete m_config;
-        m_config = new IEC104ClientConfig();
     }
+
+    m_config = new IEC104ClientConfig();
 
     m_config->importProtocolConfig(stack_configuration);
     m_config->importExchangeConfig(msg_configuration);
