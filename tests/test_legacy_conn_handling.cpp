@@ -19,46 +19,46 @@ static string protocol_config = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",        
-                                "port" : 2404          
-                            },    
                             {
-                                "srv_ip" : "127.0.0.1", 
+                                "srv_ip" : "127.0.0.1",
+                                "port" : 2404
+                            },
+                            {
+                                "srv_ip" : "127.0.0.1",
                                 "port" : 2404
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                             
-                "asdu_size" : 0, 
-                "gi_time" : 60,  
-                "gi_cycle" : 30,                
-                "gi_all_ca" : true,                             
-                "utc_time" : false,                
-                "cmd_with_timetag" : false,              
-                "cmd_parallel" : 0,                              
-                "time_sync" : 1                
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "asdu_size" : 0,
+                "gi_time" : 60,
+                "gi_cycle" : 30,
+                "gi_all_ca" : true,
+                "utc_time" : false,
+                "cmd_with_timetag" : false,
+                "cmd_parallel" : 0,
+                "time_sync" : 1
             },
             "south_monitoring" : {
                 "asset": "CONSTAT-1",
                 "cnx_loss_status_id" : "CNXLOSS-1"
-            }             
-        }                     
+            }
+        }
     });
 
 
@@ -68,49 +68,49 @@ static string protocol_config_no_red = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",        
-                                "port" : 2404          
+                            {
+                                "srv_ip" : "127.0.0.1",
+                                "port" : 2404
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                             
-                "asdu_size" : 0, 
-                "gi_time" : 60,  
-                "gi_cycle" : 30,                
-                "gi_all_ca" : true,                             
-                "utc_time" : false,                
-                "cmd_with_timetag" : false,              
-                "cmd_parallel" : 0,                              
-                "time_sync" : 1                
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "asdu_size" : 0,
+                "gi_time" : 60,
+                "gi_cycle" : 30,
+                "gi_all_ca" : true,
+                "utc_time" : false,
+                "cmd_with_timetag" : false,
+                "cmd_parallel" : 0,
+                "time_sync" : 1
             },
             "south_monitoring" : {
                 "asset": "CONSTAT-1",
                 "cnx_loss_status_id" : "CNXLOSS-1"
-            }             
-        }                     
+            }
+        }
     });
 
 static string exchanged_data = QUOTE({
         "exchanged_data": {
-            "name" : "iec104client",        
-            "version" : "1.0",               
-            "datapoints" : [          
+            "name" : "iec104client",
+            "version" : "1.0",
+            "datapoints" : [
                 {
                     "label":"TM-1",
                     "protocols":[
@@ -150,7 +150,7 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_SC_NA_1"
                        }
                     ]
-                },                          
+                },
                 {
                     "label":"C-2",
                     "protocols":[
@@ -160,7 +160,7 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_SC_TA_1"
                        }
                     ]
-                },                            
+                },
                 {
                     "label":"C-3",
                     "protocols":[
@@ -180,16 +180,16 @@ static string exchanged_data = QUOTE({
                           "typeid":"M_ME_NA_1"
                        }
                     ]
-                }                   
+                }
             ]
         }
     });
 
 static string exchanged_data_2 = QUOTE({
         "exchanged_data": {
-            "name" : "iec104client",        
-            "version" : "1.0",               
-            "datapoints" : [          
+            "name" : "iec104client",
+            "version" : "1.0",
+            "datapoints" : [
                 {
                     "label":"TM-1",
                     "protocols":[
@@ -229,7 +229,7 @@ static string exchanged_data_2 = QUOTE({
                           "typeid":"C_SC_NA_1"
                        }
                     ]
-                },                          
+                },
                 {
                     "label":"C-2",
                     "protocols":[
@@ -239,7 +239,7 @@ static string exchanged_data_2 = QUOTE({
                           "typeid":"C_SC_TA_1"
                        }
                     ]
-                },                            
+                },
                 {
                     "label":"C-3",
                     "protocols":[
@@ -259,14 +259,14 @@ static string exchanged_data_2 = QUOTE({
                           "typeid":"M_SP_NA_1"
                        }
                     ]
-                }                   
+                }
             ]
         }
     });
 
 
 // PLUGIN DEFAULT TLS CONF
-static string tls_config =  QUOTE({       
+static string tls_config =  QUOTE({
         "tls_conf" : {
             "private_key" : "iec104_client.key",
             "own_cert" : "iec104_client.cer",
@@ -280,7 +280,7 @@ static string tls_config =  QUOTE({
                     "cert_file": "iec104_server.cer"
                 }
             ]
-        }         
+        }
     });
 
 
@@ -369,7 +369,7 @@ protected:
     {
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        for (Datapoint* dp : dataPoints) 
+        for (Datapoint* dp : dataPoints)
         {
             if (dp->getName() == label) {
                 return true;
@@ -383,7 +383,7 @@ protected:
     {
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        for (Datapoint* dp : dataPoints) 
+        for (Datapoint* dp : dataPoints)
         {
             if (dp->getName() == label) {
                 return dp;
@@ -520,7 +520,7 @@ protected:
 TEST_F(LegacyConnectionHandlingTest, ConnectionLost)
 {
     ingestCallbackCalled = 0;
- 
+
     iec104->setJsonConfig(protocol_config_no_red, exchanged_data, tls_config);
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
@@ -537,11 +537,11 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLost)
 
     printf("Client plugin started\n");
 
-    sleep(1);
+    Thread_sleep(500);
 
     CS104_Slave_stop(slave);
 
-    sleep(2);
+    Thread_sleep(2000);
 
     CS104_Slave_destroy(slave);
 
@@ -577,7 +577,7 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLost)
 TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
 {
     ingestCallbackCalled = 0;
- 
+
     iec104->setJsonConfig(protocol_config_no_red, exchanged_data, tls_config);
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
@@ -588,15 +588,15 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
 
     startIEC104();
 
-    sleep(1);
+    Thread_sleep(500);
 
     CS104_Slave_stop(slave);
 
-    sleep(1);
+    Thread_sleep(1000);
 
     CS104_Slave_start(slave);
 
-    sleep(12); /* wait more than 10s - default reconnect delay */
+    Thread_sleep(12000); /* wait more than 10s - default reconnect delay */
 
     CS104_Slave_destroy(slave);
 
@@ -621,7 +621,7 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
 TEST_F(LegacyConnectionHandlingTest, SendConnectionStatusAfterRequestFromNorth)
 {
     ingestCallbackCalled = 0;
- 
+
     iec104->setJsonConfig(protocol_config_no_red, exchanged_data, tls_config);
 
     startIEC104();
@@ -631,7 +631,7 @@ TEST_F(LegacyConnectionHandlingTest, SendConnectionStatusAfterRequestFromNorth)
     bool operationResult = iec104->operation("request_connection_status", 0, nullptr);
 
     ASSERT_EQ(5, ingestCallbackCalled);
-    
+
     ASSERT_EQ(5, storedReadings.size());
 
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
@@ -645,7 +645,7 @@ TEST_F(LegacyConnectionHandlingTest, SendConnectionStatusAfterRequestFromNorth)
 TEST_F(LegacyConnectionHandlingTest, ConnectionLostStatus)
 {
     ingestCallbackCalled = 0;
- 
+
     iec104->setJsonConfig(protocol_config_no_red, exchanged_data_2, tls_config);
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
@@ -662,11 +662,11 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostStatus)
 
     printf("Client plugin started\n");
 
-    sleep(1);
+    Thread_sleep(500);
 
     CS104_Slave_stop(slave);
 
-    sleep(2);
+    Thread_sleep(2000);
 
     CS104_Slave_destroy(slave);
 

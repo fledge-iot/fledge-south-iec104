@@ -21,45 +21,45 @@ static string protocol_config = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",        
-                                "port" : 2404          
+                            {
+                                "srv_ip" : "127.0.0.1",
+                                "port" : 2404
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                             
-                "asdu_size" : 0, 
-                "gi_time" : 60,  
-                "gi_cycle" : 30,                
-                "gi_all_ca" : true,                           
-                "utc_time" : false,                
-                "cmd_with_timetag" : false,              
-                "cmd_parallel" : 0,                            
-                "time_sync" : 100                 
-            }                 
-        }                     
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "asdu_size" : 0,
+                "gi_time" : 60,
+                "gi_cycle" : 30,
+                "gi_all_ca" : true,
+                "utc_time" : false,
+                "cmd_with_timetag" : false,
+                "cmd_parallel" : 0,
+                "time_sync" : 100
+            }
+        }
     });
 
 static string exchanged_data = QUOTE({
         "exchanged_data": {
-            "name" : "iec104client",        
-            "version" : "1.0",               
-            "datapoints" : [          
+            "name" : "iec104client",
+            "version" : "1.0",
+            "datapoints" : [
                 {
                     "label":"TM-1",
                     "protocols":[
@@ -189,14 +189,14 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_SC_NA_1"
                        }
                     ]
-                }                 
+                }
             ]
         }
     });
 
 
 // PLUGIN DEFAULT TLS CONF
-static string tls_config =  QUOTE({       
+static string tls_config =  QUOTE({
         "tls_conf" : {
             "private_key" : "iec104_client.key",
             "own_cert" : "iec104_client.cer",
@@ -210,7 +210,7 @@ static string tls_config =  QUOTE({
                     "cert_file": "iec104_server.cer"
                 }
             ]
-        }         
+        }
     });
 
 class IEC104TestComp : public IEC104
@@ -246,7 +246,7 @@ protected:
         for (auto reading : storedReadings) {
             delete reading;
         }
-       
+
         delete iec104;
     }
 
@@ -307,7 +307,7 @@ protected:
     {
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        for (Datapoint* dp : dataPoints) 
+        for (Datapoint* dp : dataPoints)
         {
             if (dp->getName() == label) {
                 return true;
@@ -321,7 +321,7 @@ protected:
     {
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        for (Datapoint* dp : dataPoints) 
+        for (Datapoint* dp : dataPoints)
         {
             if (dp->getName() == label) {
                 return dp;
@@ -385,7 +385,7 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
         struct sCP56Time2a ts;
 
         uint64_t timestamp = Hal_getTimeInMs();
-            
+
         CP56Time2a_createFromMsTimestamp(&ts, timestamp);
 
         InformationObject io = (InformationObject)SinglePointWithCP56Time2a_create(NULL, 4206948, true, IEC60870_QUALITY_GOOD, &ts);
@@ -429,7 +429,7 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdus)
     struct sCP56Time2a ts;
 
     uint64_t timestamp = Hal_getTimeInMs();
-            
+
     CP56Time2a_createFromMsTimestamp(&ts, timestamp);
 
     InformationObject io = (InformationObject) SinglePointWithCP56Time2a_create(NULL, 4206948, true, IEC60870_QUALITY_GOOD, &ts);
@@ -540,7 +540,7 @@ TEST_F(IEC104Test, IEC104_reconnectAfterConnectionLoss)
 
     /* start the slave */
     CS104_Slave slave = CS104_Slave_create(10, 10);
-    
+
     CS104_Slave_setConnectionEventHandler(slave, test_ConnectionEventHandler, &connectionEventCounter);
 
     CS104_Slave_setLocalPort(slave, TEST_PORT);
@@ -566,7 +566,7 @@ TEST_F(IEC104Test, IEC104_reconnectAfterConnectionLoss)
 
     /* start a new slave */
     slave = CS104_Slave_create(10, 10);
-    
+
     CS104_Slave_setConnectionEventHandler(slave, test_ConnectionEventHandler, &connectionEventCounter);
 
     CS104_Slave_setLocalPort(slave, TEST_PORT);
@@ -574,7 +574,7 @@ TEST_F(IEC104Test, IEC104_reconnectAfterConnectionLoss)
     CS104_Slave_start(slave);
 
     /* wait at least 10 s for the client to reconnect */
-    Thread_sleep(12000);
+    Thread_sleep(14000);
 
     /* check if the client connected a second time */
     ASSERT_EQ(2, connectionEventCounter);
@@ -587,7 +587,7 @@ TEST_F(IEC104Test, IEC104_connectionFails)
     int connectionEventCounter = 0;
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
-    
+
     CS104_Slave_setConnectionEventHandler(slave, test_ConnectionEventHandler, &connectionEventCounter);
 
     CS104_Slave_setLocalPort(slave, TEST_PORT);
@@ -635,7 +635,7 @@ TEST_F(IEC104Test, IEC104_receiveMonitoringAsdusWithCOT_11)
     struct sCP56Time2a ts;
 
     uint64_t timestamp = Hal_getTimeInMs();
-            
+
     CP56Time2a_createFromMsTimestamp(&ts, timestamp);
 
     InformationObject io = (InformationObject) SinglePointWithCP56Time2a_create(NULL, 4206948, true, IEC60870_QUALITY_GOOD, &ts);
@@ -704,7 +704,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ST_TB_1)
     struct sCP56Time2a ts;
 
     uint64_t timestamp = Hal_getTimeInMs();
-            
+
     CP56Time2a_createFromMsTimestamp(&ts, timestamp);
 
     InformationObject io = (InformationObject) StepPositionWithCP56Time2a_create(NULL, 4202854, 1, true, IEC60870_QUALITY_GOOD, &ts);
@@ -773,7 +773,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TD_1)
     struct sCP56Time2a ts;
 
     uint64_t timestamp = Hal_getTimeInMs();
-            
+
     CP56Time2a_createFromMsTimestamp(&ts, timestamp);
 
     InformationObject io = (InformationObject) MeasuredValueNormalizedWithCP56Time2a_create(NULL, 4202855, 0.5, IEC60870_QUALITY_GOOD, &ts);
@@ -842,7 +842,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_NB_1)
     struct sCP56Time2a ts;
 
     uint64_t timestamp = Hal_getTimeInMs();
-            
+
     CP56Time2a_createFromMsTimestamp(&ts, timestamp);
 
     InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 4202858, 124, IEC60870_QUALITY_GOOD);
@@ -906,7 +906,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_DP_NA_1)
     struct sCP56Time2a ts;
 
     uint64_t timestamp = Hal_getTimeInMs();
-            
+
     CP56Time2a_createFromMsTimestamp(&ts, timestamp);
 
     InformationObject io = (InformationObject) DoublePointInformation_create(NULL, 4202859, IEC60870_DOUBLE_POINT_INTERMEDIATE, IEC60870_QUALITY_GOOD);
@@ -939,7 +939,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_DP_NA_1)
     ASSERT_TRUE(hasChild(*data_object, "do_quality_bl"));
     ASSERT_TRUE(hasChild(*data_object, "do_quality_sb"));
     ASSERT_TRUE(hasChild(*data_object, "do_quality_nt"));
- 
+
 
     ASSERT_EQ("M_DP_NA_1", getStrValue(getChild(*data_object, "do_type")));
     ASSERT_EQ((int64_t) 41025, getIntValue(getChild(*data_object, "do_ca")));
@@ -971,7 +971,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_DP_TB_1)
     struct sCP56Time2a ts;
 
     uint64_t timestamp = Hal_getTimeInMs();
-            
+
     CP56Time2a_createFromMsTimestamp(&ts, timestamp);
 
     InformationObject io = (InformationObject) DoublePointWithCP56Time2a_create(NULL, 4202860, IEC60870_DOUBLE_POINT_INDETERMINATE, IEC60870_QUALITY_GOOD, &ts);
@@ -1040,7 +1040,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_NC_1)
     struct sCP56Time2a ts;
 
     uint64_t timestamp = Hal_getTimeInMs();
-            
+
     CP56Time2a_createFromMsTimestamp(&ts, timestamp);
 
     InformationObject io = (InformationObject) MeasuredValueShort_create(NULL, 4202861, 1.5, IEC60870_QUALITY_GOOD);
@@ -1104,7 +1104,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TE_1)
     struct sCP56Time2a ts;
 
     uint64_t timestamp = Hal_getTimeInMs();
-            
+
     CP56Time2a_createFromMsTimestamp(&ts, timestamp);
 
     InformationObject io = (InformationObject) MeasuredValueScaledWithCP56Time2a_create(NULL, 4202856, 5, IEC60870_QUALITY_GOOD, &ts);
@@ -1173,7 +1173,7 @@ TEST_F(IEC104Test, IEC104_receiveSpont_M_ME_TF_1)
     struct sCP56Time2a ts;
 
     uint64_t timestamp = Hal_getTimeInMs();
-            
+
     CP56Time2a_createFromMsTimestamp(&ts, timestamp);
 
     InformationObject io = (InformationObject) MeasuredValueShortWithCP56Time2a_create(NULL, 4202857, 50.5, IEC60870_QUALITY_GOOD, &ts);

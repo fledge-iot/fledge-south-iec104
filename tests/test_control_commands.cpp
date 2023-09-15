@@ -268,7 +268,7 @@ static string exchanged_data1 = QUOTE({
                 }
             ]
         }
-    });    
+    });
 
 // PLUGIN DEFAULT TLS CONF
 static string tls_config =  QUOTE({
@@ -1031,7 +1031,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSetpointCommandShortNoTime)
     ASSERT_TRUE(operationResult);
 
     Thread_sleep(500);
-    
+
     ASSERT_EQ(1, asduHandlerCalled);
 
     CS101_ASDU ctAsdu = CS101_ASDU_create(IMasterConnection_getApplicationLayerParameters(lastConnection),
@@ -1856,7 +1856,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendBrokenCommands1)
     PLUGIN_PARAMETER type13 = {"type", "C_SE_AA_1"};
     params13[0] = &type13;
 
-   
+
     // quality update for measurement data points
     ASSERT_EQ(3, ingestCallbackCalled);
 
@@ -2038,7 +2038,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendBrokenCommands2)
     PLUGIN_PARAMETER select11 = {"", "0"};
     params11[5] = &select11;
 
-   
+
     // quality update for measurement data points
     ASSERT_EQ(3, ingestCallbackCalled);
 
@@ -2050,13 +2050,13 @@ TEST_F(ControlCommandsTest, IEC104Client_sendBrokenCommands2)
 
     operationResult = iec104->operation("IEC104Command", 9, params5);
     ASSERT_FALSE(operationResult);
-    
+
     operationResult = iec104->operation("IEC104Command", 9, params7);
     ASSERT_FALSE(operationResult);
-   
+
     operationResult = iec104->operation("IEC104Command", 9, params9);
     ASSERT_FALSE(operationResult);
-   
+
     operationResult = iec104->operation("IEC104Command", 9, params11);
     ASSERT_FALSE(operationResult);
 

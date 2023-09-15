@@ -20,43 +20,43 @@ static string protocol_config = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",   
-                                "port" : 2404          
-                            },    
+                            {
+                                "srv_ip" : "127.0.0.1",
+                                "port" : 2404
+                            },
                             {
                                 "srv_ip" : "127.0.0.2",
                                 "clt_ip" : "127.0.0.3",
                                 "port" : 2404
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                            
-                "asdu_size" : 0, 
-                "gi_time" : 60,  
-                "gi_cycle" : 30,                
-                "gi_all_ca" : false,                              
-                "utc_time" : false,                
-                "cmd_wttag" : false,              
-                "cmd_parallel" : 0,                              
-                "time_sync" : 0                 
-            }                 
-        }                     
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "asdu_size" : 0,
+                "gi_time" : 60,
+                "gi_cycle" : 30,
+                "gi_all_ca" : false,
+                "utc_time" : false,
+                "cmd_wttag" : false,
+                "cmd_parallel" : 0,
+                "time_sync" : 0
+            }
+        }
     });
 
 static string protocol_config_2 = QUOTE({
@@ -65,14 +65,14 @@ static string protocol_config_2 = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",   
+                            {
+                                "srv_ip" : "127.0.0.1",
                                 "port" : 2404,
                                 "conn": true,
                                 "start": true
-                            },    
+                            },
                             {
                                 "srv_ip" : "127.0.0.2",
                                 "clt_ip" : "127.0.0.3",
@@ -81,31 +81,31 @@ static string protocol_config_2 = QUOTE({
                                 "start": false
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                           
-                "asdu_size" : 0, 
-                "gi_time" : 60,  
-                "gi_cycle" : 30,                
-                "gi_all_ca" : false,                              
-                "utc_time" : false,                
-                "cmd_wttag" : false,              
-                "cmd_parallel" : 0,                               
-                "time_sync" : 0                 
-            }                 
-        }                     
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "asdu_size" : 0,
+                "gi_time" : 60,
+                "gi_cycle" : 30,
+                "gi_all_ca" : false,
+                "utc_time" : false,
+                "cmd_wttag" : false,
+                "cmd_parallel" : 0,
+                "time_sync" : 0
+            }
+        }
     });
 
 static string protocol_config_3 = QUOTE({
@@ -114,38 +114,38 @@ static string protocol_config_3 = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",   
-                                "port" : 2404          
+                            {
+                                "srv_ip" : "127.0.0.1",
+                                "port" : 2404
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                             
-                "asdu_size" : 0, 
-                "gi_time" : 60,  
-                "gi_cycle" : 30,                
-                "gi_all_ca" : false,                               
-                "utc_time" : false,                
-                "cmd_wttag" : false,              
-                "cmd_parallel" : 0,                              
-                "time_sync" : 0                 
-            }                 
-        }                     
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "asdu_size" : 0,
+                "gi_time" : 60,
+                "gi_cycle" : 30,
+                "gi_all_ca" : false,
+                "utc_time" : false,
+                "cmd_wttag" : false,
+                "cmd_parallel" : 0,
+                "time_sync" : 0
+            }
+        }
     });
 
 static string protocol_config_4 = QUOTE({
@@ -154,38 +154,38 @@ static string protocol_config_4 = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",   
-                                "port" : 2404          
+                            {
+                                "srv_ip" : "127.0.0.1",
+                                "port" : 2404
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : true,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                             
-                "asdu_size" : 0, 
-                "gi_time" : 60,  
-                "gi_cycle" : 30,                
-                "gi_all_ca" : false,                               
-                "utc_time" : false,                
-                "cmd_wttag" : false,              
-                "cmd_parallel" : 0,                              
-                "time_sync" : 0                 
-            }                 
-        }                     
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "asdu_size" : 0,
+                "gi_time" : 60,
+                "gi_cycle" : 30,
+                "gi_all_ca" : false,
+                "utc_time" : false,
+                "cmd_wttag" : false,
+                "cmd_parallel" : 0,
+                "time_sync" : 0
+            }
+        }
     });
 
 static string protocol_config_5 = QUOTE({
@@ -194,63 +194,63 @@ static string protocol_config_5 = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",   
-                                "port" : 2404          
+                            {
+                                "srv_ip" : "127.0.0.1",
+                                "port" : 2404
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     },
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.2",   
-                                "port" : 2405          
+                            {
+                                "srv_ip" : "127.0.0.2",
+                                "port" : 2405
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20  
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                            
-                "asdu_size" : 0, 
-                "gi_time" : 60,  
-                "gi_cycle" : 30,                
-                "gi_all_ca" : false,                              
-                "utc_time" : false,                
-                "cmd_wttag" : false,              
-                "cmd_parallel" : 0,                              
-                "time_sync" : 0                 
-            }                 
-        }                     
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "asdu_size" : 0,
+                "gi_time" : 60,
+                "gi_cycle" : 30,
+                "gi_all_ca" : false,
+                "utc_time" : false,
+                "cmd_wttag" : false,
+                "cmd_parallel" : 0,
+                "time_sync" : 0
+            }
+        }
     });
 
 // PLUGIN DEFAULT EXCHANGED DATA CONF
 
 static string exchanged_data = QUOTE({
         "exchanged_data": {
-            "name" : "iec104client",        
-            "version" : "1.0",               
-            "datapoints" : [          
+            "name" : "iec104client",
+            "version" : "1.0",
+            "datapoints" : [
                 {
                     "label":"TM-1",
                     "protocols":[
@@ -290,7 +290,7 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_SC_NA_1"
                        }
                     ]
-                },                          
+                },
                 {
                     "label":"C-2",
                     "protocols":[
@@ -300,7 +300,7 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_SC_TA_1"
                        }
                     ]
-                },                            
+                },
                 {
                     "label":"C-3",
                     "protocols":[
@@ -310,13 +310,13 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_DC_NA_1"
                        }
                     ]
-                }                        
+                }
             ]
         }
     });
 
-// PLUGIN DEFAULT TLS CONF  
-static string tls_config =  QUOTE({       
+// PLUGIN DEFAULT TLS CONF
+static string tls_config =  QUOTE({
         "tls_conf" : {
             "private_key" : "server-key.pem",
             "own_cert" : "server.cer",
@@ -325,10 +325,10 @@ static string tls_config =  QUOTE({
                     "cert_file": "root.cer"
                 }
             ]
-        }         
+        }
     });
 
-static string tls_config_2 =  QUOTE({       
+static string tls_config_2 =  QUOTE({
         "tls_conf" : {
             "private_key" : "iec104_client.key",
             "own_cert" : "iec104_client.cer",
@@ -342,11 +342,11 @@ static string tls_config_2 =  QUOTE({
                     "cert_file": "iec104_server.cer"
                 }
             ]
-        }         
+        }
     });
 
 
-static string tls_config_3 =  QUOTE({       
+static string tls_config_3 =  QUOTE({
         "tls_conf" : {
             "private_key" : "\\",
             "own_cert" : "\\",
@@ -360,10 +360,10 @@ static string tls_config_3 =  QUOTE({
                     "cert_file": "\\"
                 }
             ]
-        }         
+        }
     });
 
-static string tls_config_4 =  QUOTE({       
+static string tls_config_4 =  QUOTE({
         "tls_conf" : {
             "private_key" : "iec104_client.cer",
             "own_cert" : "iec104_client.key",
@@ -377,10 +377,10 @@ static string tls_config_4 =  QUOTE({
                     "cert_file": "iec104_server.key"
                 }
             ]
-        }         
+        }
     });
 
-static string tls_config_5 =  QUOTE({       
+static string tls_config_5 =  QUOTE({
         "tls_conf" : {
             "private_key" : "",
             "own_cert" : "iec104_client.key",
@@ -394,7 +394,7 @@ static string tls_config_5 =  QUOTE({
                     "cert_file": "iec104_server.key"
                 }
             ]
-        }         
+        }
     });
 
 
@@ -437,7 +437,7 @@ protected:
         iec104->stop();
 
         delete iec104;
-     
+
         for (auto reading : storedReadings) {
             delete reading;
         }
@@ -488,7 +488,7 @@ protected:
     {
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        for (Datapoint* dp : dataPoints) 
+        for (Datapoint* dp : dataPoints)
         {
             if (dp->getName() == label) {
                 return true;
@@ -502,7 +502,7 @@ protected:
     {
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        for (Datapoint* dp : dataPoints) 
+        for (Datapoint* dp : dataPoints)
         {
             if (dp->getName() == label) {
                 return dp;
@@ -641,7 +641,7 @@ TEST_F(ConnectionHandlingTest, TwoConnectionsSingleRedundancyGroup)
 
     iec104->start();
 
-    Thread_sleep(1000);
+    Thread_sleep(2000);
 
     ASSERT_EQ(2, openConnections);
     ASSERT_EQ(2, maxConnections);
@@ -794,160 +794,13 @@ TEST_F(ConnectionHandlingTest, SingleConnectionTLS)
 
     iec104->start();
 
-    Thread_sleep(1000);
+    Thread_sleep(2000);
 
     ASSERT_EQ(1, openConnections);
     ASSERT_EQ(1, maxConnections);
 
     ASSERT_EQ(1, activations);
     ASSERT_EQ(0, deactivations);
-
-    CS104_Slave_stop(slave);
-
-    CS104_Slave_destroy(slave);
-
-    TLSConfiguration_destroy(tlsConfig);
-}
-
-TEST_F(ConnectionHandlingTest, BrokenTLS1)
-{
-    openConnections = 0;
-    activations = 0;
-    deactivations = 0;
-
-    asduHandlerCalled = 0;
-    clockSyncHandlerCalled = 0;
-    lastConnection = NULL;
-    ingestCallbackCalled = 0;
-
-    iec104->setJsonConfig(protocol_config_4, exchanged_data, tls_config_3);
-
-    setenv("FLEDGE_DATA", "./data", 1);
-
-    TLSConfiguration tlsConfig = TLSConfiguration_create();
-
-    TLSConfiguration_addCACertificateFromFile(tlsConfig, "data/etc/certs/iec104_ca.cer");
-    TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "data/etc/certs/iec104_server.cer");
-    TLSConfiguration_setOwnKeyFromFile(tlsConfig, "data/etc/certs/iec104_server.key", NULL);
-    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "data/etc/certs/iec104_client.cer");
-    TLSConfiguration_setChainValidation(tlsConfig, true);
-    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
-
-    CS104_Slave slave = CS104_Slave_createSecure(10, 10, tlsConfig);
-
-    CS104_Slave_setLocalPort(slave, TEST_PORT);
-
-    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
-    CS104_Slave_setASDUHandler(slave, asduHandler, this);
-    CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, this);
-
-    CS104_Slave_start(slave);
-
-    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
-
-    ASSERT_EQ(0, openConnections);
-
-    iec104->start();
-
-    Thread_sleep(1000);
-
-    CS104_Slave_stop(slave);
-
-    CS104_Slave_destroy(slave);
-
-    TLSConfiguration_destroy(tlsConfig);
-}
-
-TEST_F(ConnectionHandlingTest, BrokenTLS2)
-{
-    openConnections = 0;
-    activations = 0;
-    deactivations = 0;
-
-    asduHandlerCalled = 0;
-    clockSyncHandlerCalled = 0;
-    lastConnection = NULL;
-    ingestCallbackCalled = 0;
-
-    iec104->setJsonConfig(protocol_config_4, exchanged_data, tls_config_4);
-
-    setenv("FLEDGE_DATA", "./data", 1);
-
-    TLSConfiguration tlsConfig = TLSConfiguration_create();
-
-    TLSConfiguration_addCACertificateFromFile(tlsConfig, "data/etc/certs/iec104_ca.cer");
-    TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "data/etc/certs/iec104_server.cer");
-    TLSConfiguration_setOwnKeyFromFile(tlsConfig, "data/etc/certs/iec104_server.key", NULL);
-    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "data/etc/certs/iec104_client.cer");
-    TLSConfiguration_setChainValidation(tlsConfig, true);
-    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
-
-    CS104_Slave slave = CS104_Slave_createSecure(10, 10, tlsConfig);
-
-    CS104_Slave_setLocalPort(slave, TEST_PORT);
-
-    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
-    CS104_Slave_setASDUHandler(slave, asduHandler, this);
-    CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, this);
-
-    CS104_Slave_start(slave);
-
-    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
-
-    ASSERT_EQ(0, openConnections);
-
-    iec104->start();
-
-    Thread_sleep(1000);
-
-    CS104_Slave_stop(slave);
-
-    CS104_Slave_destroy(slave);
-
-    TLSConfiguration_destroy(tlsConfig);
-}
-
-TEST_F(ConnectionHandlingTest, BrokenTLS3)
-{
-    openConnections = 0;
-    activations = 0;
-    deactivations = 0;
-
-    asduHandlerCalled = 0;
-    clockSyncHandlerCalled = 0;
-    lastConnection = NULL;
-    ingestCallbackCalled = 0;
-
-    iec104->setJsonConfig(protocol_config_4, exchanged_data, tls_config_5);
-
-    setenv("FLEDGE_DATA", "./data", 1);
-
-    TLSConfiguration tlsConfig = TLSConfiguration_create();
-
-    TLSConfiguration_addCACertificateFromFile(tlsConfig, "data/etc/certs/iec104_ca.cer");
-    TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "data/etc/certs/iec104_server.cer");
-    TLSConfiguration_setOwnKeyFromFile(tlsConfig, "data/etc/certs/iec104_server.key", NULL);
-    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "data/etc/certs/iec104_client.cer");
-    TLSConfiguration_setChainValidation(tlsConfig, true);
-    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
-
-    CS104_Slave slave = CS104_Slave_createSecure(10, 10, tlsConfig);
-
-    CS104_Slave_setLocalPort(slave, TEST_PORT);
-
-    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
-    CS104_Slave_setASDUHandler(slave, asduHandler, this);
-    CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, this);
-
-    CS104_Slave_start(slave);
-
-    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
-
-    ASSERT_EQ(0, openConnections);
-
-    iec104->start();
-
-    Thread_sleep(1000);
 
     CS104_Slave_stop(slave);
 

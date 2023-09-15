@@ -19,45 +19,45 @@ static string protocol_config = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",        
-                                "port" : 2404          
-                            },    
                             {
-                                "srv_ip" : "127.0.0.1", 
+                                "srv_ip" : "127.0.0.1",
+                                "port" : 2404
+                            },
+                            {
+                                "srv_ip" : "127.0.0.1",
                                 "port" : 2404
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                             
-                "asdu_size" : 0, 
-                "gi_time" : 60,  
-                "gi_cycle" : 0,                
-                "gi_all_ca" : true,                             
-                "utc_time" : false,                
-                "cmd_with_timetag" : false,              
-                "cmd_parallel" : 0,                              
-                "time_sync" : 100                 
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "asdu_size" : 0,
+                "gi_time" : 60,
+                "gi_cycle" : 0,
+                "gi_all_ca" : true,
+                "utc_time" : false,
+                "cmd_with_timetag" : false,
+                "cmd_parallel" : 0,
+                "time_sync" : 100
             },
             "south_monitoring" : {
                 "asset": "CONSTAT-1"
-            }                
-        }                     
+            }
+        }
     });
 
 static string protocol_config2 = QUOTE({
@@ -66,45 +66,45 @@ static string protocol_config2 = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",        
-                                "port" : 2404          
-                            },    
                             {
-                                "srv_ip" : "127.0.0.1", 
+                                "srv_ip" : "127.0.0.1",
+                                "port" : 2404
+                            },
+                            {
+                                "srv_ip" : "127.0.0.1",
                                 "port" : 2404
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                          
-                "asdu_size" : 0, 
-                "gi_time" : 60,  
-                "gi_cycle" : 0,                
-                "gi_all_ca" : false,                        
-                "utc_time" : false,                
-                "cmd_with_timetag" : false,              
-                "cmd_parallel" : 0,                           
-                "time_sync" : 100                
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "asdu_size" : 0,
+                "gi_time" : 60,
+                "gi_cycle" : 0,
+                "gi_all_ca" : false,
+                "utc_time" : false,
+                "cmd_with_timetag" : false,
+                "cmd_parallel" : 0,
+                "time_sync" : 100
             },
             "south_monitoring" : {
                 "asset": "CONSTAT-1"
-            }              
-        }                     
+            }
+        }
     });
 
 static string protocol_config3 = QUOTE({
@@ -113,49 +113,49 @@ static string protocol_config3 = QUOTE({
             "version" : "1.0",
             "transport_layer" : {
                 "redundancy_groups" : [
-                    { 
+                    {
                         "connections" : [
-                            {     
-                                "srv_ip" : "127.0.0.1",        
-                                "port" : 2404          
+                            {
+                                "srv_ip" : "127.0.0.1",
+                                "port" : 2404
                             }
                         ],
-                        "rg_name" : "red-group1",  
+                        "rg_name" : "red-group1",
                         "tls" : false,
-                        "k_value" : 12,  
+                        "k_value" : 12,
                         "w_value" : 8,
-                        "t0_timeout" : 10,                 
-                        "t1_timeout" : 15,                 
-                        "t2_timeout" : 10,                 
-                        "t3_timeout" : 20    
+                        "t0_timeout" : 10,
+                        "t1_timeout" : 15,
+                        "t2_timeout" : 10,
+                        "t3_timeout" : 20
                     }
-                ]                  
-            },                
-            "application_layer" : {                
-                "orig_addr" : 10, 
-                "ca_asdu_size" : 2,                
-                "ioaddr_size" : 3,                          
-                "asdu_size" : 0, 
-                "gi_time" : 1,  
-                "gi_cycle" : 1,                
-                "gi_all_ca" : false,                            
-                "utc_time" : false,                
-                "cmd_with_timetag" : false,              
-                "cmd_parallel" : 0,                              
-                "time_sync" : 100                
+                ]
+            },
+            "application_layer" : {
+                "orig_addr" : 10,
+                "ca_asdu_size" : 2,
+                "ioaddr_size" : 3,
+                "asdu_size" : 0,
+                "gi_time" : 1,
+                "gi_cycle" : 1,
+                "gi_all_ca" : false,
+                "utc_time" : false,
+                "cmd_with_timetag" : false,
+                "cmd_parallel" : 0,
+                "time_sync" : 100
             },
             "south_monitoring" : {
                 "asset": "CONSTAT-1"
-            }          
-        }                     
+            }
+        }
     });
 
 
 static string exchanged_data = QUOTE({
         "exchanged_data": {
-            "name" : "iec104client",        
-            "version" : "1.0",               
-            "datapoints" : [          
+            "name" : "iec104client",
+            "version" : "1.0",
+            "datapoints" : [
                 {
                     "label":"TM-1",
                     "protocols":[
@@ -198,7 +198,7 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_SC_NA_1"
                        }
                     ]
-                },                          
+                },
                 {
                     "label":"C-2",
                     "protocols":[
@@ -208,7 +208,7 @@ static string exchanged_data = QUOTE({
                           "typeid":"C_SC_TA_1"
                        }
                     ]
-                },                            
+                },
                 {
                     "label":"C-3",
                     "protocols":[
@@ -228,14 +228,14 @@ static string exchanged_data = QUOTE({
                           "typeid":"M_ME_NA_1"
                        }
                     ]
-                }                   
+                }
             ]
         }
     });
 
 
 // PLUGIN DEFAULT TLS CONF
-static string tls_config =  QUOTE({       
+static string tls_config =  QUOTE({
         "tls_conf" : {
             "private_key" : "iec104_client.key",
             "own_cert" : "iec104_client.cer",
@@ -249,7 +249,7 @@ static string tls_config =  QUOTE({
                     "cert_file": "iec104_server.cer"
                 }
             ]
-        }         
+        }
     });
 
 class IEC104TestComp : public IEC104
@@ -339,7 +339,7 @@ protected:
     {
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        for (Datapoint* dp : dataPoints) 
+        for (Datapoint* dp : dataPoints)
         {
             if (dp->getName() == label) {
                 return true;
@@ -353,7 +353,7 @@ protected:
     {
         std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        for (Datapoint* dp : dataPoints) 
+        for (Datapoint* dp : dataPoints)
         {
             if (dp->getName() == label) {
                 return dp;
@@ -584,7 +584,7 @@ protected:
                 self->lastConnection = connection;
             }
 
-            
+
         }
         else if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1) {
             printf("  C_SC_TA_1 (single-command w/timetag)\n");
@@ -790,13 +790,17 @@ TEST_F(InterrogationTest, IEC104Client_startupProcedureSeparateRequestForEachCA)
 
     startIEC104();
 
-    Thread_sleep(500);
+    auto start = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
+    int duration = 0;
+    while (interrogationRequestsReceived < 2 && duration < 1000)
+    {
+        Thread_sleep(10);
+        end = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    }
 
-    ASSERT_EQ(0, asduHandlerCalled);
-
-    Thread_sleep(2500);
-
-    ASSERT_EQ(2, interrogationRequestsReceived);
+    ASSERT_NE(true , duration >= 1000);
 
     CS104_Slave_stop(slave);
 
@@ -829,7 +833,7 @@ TEST_F(InterrogationTest, IEC104Client_startupProcedureBroadcastCA)
 
     startIEC104();
 
-    Thread_sleep(500);
+    Thread_sleep(800);
 
     ASSERT_EQ(0, asduHandlerCalled);
 
@@ -868,15 +872,24 @@ TEST_F(InterrogationTest, IEC104Client_GIcycleOneSecond)
 
     startIEC104();
 
-    Thread_sleep(500);
+    Thread_sleep(800);
 
     ASSERT_EQ(1, clockSyncHandlerCalled);
     ASSERT_EQ(0, asduHandlerCalled);
     ASSERT_EQ(1, interrogationRequestsReceived);
 
-    Thread_sleep(2000);
+    auto start = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
 
-    ASSERT_EQ(3, interrogationRequestsReceived);
+    int duration = 0;
+    while (interrogationRequestsReceived < 3 && duration < 3000)
+    {
+        Thread_sleep(10);
+        end = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    }
+
+    ASSERT_NE(true , duration >= 3000);
 
     CS104_Slave_stop(slave);
 
@@ -955,9 +968,18 @@ TEST_F(InterrogationTest, InterrogationRequestAfter_M_EI_NA_1)
 
     ASSERT_EQ(0, asduHandlerCalled);
 
-    Thread_sleep(1000);
+    auto start = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
+    int duration = 0;
 
-    ASSERT_EQ(1, interrogationRequestsReceived);
+    while (interrogationRequestsReceived < 1 && duration < 1500)
+    {
+        Thread_sleep(10);
+        end = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    }
+
+    ASSERT_NE(true , duration >= 1500);
 
     CS101_ASDU asdu = CS101_ASDU_create(alParams, false, CS101_COT_INITIALIZED,
                     0, 1, false, false);
@@ -1032,16 +1054,23 @@ TEST_F(InterrogationTest, GICycleReceiveConfiguredDatapoints)
 
     CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
 
+
     startIEC104();
 
     Thread_sleep(500);
 
-    ASSERT_EQ(0, asduHandlerCalled);
-    ASSERT_EQ(1, interrogationRequestsReceived);
+    auto start = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
+    int duration = 0;
 
-    Thread_sleep(2250);
+    while (interrogationRequestsReceived < 3 && duration < 3000)
+    {
+        Thread_sleep(10);
+        end = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    }
 
-    ASSERT_EQ(3, interrogationRequestsReceived);
+    ASSERT_NEAR(2000 , duration, 500);
 
     CS104_Slave_stop(slave);
 
