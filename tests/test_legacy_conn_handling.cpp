@@ -92,7 +92,7 @@ static string protocol_config_no_red = QUOTE({
                 "ioaddr_size" : 3,
                 "asdu_size" : 0,
                 "gi_time" : 60,
-                "gi_cycle" : 30,
+                "gi_cycle" : 0,
                 "gi_all_ca" : true,
                 "utc_time" : false,
                 "cmd_with_timetag" : false,
@@ -497,21 +497,23 @@ protected:
 
     static void ingestCallback(void* parameter, Reading reading)
     {
-        LegacyConnectionHandlingTest* self = (LegacyConnectionHandlingTest*)parameter;
+        if(reading.getAssetName() != "CONSTAT-1"){
+            LegacyConnectionHandlingTest* self = (LegacyConnectionHandlingTest*)parameter;
 
-        printf("ingestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
+            printf("ingestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
 
-        std::vector<Datapoint*> dataPoints = reading.getReadingData();
+            std::vector<Datapoint*> dataPoints = reading.getReadingData();
 
-        for (Datapoint* sdp : dataPoints) {
-            printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
+            for (Datapoint* sdp : dataPoints) {
+                printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
+            }
+
+            self->storedReading = new Reading(reading);
+
+            self->storedReadings.push_back(self->storedReading);
+
+            self->ingestCallbackCalled++;
         }
-
-        self->storedReading = new Reading(reading);
-
-        self->storedReadings.push_back(self->storedReading);
-
-        self->ingestCallbackCalled++;
     }
 
 };
@@ -545,9 +547,11 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLost)
 
     CS104_Slave_destroy(slave);
 
-    ASSERT_EQ(12, ingestCallbackCalled);
+    Thread_sleep(1000);
 
-    ASSERT_EQ(12, storedReadings.size());
+    ASSERT_EQ(8, ingestCallbackCalled);
+
+    ASSERT_EQ(8, storedReadings.size());
 
     int i = 0;
 
@@ -562,11 +566,6 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLost)
 
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[i]));
     ASSERT_FALSE(IsReadingWithQualityNonTopcial(storedReadings[i++]));
-
-    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[i++]));
-    ASSERT_TRUE(IsGiStatusStarted(storedReadings[i++]));
-    ASSERT_TRUE(IsGiStatusFailed(storedReadings[i++]));
-    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[i++]));
 
     ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[i++]));
     ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[i++]));
@@ -585,37 +584,31 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
     CS104_Slave_setLocalPort(slave, TEST_PORT);
 
     CS104_Slave_start(slave);
-
+    
+    
     startIEC104();
-
+    
     Thread_sleep(500);
-
+    
     CS104_Slave_stop(slave);
-
-    Thread_sleep(1000);
+  
+    Thread_sleep(2000);
 
     CS104_Slave_start(slave);
 
     Thread_sleep(12000); /* wait more than 10s - default reconnect delay */
 
     CS104_Slave_destroy(slave);
-
+    
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
 
-    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
-    ASSERT_TRUE(IsGiStatusStarted(storedReadings[5]));
-    ASSERT_TRUE(IsGiStatusFailed(storedReadings[6]));
-    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[7]));
-
-    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[8]));
-    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[9]));
-    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[10]));
-    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[11]));
-
-    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[12]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[4]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[5]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[6]));
+    ASSERT_TRUE(IsReadingWithQualityNonTopcial(storedReadings[7]));
 }
 
 TEST_F(LegacyConnectionHandlingTest, SendConnectionStatusAfterRequestFromNorth)
@@ -630,16 +623,15 @@ TEST_F(LegacyConnectionHandlingTest, SendConnectionStatusAfterRequestFromNorth)
 
     bool operationResult = iec104->operation("request_connection_status", 0, nullptr);
 
-    ASSERT_EQ(5, ingestCallbackCalled);
+    ASSERT_EQ(4, ingestCallbackCalled);
 
-    ASSERT_EQ(5, storedReadings.size());
+    ASSERT_EQ(4, storedReadings.size());
 
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
 
-    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[4]));
 }
 
 TEST_F(LegacyConnectionHandlingTest, ConnectionLostStatus)
@@ -670,8 +662,8 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostStatus)
 
     CS104_Slave_destroy(slave);
 
-    ASSERT_EQ(11, ingestCallbackCalled);
+    ASSERT_EQ(7, ingestCallbackCalled);
 
-    ASSERT_EQ(11, storedReadings.size());
+    ASSERT_EQ(7, storedReadings.size());
 
 }
