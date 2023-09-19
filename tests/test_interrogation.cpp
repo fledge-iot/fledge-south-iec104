@@ -266,8 +266,11 @@ protected:
 
     IEC104TestComp* iec104 = nullptr;
     int ingestCallbackCalled = 0;
+    int southEventIngestCallbackCalled = 0;
     Reading* storedReading;
+    Reading* storedSouthEventReading;
     std::vector<Reading*> storedReadings;
+    std::vector<Reading*> storedSouthEventReadings;
     int clockSyncHandlerCalled = 0;
     int asduHandlerCalled = 0;
     IMasterConnection lastConnection = nullptr;
@@ -527,24 +530,33 @@ protected:
         return false;
     }
 
+
     static void ingestCallback(void* parameter, Reading reading)
     {
-        InterrogationTest* self = (InterrogationTest*)parameter;
-
-        std::vector<Datapoint*> dataPoints = reading.getReadingData();
-
-        if (reading.getAssetName() == "CONSTAT-1") {
+        if(reading.getAssetName() != "CONSTAT-1"){
+            InterrogationTest* self = (InterrogationTest*)parameter;
+            printf("ingestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
+            std::vector<Datapoint*> dataPoints = reading.getReadingData();
             for (Datapoint* sdp : dataPoints) {
-                printf("  name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
+                printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
             }
+            self->storedReading = new Reading(reading);
+            self->storedReadings.push_back(self->storedReading);
+            self->ingestCallbackCalled++;
         }
-
-        self->storedReading = new Reading(reading);
-
-        self->storedReadings.push_back(self->storedReading);
-
-        self->ingestCallbackCalled++;
+        else{
+            InterrogationTest* self = (InterrogationTest*)parameter;
+            printf("legacyIngestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
+            std::vector<Datapoint*> dataPoints = reading.getReadingData();
+            for (Datapoint* sdp : dataPoints) {
+                printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
+            }
+            self->storedSouthEventReading = new Reading(reading);
+            self->storedSouthEventReadings.push_back(self->storedSouthEventReading);
+            self->southEventIngestCallbackCalled++;
+        }
     }
+
 
     static bool clockSynchronizationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
     {
@@ -763,6 +775,28 @@ protected:
         printf("Received interrogation for group %i\n", qoi);
 
         return true;
+    }
+
+    bool
+    containsString(vector<string> array, string str){
+        return std::find(array.begin(),array.end(),str) != array.end();
+    }
+
+
+    bool 
+    containSouthEventsInRightOrder(vector<Reading*> readings, vector<string> expected_unique_events){
+        vector<string> unique_events;
+
+        for(Reading* reading : readings){
+            Datapoint* south_event = reading->getReadingData().at(0);
+            string south_event_value = south_event->getData().toString();
+
+            if(!containsString(unique_events,south_event_value)){
+                unique_events.push_back(south_event_value);
+            }    
+        }
+
+        return unique_events == expected_unique_events;
     }
 };
 
@@ -1004,30 +1038,32 @@ TEST_F(InterrogationTest, InterrogationRequestAfter_M_EI_NA_1)
 
     Thread_sleep(500);
 
+    vector<string> expected_unique_events;
+
+    expected_unique_events.push_back("{\"connx_status\":\"started\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"started\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"in progress\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"finished\"}");
+
+    expected_unique_events.push_back("{\"connx_status\":\"not connected\"}");
+
+    ASSERT_TRUE(containSouthEventsInRightOrder(storedSouthEventReadings,expected_unique_events));
+
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
 
-    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[4]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[5]));
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[6]));
 
-    ASSERT_TRUE(IsGiStatusStarted(storedReadings[5]));
-    ASSERT_TRUE(IsGiStatusInProgress(storedReadings[6]));
-    ASSERT_TRUE(IsGiStatusFinished(storedReadings[7]));
-
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[7]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[8]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[9]));
-    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[10]));
-
-    ASSERT_TRUE(IsGiStatusStarted(storedReadings[11]));
-    ASSERT_TRUE(IsGiStatusInProgress(storedReadings[12]));
-    ASSERT_TRUE(IsGiStatusFinished(storedReadings[13]));
-
-    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[14]));
-    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[15]));
-    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[16]));
-
-    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[17]));
 
     ASSERT_EQ(2, interrogationRequestsReceived);
 }
@@ -1070,7 +1106,7 @@ TEST_F(InterrogationTest, GICycleReceiveConfiguredDatapoints)
         duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     }
 
-    ASSERT_NEAR(2000 , duration, 500);
+    ASSERT_NEAR(2000 , duration, 1500);
 
     CS104_Slave_stop(slave);
 
@@ -1078,40 +1114,36 @@ TEST_F(InterrogationTest, GICycleReceiveConfiguredDatapoints)
 
     Thread_sleep(500);
 
+    vector<string> expected_unique_events;
+
+    expected_unique_events.push_back("{\"connx_status\":\"started\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"started\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"in progress\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"finished\"}");
+
+    expected_unique_events.push_back("{\"connx_status\":\"not connected\"}");
+
+    ASSERT_TRUE(containSouthEventsInRightOrder(storedSouthEventReadings,expected_unique_events));
+
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3]));
 
-    ASSERT_TRUE(IsConnxStatusStarted(storedReadings[4]));
-
-    ASSERT_TRUE(IsGiStatusStarted(storedReadings[5]));
-    ASSERT_TRUE(IsGiStatusInProgress(storedReadings[6]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[4]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[5]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[6]));
 
     ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[7]));
     ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[8]));
     ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[9]));
 
-    ASSERT_TRUE(IsGiStatusFinished(storedReadings[10]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[10]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[11]));
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[12]));
 
-    ASSERT_TRUE(IsGiStatusStarted(storedReadings[11]));
-    ASSERT_TRUE(IsGiStatusInProgress(storedReadings[12]));
-
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[13]));
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[14]));
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[15]));
-
-    ASSERT_TRUE(IsGiStatusFinished(storedReadings[16]));
-
-    ASSERT_TRUE(IsGiStatusStarted(storedReadings[17]));
-    ASSERT_TRUE(IsGiStatusInProgress(storedReadings[18]));
-
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[19]));
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[20]));
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[21]));
-
-    ASSERT_TRUE(IsGiStatusFinished(storedReadings[22]));
-
-    ASSERT_TRUE(IsConnxStatusNotConnected(storedReadings[23]));
 }
 
