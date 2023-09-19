@@ -314,15 +314,22 @@ protected:
         for (auto reading : storedReadings) {
             delete reading;
         }
+
+        for (auto reading : storedLegacyReadings) {
+            delete reading;
+        }
     }
 
     void startIEC104() { iec104->start(); }
 
     IEC104TestComp* iec104;
     int ingestCallbackCalled = 0;
+    int legacyIngestCallbackCalled = 0;
     Reading* storedReading = nullptr;
+    Reading* storedLegacyReading = nullptr;
     int clockSyncHandlerCalled = 0;
     std::vector<Reading*> storedReadings;
+    std::vector<Reading*> storedLegacyReadings;
 
         static bool hasChild(Datapoint& dp, std::string childLabel)
     {
@@ -514,6 +521,46 @@ protected:
 
             self->ingestCallbackCalled++;
         }
+        else{
+            LegacyConnectionHandlingTest* self = (LegacyConnectionHandlingTest*)parameter;
+
+            printf("legacyIngestCallback called -> asset: (%s)\n", reading.getAssetName().c_str());
+
+            std::vector<Datapoint*> dataPoints = reading.getReadingData();
+
+            for (Datapoint* sdp : dataPoints) {
+                printf("name: %s value: %s\n", sdp->getName().c_str(), sdp->getData().toString().c_str());
+            }
+
+            self->storedLegacyReading = new Reading(reading);
+
+            self->storedLegacyReadings.push_back(self->storedLegacyReading);
+
+            self->legacyIngestCallbackCalled++;
+        }
+    }
+
+    
+    bool
+    containsString(vector<string> array, string str){
+        return std::find(array.begin(),array.end(),str) != array.end();
+    }
+
+
+    bool 
+    containSouthEventsInRightOrder(vector<Reading*> readings, vector<string> expected_unique_events){
+        vector<string> unique_events;
+
+        for(Reading* reading : readings){
+            Datapoint* south_event = reading->getReadingData().at(0);
+            string south_event_value = south_event->getData().toString();
+
+            if(!containsString(unique_events,south_event_value)){
+                unique_events.push_back(south_event_value);
+            }    
+        }
+
+        return unique_events == expected_unique_events;
     }
 
 };
@@ -552,6 +599,18 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLost)
     ASSERT_EQ(8, ingestCallbackCalled);
 
     ASSERT_EQ(8, storedReadings.size());
+
+    vector<string> expected_unique_events;
+
+    expected_unique_events.push_back("{\"connx_status\":\"started\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"started\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"failed\"}");
+
+    expected_unique_events.push_back("{\"connx_status\":\"not connected\"}");
+
+    ASSERT_TRUE(containSouthEventsInRightOrder(storedLegacyReadings,expected_unique_events));
 
     int i = 0;
 
@@ -599,6 +658,18 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostReconnect)
     Thread_sleep(12000); /* wait more than 10s - default reconnect delay */
 
     CS104_Slave_destroy(slave);
+
+    vector<string> expected_unique_events;
+
+    expected_unique_events.push_back("{\"connx_status\":\"started\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"started\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"failed\"}");
+
+    expected_unique_events.push_back("{\"connx_status\":\"not connected\"}");
+
+    ASSERT_TRUE(containSouthEventsInRightOrder(storedLegacyReadings,expected_unique_events));
     
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
@@ -626,6 +697,12 @@ TEST_F(LegacyConnectionHandlingTest, SendConnectionStatusAfterRequestFromNorth)
     ASSERT_EQ(4, ingestCallbackCalled);
 
     ASSERT_EQ(4, storedReadings.size());
+
+    vector<string> expected_unique_events;
+
+    expected_unique_events.push_back("{\"connx_status\":\"not connected\", \"gi_status\":\"idle\"}");
+
+    ASSERT_TRUE(containSouthEventsInRightOrder(storedLegacyReadings,expected_unique_events));
 
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[0]));
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[1]));
@@ -661,6 +738,18 @@ TEST_F(LegacyConnectionHandlingTest, ConnectionLostStatus)
     Thread_sleep(2000);
 
     CS104_Slave_destroy(slave);
+
+    vector<string> expected_unique_events;
+
+    expected_unique_events.push_back("{\"connx_status\":\"started\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"started\"}");
+
+    expected_unique_events.push_back("{\"gi_status\":\"failed\"}");
+
+    expected_unique_events.push_back("{\"connx_status\":\"not connected\"}");
+
+    ASSERT_TRUE(containSouthEventsInRightOrder(storedLegacyReadings,expected_unique_events));
 
     ASSERT_EQ(7, ingestCallbackCalled);
 
