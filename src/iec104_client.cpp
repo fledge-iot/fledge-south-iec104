@@ -849,7 +849,9 @@ void IEC104Client::handle_M_ST_NA_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa)
 {
     auto io_casted = (StepPositionInformation)io;
-    int64_t value = StepPositionInformation_getValue((StepPositionInformation)io_casted);
+    int64_t posValue = StepPositionInformation_getValue((StepPositionInformation)io_casted);
+    bool transient = StepPositionInformation_isTransient((StepPositionInformation)io_casted);
+    std::string value = "[" + std::to_string(posValue) + "," + (transient ? "true" : "false") + "]";
     QualityDescriptor qd = StepPositionInformation_getQuality((StepPositionInformation)io_casted);
 
     datapoints.push_back(m_createDataObject(asdu, ioa, label, value, &qd));
@@ -861,7 +863,9 @@ void IEC104Client::handle_M_ST_TB_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa)
 {
     auto io_casted = (StepPositionWithCP56Time2a)io;
-    int64_t value = StepPositionInformation_getValue((StepPositionInformation)io_casted);
+    int64_t posValue = StepPositionInformation_getValue((StepPositionInformation)io_casted);
+    bool transient = StepPositionInformation_isTransient((StepPositionInformation)io_casted);
+    std::string value = "[" + std::to_string(posValue) + "," + (transient ? "true" : "false") + "]";
     QualityDescriptor qd = StepPositionInformation_getQuality((StepPositionInformation)io_casted);
 
     CP56Time2a ts = StepPositionWithCP56Time2a_getTimestamp(io_casted);
