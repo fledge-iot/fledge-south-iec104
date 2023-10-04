@@ -17,29 +17,10 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 message(STATUS ${CMAKE_CXX_FLAGS})
 
 if (${CMAKE_BUILD_TYPE} STREQUAL Coverage)
-  message("Coverage is going to be generated")
-  enable_testing()
-  add_subdirectory(tests)
-  include(CodeCoverage)
-  append_coverage_compiler_flags()
-  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3 --coverage")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 --coverage")
+  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O0 --coverage")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 --coverage")
   set(GCOVR_ADDITIONAL_ARGS "--exclude-unreachable-branches" "--exclude-throw-branches" )
-
-  
-  setup_target_for_coverage_gcovr_sonar(NAME "${PROJECT_NAME}_coverage_sonar"
-                                      EXECUTABLE RunTests
-                                      DEPENDENCIES RunTests
-                                      BASE_DIRECTORY "${PROJECT_SOURCE_DIR}"
-                                      EXCLUDE "tests/*"
-  )    
-  
-  setup_target_for_coverage_gcovr_html(NAME "${PROJECT_NAME}_coverage_html"
-                                       EXECUTABLE RunTests
-                                       DEPENDENCIES RunTests
-                                       BASE_DIRECTORY "${PROJECT_SOURCE_DIR}"
-                                       EXCLUDE "tests/*"
-  )
+  add_subdirectory(tests)
 else()
   message("Build without Coverage") 
 
