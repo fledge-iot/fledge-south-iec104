@@ -11,31 +11,7 @@ project(RunTests)
 # If no -D options are given and FLEDGE_ROOT environment variable is set
 # then Fledge libraries and header files are pulled from FLEDGE_ROOT path.
 
-
-message("Coverage is going to be generated")
-  enable_testing()
-  include(CodeCoverage)
-  append_coverage_compiler_flags()
-
-  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} --coverage")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage")
-  set(GCOVR_ADDITIONAL_ARGS "--exclude-unreachable-branches" "--exclude-throw-branches" )
-  
-  setup_target_for_coverage_gcovr_sonar(NAME "${PROJECT_NAME}_coverage_sonar"
-                                      EXECUTABLE RunTests
-                                      DEPENDENCIES RunTests
-                                      BASE_DIRECTORY "${PROJECT_SOURCE_DIR}/.."
-                                      EXCLUDE "tests/*" "build/*"
-  )    
-
-  setup_target_for_coverage_gcovr_html(NAME "${PROJECT_NAME}_coverage_html"
-                                       EXECUTABLE RunTests
-                                       DEPENDENCIES RunTests
-                                       BASE_DIRECTORY "${PROJECT_SOURCE_DIR}/../src"
-                                       EXCLUDE "tests/*"
-  )
-
-
+set(CMAKE_CXX_FLAGS "-std=c++11 -g")
 
 # Generation version header file
 set_source_files_properties(version.h PROPERTIES GENERATED TRUE)
