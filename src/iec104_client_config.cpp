@@ -1,13 +1,16 @@
-#include "iec104_client_config.h"
+#include <algorithm>
 
-#include "rapidjson/document.h"
-#include "rapidjson/error/en.h"
-
-#include <lib60870/cs104_connection.h>
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
 
 #include <arpa/inet.h>
+#include <lib60870/cs104_connection.h>
 
-#include <algorithm>
+#include "iec104_client_config.h"
+#include "iec104_client_redgroup.h"
+#include "iec104_utility.h"
+
+
 
 #define JSON_EXCHANGED_DATA "exchanged_data"
 #define JSON_DATAPOINTS "datapoints"
@@ -20,6 +23,7 @@
 #define JSON_PROT_TYPEID "typeid"
 
 using namespace rapidjson;
+using namespace std;
 
 IEC104ClientConfig::~IEC104ClientConfig()
 {
@@ -316,11 +320,11 @@ IEC104ClientConfig::checkExchangeDataLayer(int typeId, int ca, int ioa)
             return &(def->label);
         }
         else {
-            Logger::getLogger()->warn("data point %i:%i found but type %i not matching", ca, ioa, def->typeId);
+            Iec104Utility::log_warn("data point %i:%i found but type %i not matching", ca, ioa, def->typeId);
         }
     }
     else {
-        Logger::getLogger()->warn("data point %i:%i not found", ca, ioa);
+        Iec104Utility::log_warn("data point %i:%i not found", ca, ioa);
     }
 
     return nullptr;
@@ -343,7 +347,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
     Document document;
 
     if (document.Parse(const_cast<char*>(protocolConfig.c_str())).HasParseError()) {
-        Logger::getLogger()->fatal("Parsing error in protocol configuration");
+        Iec104Utility::log_fatal("Parsing error in protocol configuration");
 
         printf("Parsing error in protocol configuration\n");
 
@@ -361,13 +365,13 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
     const Value& protocolStack = document["protocol_stack"];
 
     if (!protocolStack.HasMember("transport_layer") || !protocolStack["transport_layer"].IsObject()) {
-        Logger::getLogger()->fatal("transport layer configuration is missing");
+        Iec104Utility::log_fatal("transport layer configuration is missing");
     
         return;
     }
 
     if (!protocolStack.HasMember("application_layer") || !protocolStack["application_layer"].IsObject()) {
-        Logger::getLogger()->fatal("appplication layer configuration is missing");
+        Iec104Utility::log_fatal("appplication layer configuration is missing");
     
         return;
     }
@@ -448,7 +452,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                                                 }
                                                 else {
                                                     printf("clt_ip %s is not a valid IP address -> ignore\n", srvIp.c_str());
-                                                    Logger::getLogger()->error("clt_ip %s is not a valid IP address -> ignore", srvIp.c_str());
+                                                    Iec104Utility::log_error("clt_ip %s is not a valid IP address -> ignore", srvIp.c_str());
                                                 }
                                             }
                                         }
@@ -461,12 +465,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                                                     tcpPort = tcpPortVal;
                                                 }
                                                 else {
-                                                    Logger::getLogger()->error("%s has no valied TCP port defined -> using default port(2404)", srvIp.c_str());
+                                                    Iec104Utility::log_error("%s has no valied TCP port defined -> using default port(2404)", srvIp.c_str());
                                                 }
                                             }
                                             else {
                                                 printf("transport_layer.port has invalid type -> using default port\n");
-                                                Logger::getLogger()->warn("transport_layer.port has invalid type -> using default port");
+                                                Iec104Utility::log_warn("transport_layer.port has invalid type -> using default port");
                                             }
                                         }
 
@@ -489,7 +493,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                                     }
                                     else {
                                         printf("srv_ip %s is not a valid IP address -> ignore\n", srvIp.c_str());
-                                        Logger::getLogger()->error("srv_ip %s is not a valid IP address -> ignore", srvIp.c_str());
+                                        Iec104Utility::log_error("srv_ip %s is not a valid IP address -> ignore", srvIp.c_str());
                                     }
 
                                 }
@@ -506,12 +510,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                             redundancyGroup->K(kValue);
                         }
                         else {
-                            Logger::getLogger()->warn("redGroup.k_value value out of range-> using default value");
+                            Iec104Utility::log_warn("redGroup.k_value value out of range-> using default value");
                         }
                     }
                     else {
                         printf("redGroup.k_value has invalid type -> using default value\n");
-                        Logger::getLogger()->warn("redGroup.k_value has invalid type -> using default value");
+                        Iec104Utility::log_warn("redGroup.k_value has invalid type -> using default value");
                     }
                 }
 
@@ -523,12 +527,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                             redundancyGroup->W(wValue);
                         }
                         else {
-                            Logger::getLogger()->warn("redGroup.w_value value out of range-> using default value");
+                            Iec104Utility::log_warn("redGroup.w_value value out of range-> using default value");
                         }
                     }
                     else {
                         printf("redGroup.w_value has invalid type -> using default value\n");
-                        Logger::getLogger()->warn("redGroup.w_value has invalid type -> using default value");
+                        Iec104Utility::log_warn("redGroup.w_value has invalid type -> using default value");
                     }
                 }
 
@@ -540,12 +544,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                             redundancyGroup->T0(t0Timeout);
                         }
                         else {
-                            Logger::getLogger()->warn("redGroup.t0_timeout value out of range-> using default value");
+                            Iec104Utility::log_warn("redGroup.t0_timeout value out of range-> using default value");
                         }
                     }
                     else {
                         printf("redGroup.t0_timeout has invalid type -> using default value\n");
-                        Logger::getLogger()->warn("redGroup.t0_timeout has invalid type -> using default value");
+                        Iec104Utility::log_warn("redGroup.t0_timeout has invalid type -> using default value");
                     }
                 }
 
@@ -557,12 +561,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                             redundancyGroup->T1(t1Timeout);
                         }
                         else {
-                            Logger::getLogger()->warn("redGroup.t1_timeout value out of range-> using default value");
+                            Iec104Utility::log_warn("redGroup.t1_timeout value out of range-> using default value");
                         }
                     }
                     else {
                         printf("redGroup.t1_timeout has invalid type -> using default value\n");
-                        Logger::getLogger()->warn("redGroup.t1_timeout has invalid type -> using default value");
+                        Iec104Utility::log_warn("redGroup.t1_timeout has invalid type -> using default value");
                     }
                 }
 
@@ -574,12 +578,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                             redundancyGroup->T2(t2Timeout);
                         }
                         else {
-                            Logger::getLogger()->warn("redGroup.t2_timeout value out of range-> using default value");
+                            Iec104Utility::log_warn("redGroup.t2_timeout value out of range-> using default value");
                         }
                     }
                     else {
                         printf("redGroup.t2_timeout has invalid type -> using default value\n");
-                        Logger::getLogger()->warn("redGroup.t2_timeout has invalid type -> using default value");
+                        Iec104Utility::log_warn("redGroup.t2_timeout has invalid type -> using default value");
                     }
                 }
 
@@ -591,12 +595,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                             redundancyGroup->T3(t3Timeout);
                         }
                         else {
-                            Logger::getLogger()->warn("redGroup.t3_timeout value out of range-> using default value");
+                            Iec104Utility::log_warn("redGroup.t3_timeout value out of range-> using default value");
                         }
                     }
                     else {
                         printf("redGroup.t3_timeout has invalid type -> using default value\n");
-                        Logger::getLogger()->warn("redGroup.t3_timeout has invalid type -> using default value");
+                        Iec104Utility::log_warn("redGroup.t3_timeout has invalid type -> using default value");
                     }
                 }
 
@@ -606,7 +610,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                     }
                     else {
                         printf("redGroup.tls has invalid type -> not using TLS\n");
-                        Logger::getLogger()->warn("redGroup.tls has invalid type -> not using TLS");
+                        Iec104Utility::log_warn("redGroup.tls has invalid type -> not using TLS");
                     }
                 }
 
@@ -614,7 +618,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
             }
         }
         else {
-            Logger::getLogger()->fatal("redundancy_groups is not an array -> ignore redundancy groups");
+            Iec104Utility::log_fatal("redundancy_groups is not an array -> ignore redundancy groups");
         }
     }
 
@@ -629,12 +633,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
             }
             else {
                 printf("application_layer.orig_addr has invalid value -> using default value (0)\n");
-                Logger::getLogger()->warn("application_layer.orig_addr has invalid value -> using default value (0)");
+                Iec104Utility::log_warn("application_layer.orig_addr has invalid value -> using default value (0)");
             }
         }
         else {
             printf("application_layer.orig_addr has invalid type -> using default value (0)\n");
-            Logger::getLogger()->warn("application_layer.orig_addr has invalid type -> using default value (0)");
+            Iec104Utility::log_warn("application_layer.orig_addr has invalid type -> using default value (0)");
         }
     }
 
@@ -647,12 +651,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
             }
             else {
                 printf("application_layer.ca_asdu_size has invalid value -> using default value (2)\n");
-                Logger::getLogger()->warn("application_layer.ca_asdu_size has invalid value -> using default value (2");
+                Iec104Utility::log_warn("application_layer.ca_asdu_size has invalid value -> using default value (2");
             }
         }
         else {
             printf("application_layer.ca_asdu_size has invalid type -> using default value (2)\n");
-            Logger::getLogger()->warn("application_layer.ca_asdu_size has invalid type -> using default value (2)");
+            Iec104Utility::log_warn("application_layer.ca_asdu_size has invalid type -> using default value (2)");
         }
     }
 
@@ -665,12 +669,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
             }
             else {
                 printf("application_layer.ioaddr_size has invalid value -> using default value (3)\n");
-                Logger::getLogger()->warn("application_layer.ioaddr_size has invalid value -> using default value (3)");
+                Iec104Utility::log_warn("application_layer.ioaddr_size has invalid value -> using default value (3)");
             }
         }
         else {
             printf("application_layer.ioaddr_size has invalid type -> using default value (3)\n");
-            Logger::getLogger()->warn("application_layer.ioaddr_size has invalid type -> using default value (3)");
+            Iec104Utility::log_warn("application_layer.ioaddr_size has invalid type -> using default value (3)");
         }
     }
 
@@ -683,12 +687,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
             }
             else {
                 printf("application_layer.asdu_size has invalid value -> using default value (3)\n");
-                Logger::getLogger()->warn("application_layer.asdu_size has invalid value -> using default value (3)");
+                Iec104Utility::log_warn("application_layer.asdu_size has invalid value -> using default value (3)");
             }
         }
         else {
             printf("application_layer.asdu_size has invalid type -> using default value (3)\n");
-            Logger::getLogger()->warn("application_layer.asdu_size has invalid type -> using default value (3)");
+            Iec104Utility::log_warn("application_layer.asdu_size has invalid type -> using default value (3)");
         }
     }
 
@@ -698,7 +702,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
 
             if (timeSyncValue < 0) {
                 printf("application_layer.time_sync has invalid value -> using default value (0)\n");
-                Logger::getLogger()->warn("application_layer.time_sync has invalid value -> using default value (0)");
+                Iec104Utility::log_warn("application_layer.time_sync has invalid value -> using default value (0)");
             }
             else {
                 m_timeSyncPeriod = timeSyncValue;
@@ -707,7 +711,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
         }
         else {
             printf("application_layer.time_sync has invalid type -> using default value (0)\n");
-            Logger::getLogger()->warn("application_layer.time_sync has invalid type -> using default value (0)");
+            Iec104Utility::log_warn("application_layer.time_sync has invalid type -> using default value (0)");
         }
     }
 
@@ -717,7 +721,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
         }
         else {
             printf("applicationLayer.gi_all_ca has invalid type -> use broadcast CA\n");
-            Logger::getLogger()->warn("applicationLayer.gi_all_ca has invalid type -> use broadcast CA");
+            Iec104Utility::log_warn("applicationLayer.gi_all_ca has invalid type -> use broadcast CA");
         }
     }
 
@@ -730,12 +734,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
             }
             else {
                 printf("application_layer.gi_time has invalid value -> using default value (0)\n");
-                Logger::getLogger()->warn("application_layer.gi_time has invalid value -> using default value (0)");
+                Iec104Utility::log_warn("application_layer.gi_time has invalid value -> using default value (0)");
             }
         }
         else {
             printf("application_layer.gi_time has invalid type -> using default value (0)\n");
-            Logger::getLogger()->warn("application_layer.gi_time has invalid type -> using default value (0)");
+            Iec104Utility::log_warn("application_layer.gi_time has invalid type -> using default value (0)");
         }
     }
 
@@ -745,7 +749,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
         }
         else {
             printf("applicationLayer.gi_enabled has invalid type -> enable GI by default\n");
-            Logger::getLogger()->warn("applicationLayer.gi_enabled has invalid type -> enable GI by default");
+            Iec104Utility::log_warn("applicationLayer.gi_enabled has invalid type -> enable GI by default");
         }
     }
 
@@ -758,12 +762,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
             }
             else {
                 printf("application_layer.gi_cycle has invalid value -> using default value (0)\n");
-                Logger::getLogger()->warn("application_layer.gi_cycle has invalid value -> using default value (0)");
+                Iec104Utility::log_warn("application_layer.gi_cycle has invalid value -> using default value (0)");
             }
         }
         else {
             printf("application_layer.gi_cycle has invalid type -> using default value (0)\n");
-            Logger::getLogger()->warn("application_layer.gi_cycle has invalid type -> using default value (0)");
+            Iec104Utility::log_warn("application_layer.gi_cycle has invalid type -> using default value (0)");
         }
     }
 
@@ -776,12 +780,12 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
             }
             else {
                 printf("application_layer.gi_repeat_count has invalid value -> using default value (2)\n");
-                Logger::getLogger()->warn("application_layer.gi_repeat_count has invalid value -> using default value (2)");
+                Iec104Utility::log_warn("application_layer.gi_repeat_count has invalid value -> using default value (2)");
             }
         }
         else {
             printf("application_layer.gi_repeat_count has invalid type -> using default value (2)\n");
-            Logger::getLogger()->warn("application_layer.gi_repeat_count has invalid type -> using default value (2)");
+            Iec104Utility::log_warn("application_layer.gi_repeat_count has invalid type -> using default value (2)");
         }
     }
 
@@ -793,7 +797,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                 m_cmdParallel = cmdParallel;
             }
             else {
-                Logger::getLogger()->warn("application_layer.cmd_parallel has invalid value -> using default value (0)");
+                Iec104Utility::log_warn("application_layer.cmd_parallel has invalid value -> using default value (0)");
             }
         }
         else {
@@ -809,7 +813,7 @@ void IEC104ClientConfig::importProtocolConfig(const string& protocolConfig)
                 m_cmdExecTimeout = cmdExecTimeout;
             }
             else {
-                Logger::getLogger()->warn("application_layer.cmd_exec_timeout has invalid value -> using default value (1000)");
+                Iec104Utility::log_warn("application_layer.cmd_exec_timeout has invalid value -> using default value (1000)");
             }
         }
         else {
@@ -839,7 +843,7 @@ IEC104ClientConfig::importTlsConfig(const string& tlsConfig)
     Document document;
 
     if (document.Parse(const_cast<char*>(tlsConfig.c_str())).HasParseError()) {
-        Logger::getLogger()->fatal("Parsing error in TLS configuration");
+        Iec104Utility::log_fatal("Parsing error in TLS configuration");
 
         return;
     }
@@ -941,10 +945,10 @@ IEC104ClientConfig::getCnxLossStatusDatapoint()
                 return cnxLossStatusDp;
             }
 
-            Logger::getLogger()->warn("data point for cnx_loss_status_id is not a single point status");
+            Iec104Utility::log_warn("data point for cnx_loss_status_id is not a single point status");
         }
         else {
-            Logger::getLogger()->warn("data point for cnx_loss_status_id not found in exchange data");
+            Iec104Utility::log_warn("data point for cnx_loss_status_id not found in exchange data");
         }
 
         m_sendCnxLossStatus = false;
@@ -962,7 +966,7 @@ void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
     Document document;
 
     if (document.Parse(const_cast<char*>(exchangeConfig.c_str())).HasParseError()) {
-        Logger::getLogger()->fatal("Parsing error in data exchange configuration");
+        Iec104Utility::log_fatal("Parsing error in data exchange configuration");
 
         printf("Parsing error in data exchange configuration\n");
 
@@ -1045,7 +1049,7 @@ void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
                         def->typeId = IEC104ClientConfig::GetTypeIdByName(typeIdStr);
                         def->giGroups = giGroups;
 
-                        Logger::getLogger()->debug("Added exchange data %i:%i type: %i (%s)", ca, ioa, def->typeId, typeIdStr.c_str());
+                        Iec104Utility::log_debug("Added exchange data %i:%i type: %i (%s)", ca, ioa, def->typeId, typeIdStr.c_str());
                         ExchangeDefinition()[ca][ioa] = def;
                     }
                 }

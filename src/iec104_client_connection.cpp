@@ -1,11 +1,16 @@
-#include "iec104.h"
-
-#include <logger.h>
 #include <ctime>
+
 #include <utils.h>
+#include <reading.h>
 
 #include <lib60870/hal_time.h>
 #include <lib60870/hal_thread.h>
+
+#include "iec104_client.h"
+#include "iec104_client_config.h"
+#include "iec104_client_connection.h"
+#include "iec104_client_redgroup.h"
+#include "iec104_utility.h"
 
 //DUPLICATE! see iec104_client.c
 static uint64_t getMonotonicTimeInMs()
@@ -48,7 +53,7 @@ IEC104ClientConnection::Activate()
 
         m_startDtSent = true;
 
-        Logger::getLogger()->info("Sent START-DT to %s\n", m_redGroupConnection->ServerIP().c_str());
+        Iec104Utility::log_info("Sent START-DT to %s\n", m_redGroupConnection->ServerIP().c_str());
 
         m_connectionState = CON_STATE_CONNECTED_ACTIVE;
     }
@@ -69,7 +74,7 @@ IEC104ClientConnection::m_connectionHandler(void* parameter, CS104_Connection co
 {
     IEC104ClientConnection* self = static_cast<IEC104ClientConnection*>(parameter);
 
-    Logger::getLogger()->debug("Connection state changed: " + std::to_string(event));
+    Iec104Utility::log_debug("Connection state changed: " + std::to_string(event));
 
     if (event == CS104_CONNECTION_CLOSED)
     {
@@ -128,11 +133,11 @@ IEC104ClientConnection::sendInterrogationCommand(int ca)
 
 
         if (CS104_Connection_sendInterrogationCommand(m_connection, CS101_COT_ACTIVATION, ca, IEC60870_QOI_STATION)) {
-            Logger::getLogger()->debug("Interrogation command sent (CA=%i)", ca);
+            Iec104Utility::log_debug("Interrogation command sent (CA=%i)", ca);
             success = true;
         }
         else {
-            Logger::getLogger()->warn("Failed to send interrogation command");
+            Iec104Utility::log_warn("Failed to send interrogation command");
         }
     }
 
@@ -165,7 +170,7 @@ IEC104ClientConnection::sendSingleCommand(int ca, int ioa, bool value, bool with
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->debug("single command sent");
+                Iec104Utility::log_debug("single command sent");
                 success = true;
             }
 
@@ -175,7 +180,7 @@ IEC104ClientConnection::sendSingleCommand(int ca, int ioa, bool value, bool with
 
     m_conLock.unlock();
 
-    if (!success) Logger::getLogger()->warn("Failed to send single command");
+    if (!success) Iec104Utility::log_warn("Failed to send single command");
 
     return success;
 }
@@ -204,7 +209,7 @@ IEC104ClientConnection::sendDoubleCommand(int ca, int ioa, int value, bool withT
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->debug("double command sent");
+                Iec104Utility::log_debug("double command sent");
                 success = true;
             }
 
@@ -214,7 +219,7 @@ IEC104ClientConnection::sendDoubleCommand(int ca, int ioa, int value, bool withT
 
     m_conLock.unlock();
 
-    if (!success) Logger::getLogger()->warn("Failed to send double command");
+    if (!success) Iec104Utility::log_warn("Failed to send double command");
 
     return success;
 }
@@ -243,7 +248,7 @@ IEC104ClientConnection::sendStepCommand(int ca, int ioa, int value, bool withTim
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->debug("step command sent");
+                Iec104Utility::log_debug("step command sent");
                 success = true;
             }
 
@@ -253,7 +258,7 @@ IEC104ClientConnection::sendStepCommand(int ca, int ioa, int value, bool withTim
 
     m_conLock.unlock();
 
-    if (!success) Logger::getLogger()->warn("Failed to send step command");
+    if (!success) Iec104Utility::log_warn("Failed to send step command");
 
     return success;
 }
@@ -282,7 +287,7 @@ IEC104ClientConnection::sendSetpointNormalized(int ca, int ioa, float value, boo
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->debug("setpoint(normalized) sent");
+                Iec104Utility::log_debug("setpoint(normalized) sent");
                 success = true;
             }
 
@@ -292,7 +297,7 @@ IEC104ClientConnection::sendSetpointNormalized(int ca, int ioa, float value, boo
 
     m_conLock.unlock();
 
-    if (!success) Logger::getLogger()->warn("Failed to send setpoint(normalized)");
+    if (!success) Iec104Utility::log_warn("Failed to send setpoint(normalized)");
 
     return success;
 }
@@ -321,7 +326,7 @@ IEC104ClientConnection::sendSetpointScaled(int ca, int ioa, int value, bool with
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->debug("setpoint(scaled) sent");
+                Iec104Utility::log_debug("setpoint(scaled) sent");
                 success = true;
             }
 
@@ -331,7 +336,7 @@ IEC104ClientConnection::sendSetpointScaled(int ca, int ioa, int value, bool with
 
     m_conLock.unlock();
 
-    if (!success) Logger::getLogger()->warn("Failed to send setpoint(scaled)");
+    if (!success) Iec104Utility::log_warn("Failed to send setpoint(scaled)");
 
     return success;
 }
@@ -360,7 +365,7 @@ IEC104ClientConnection::sendSetpointShort(int ca, int ioa, float value, bool wit
 
         if (cmdObj) {
             if (CS104_Connection_sendProcessCommandEx(m_connection, CS101_COT_ACTIVATION, ca, cmdObj)) {
-                Logger::getLogger()->debug("setpoint(short) sent");
+                Iec104Utility::log_debug("setpoint(short) sent");
                 success = true;
             }
 
@@ -370,7 +375,7 @@ IEC104ClientConnection::sendSetpointShort(int ca, int ioa, float value, bool wit
 
     m_conLock.unlock();
 
-    if (!success) Logger::getLogger()->warn("Failed to send setpoint(short)");
+    if (!success) Iec104Utility::log_warn("Failed to send setpoint(short)");
 
     return success;
 }
@@ -406,7 +411,7 @@ IEC104ClientConnection::prepareParameters()
 
     CS104_Connection_setAppLayerParameters(m_connection, &app_layer_parameters);
 
-    Logger::getLogger()->info("Connection (red-group: %s IP: %s port: %i) initialized", m_redGroup->Name().c_str(), m_redGroupConnection->ServerIP().c_str(), m_redGroupConnection->TcpPort());
+    Iec104Utility::log_info("Connection (red-group: %s IP: %s port: %i) initialized", m_redGroup->Name().c_str(), m_redGroupConnection->ServerIP().c_str(), m_redGroupConnection->TcpPort());
 }
 
 void
@@ -422,7 +427,7 @@ IEC104ClientConnection::startNewInterrogationCycle()
         m_client->updateGiStatus(IEC104Client::GiStatus::STARTED);
 
         if (sendInterrogationCommand(broadcastCA())) {
-            Logger::getLogger()->debug("Sent interrogation command to broadcase address");
+            Iec104Utility::log_debug("Sent interrogation command to broadcase address");
             m_firstGISent = true;
             m_interrogationInProgress = true;
             m_interrogationRequestState = 1;
@@ -430,7 +435,7 @@ IEC104ClientConnection::startNewInterrogationCycle()
             m_nextGIStartTime = m_interrogationRequestSent + (m_config->GiCycle() * 1000);
         }
         else {
-            Logger::getLogger()->error("Failed to send interrogation command to broadcast address");
+            Iec104Utility::log_error("Failed to send interrogation command to broadcast address");
             m_firstGISent = true;
         }
     }
@@ -450,13 +455,13 @@ IEC104ClientConnection::startNewInterrogationCycle()
 void
 IEC104ClientConnection::closeConnection()
 {
-    Logger::getLogger()->info("Closing connection");
+    Iec104Utility::log_info("Closing connection");
 
     if (m_connection) {
         CS104_Connection_close(m_connection);
     }
 
-    Logger::getLogger()->info("Connection closed");
+    Iec104Utility::log_info("Connection closed");
 }
 
 void
@@ -497,7 +502,7 @@ IEC104ClientConnection::executePeriodicTasks()
                 ca = broadcastCA();
 
             if (CS104_Connection_sendClockSyncCommand(m_connection, ca, &ts)) {
-                Logger::getLogger()->info("Sent clock sync command ...");
+                Iec104Utility::log_info("Sent clock sync command ...");
 
                 m_conLock.lock();
 
@@ -506,7 +511,7 @@ IEC104ClientConnection::executePeriodicTasks()
                 m_conLock.unlock();
             }
             else {
-                Logger::getLogger()->error("Failed to send clock sync command");
+                Iec104Utility::log_error("Failed to send clock sync command");
             }
         }
     }
@@ -531,7 +536,7 @@ IEC104ClientConnection::executePeriodicTasks()
 
                             if (m_config->GiTime() != 0) {
                                 if (currentTime > m_interrogationRequestSent + (m_config->GiTime() * 1000)) {
-                                    Logger::getLogger()->error("Interrogation request timed out (no ACT_CON)");
+                                    Iec104Utility::log_error("Interrogation request timed out (no ACT_CON)");
 
                                     m_interrogationRequestState = 0;
                                     m_nextGIStartTime = currentTime + (m_config->GiCycle() * 1000);
@@ -548,7 +553,7 @@ IEC104ClientConnection::executePeriodicTasks()
 
                             if (m_config->GiTime() != 0) {
                                 if (currentTime > m_interrogationRequestSent + (m_config->GiTime() * 1000)) {
-                                    Logger::getLogger()->error("Interrogation request timed out (no ACT_TERM)");
+                                    Iec104Utility::log_error("Interrogation request timed out (no ACT_TERM)");
 
                                     m_nextGIStartTime = m_config->GiCycle();
                                     m_interrogationRequestState = 0;
@@ -569,14 +574,14 @@ IEC104ClientConnection::executePeriodicTasks()
 
                             if (m_listOfCA_it != m_config->ListOfCAs().end()) {
                                 if (sendInterrogationCommand(*m_listOfCA_it)) {
-                                    Logger::getLogger()->debug("Sent GI request to CA=%i", *m_listOfCA_it);
+                                    Iec104Utility::log_debug("Sent GI request to CA=%i", *m_listOfCA_it);
                                     m_interrogationRequestState = 1;
                                     m_interrogationRequestSent = getMonotonicTimeInMs();
 
                                     m_client->updateGiStatus(IEC104Client::GiStatus::STARTED); //TODO is STARTED or IN_PROGRESS?
                                 }
                                 else {
-                                    Logger::getLogger()->error("Failed to send interrogation command to CA=%i!\n", *m_listOfCA_it);
+                                    Iec104Utility::log_error("Failed to send interrogation command to CA=%i!\n", *m_listOfCA_it);
 
                                     m_client->updateGiStatus(IEC104Client::GiStatus::FAILED);
 
@@ -624,7 +629,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
             self->m_interrogationRequestSent = getMonotonicTimeInMs();
         }
         else {
-            Logger::getLogger()->warn("Unexpected interrogation response");
+            Iec104Utility::log_warn("Unexpected interrogation response");
         }
     }
 
@@ -634,12 +639,12 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
         switch (CS101_ASDU_getTypeID(asdu))
         {
             case M_EI_NA_1:
-                Logger::getLogger()->info("Received end of initialization");
+                Iec104Utility::log_info("Received end of initialization");
                 self->m_endOfInitReceived = true;
                 break;
 
             case C_CS_NA_1:
-                Logger::getLogger()->info("Received time sync response");
+                Iec104Utility::log_info("Received time sync response");
 
                 if (self->m_timeSyncCommandSent == true) {
 
@@ -652,12 +657,12 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                             self->m_timeSyncCommandSent = false;
                         }
                         else {
-                            Logger::getLogger()->error("time synchonizatation failed");
+                            Iec104Utility::log_error("time synchonizatation failed");
                         }
                     }
                     else if (CS101_ASDU_getCOT(asdu) == CS101_COT_UNKNOWN_TYPE_ID) {
 
-                        Logger::getLogger()->warn("Time synchronization not supported by remote");
+                        Iec104Utility::log_warn("Time synchronization not supported by remote");
 
                         self->m_timeSynchronized = true;
                     }
@@ -665,13 +670,13 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                 }
                 else {
                     if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-                        Logger::getLogger()->warn("Unexpected time sync response");
+                        Iec104Utility::log_warn("Unexpected time sync response");
                     }
                     else if (CS101_ASDU_getCOT(asdu) == CS101_COT_SPONTANEOUS) {
-                        Logger::getLogger()->warn("Received remote clock time");
+                        Iec104Utility::log_warn("Received remote clock time");
                     }
                     else {
-                        Logger::getLogger()->warn("Unexpected time sync message");
+                        Iec104Utility::log_warn("Unexpected time sync message");
                     }
                 }
 
@@ -681,7 +686,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
 
             case C_IC_NA_1:
                 {
-                    Logger::getLogger()->debug("Receivd C_IC_NA_1 with COT=%i", cot);
+                    Iec104Utility::log_debug("Receivd C_IC_NA_1 with COT=%i", cot);
 
                     if (cot == CS101_COT_ACTIVATION_CON) {
                         if (self->m_interrogationRequestState == 1) {
@@ -697,7 +702,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                             }
                         }
                         else {
-                            Logger::getLogger()->warn("Unexpected ACT_CON (state: %i)", self->m_interrogationRequestState);
+                            Iec104Utility::log_warn("Unexpected ACT_CON (state: %i)", self->m_interrogationRequestState);
                         }
                     }
                     else if (cot == CS101_COT_ACTIVATION_TERMINATION) {
@@ -716,7 +721,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                             }
                         }
                         else {
-                            Logger::getLogger()->warn("Unexpected ACT_TERM (state: %i)", self->m_interrogationRequestState);
+                            Iec104Utility::log_warn("Unexpected ACT_TERM (state: %i)", self->m_interrogationRequestState);
                         }
                     }
                     else {
@@ -734,11 +739,11 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                 break;
 
             case C_TS_TA_1:
-                Logger::getLogger()->info("Test command with time tag CP56Time2a");
+                Iec104Utility::log_info("Test command with time tag CP56Time2a");
                 break;
 
             default:
-                Logger::getLogger()->debug("Type of message (%i - COT: %i) not supported", CS101_ASDU_getTypeID(asdu), CS101_ASDU_getCOT(asdu));
+                Iec104Utility::log_debug("Type of message (%i - COT: %i) not supported", CS101_ASDU_getTypeID(asdu), CS101_ASDU_getCOT(asdu));
                 return false;
         }
     }
@@ -763,7 +768,7 @@ IEC104ClientConnection::prepareConnection()
             string certificateStorePem = getDataDir() + string("/etc/certs/pem/");
 
             if (m_config->GetOwnCertificate().length() == 0 || m_config->GetPrivateKey().length() == 0) {
-                Logger::getLogger()->error("No private key and/or certificate configured for client");
+                Iec104Utility::log_error("No private key and/or certificate configured for client");
                 tlsConfigOk = false;
             }
             else {
@@ -771,12 +776,12 @@ IEC104ClientConnection::prepareConnection()
 
                 if (access(privateKeyFile.c_str(), R_OK) == 0) {
                     if (TLSConfiguration_setOwnKeyFromFile(tlsConfig, privateKeyFile.c_str(), NULL) == false) {
-                        Logger::getLogger()->error("Failed to load private key file: %s", privateKeyFile.c_str());
+                        Iec104Utility::log_error("Failed to load private key file: %s", privateKeyFile.c_str());
                         tlsConfigOk = false;
                     }
                 }
                 else {
-                    Logger::getLogger()->error("Failed to access private key file: %s", privateKeyFile.c_str());
+                    Iec104Utility::log_error("Failed to access private key file: %s", privateKeyFile.c_str());
                     tlsConfigOk = false;
                 }
 
@@ -793,12 +798,12 @@ IEC104ClientConnection::prepareConnection()
 
                 if (access(clientCertFile.c_str(), R_OK) == 0) {
                     if (TLSConfiguration_setOwnCertificateFromFile(tlsConfig, clientCertFile.c_str()) == false) {
-                        Logger::getLogger()->error("Failed to load client certificate file: %s", clientCertFile.c_str());
+                        Iec104Utility::log_error("Failed to load client certificate file: %s", clientCertFile.c_str());
                         tlsConfigOk = false;
                     }
                 }
                 else {
-                    Logger::getLogger()->error("Failed to access client certificate file: %s", clientCertFile.c_str());
+                    Iec104Utility::log_error("Failed to access client certificate file: %s", clientCertFile.c_str());
                     tlsConfigOk = false;
                 }
             }
@@ -819,11 +824,11 @@ IEC104ClientConnection::prepareConnection()
 
                     if (access(remoteCertFile.c_str(), R_OK) == 0) {
                         if (TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, remoteCertFile.c_str()) == false) {
-                            Logger::getLogger()->warn("Failed to load remote certificate file: %s -> ignore certificate", remoteCertFile.c_str());
+                            Iec104Utility::log_warn("Failed to load remote certificate file: %s -> ignore certificate", remoteCertFile.c_str());
                         }
                     }
                     else {
-                        Logger::getLogger()->warn("Failed to access remote certificate file: %s -> ignore certificate", remoteCertFile.c_str());
+                        Iec104Utility::log_warn("Failed to access remote certificate file: %s -> ignore certificate", remoteCertFile.c_str());
                     }
 
                 }
@@ -848,11 +853,11 @@ IEC104ClientConnection::prepareConnection()
 
                     if (access(caCertFile.c_str(), R_OK) == 0) {
                         if (TLSConfiguration_addCACertificateFromFile(tlsConfig, caCertFile.c_str()) == false) {
-                            Logger::getLogger()->warn("Failed to load CA certificate file: %s -> ignore certificate", caCertFile.c_str());
+                            Iec104Utility::log_warn("Failed to load CA certificate file: %s -> ignore certificate", caCertFile.c_str());
                         }
                     }
                     else {
-                        Logger::getLogger()->warn("Failed to access CA certificate file: %s -> ignore certificate", caCertFile.c_str());
+                        Iec104Utility::log_warn("Failed to access CA certificate file: %s -> ignore certificate", caCertFile.c_str());
                     }
 
                 }
@@ -876,7 +881,7 @@ IEC104ClientConnection::prepareConnection()
             }
             else {
                 printf("TLS configuration failed\n");
-                Logger::getLogger()->error("TLS configuration failed");
+                Iec104Utility::log_error("TLS configuration failed");
             }
         }
         else {
@@ -897,7 +902,7 @@ IEC104ClientConnection::prepareConnection()
             success = true;
         }
         else {
-            Logger::getLogger()->error("Failed to start CS 104 connection");
+            Iec104Utility::log_error("Failed to start CS 104 connection");
         }
     }
 
@@ -929,6 +934,11 @@ IEC104ClientConnection::Connect()
 {
     m_disconnect = false;
     m_connect = true;
+}
+
+bool
+IEC104ClientConnection::Autostart() {
+    return m_redGroupConnection->Start();
 }
 
 void
@@ -984,11 +994,11 @@ IEC104ClientConnection::_conThread()
 
                         CS104_Connection_connectAsync(m_connection);
 
-                        Logger::getLogger()->info("Connecting");
+                        Iec104Utility::log_info("Connecting");
                     }
                     else {
                         m_connectionState = CON_STATE_FATAL_ERROR;
-                        Logger::getLogger()->error("Fatal configuration error");
+                        Iec104Utility::log_error("Fatal configuration error");
 
                         m_conLock.unlock();
                     }
@@ -1001,7 +1011,7 @@ IEC104ClientConnection::_conThread()
                 /* wait for connected event or timeout */
 
                 if (getMonotonicTimeInMs() > m_delayExpirationTime) {
-                    Logger::getLogger()->warn("Timeout while connecting");
+                    Iec104Utility::log_warn("Timeout while connecting");
                     m_connectionState = CON_STATE_IDLE;
                 }
 

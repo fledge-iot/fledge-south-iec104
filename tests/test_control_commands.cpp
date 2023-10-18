@@ -1,13 +1,17 @@
-#include <config_category.h>
 #include <gtest/gtest.h>
-#include <iec104.h>
-#include <plugin_api.h>
-#include <string.h>
-#include "cs104_slave.h"
 
-#include <boost/thread.hpp>
+#include <config_category.h>
+#include <plugin_api.h>
+
 #include <utility>
 #include <vector>
+#include <string>
+
+#include "cs104_slave.h"
+#include <lib60870/hal_time.h>
+#include <lib60870/hal_thread.h>
+
+#include "iec104.h"
 
 using namespace std;
 
@@ -535,7 +539,6 @@ protected:
         return true;
     }
 
-    static boost::thread thread_;
     IEC104TestComp* iec104 = nullptr;
     static int ingestCallbackCalled;
     static std::vector<Reading*> storedReadings;
@@ -545,7 +548,6 @@ protected:
     static int lastOA;
 };
 
-boost::thread ControlCommandsTest::thread_;
 int ControlCommandsTest::ingestCallbackCalled;
 std::vector<Reading*> ControlCommandsTest::storedReadings;
 int ControlCommandsTest::asduHandlerCalled;

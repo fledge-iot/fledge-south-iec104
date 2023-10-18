@@ -9,16 +9,13 @@
  *
  */
 
-#include <iec104.h>
-#include <iec104_client_redgroup.h>
-#include <logger.h>
 #include <reading.h>
-#include <utils.h>
 
-#include <cmath>
-#include <fstream>
-#include <iostream>
-#include <utility>
+#include "iec104.h"
+#include "iec104_client.h"
+#include "iec104_client_redgroup.h"
+#include "iec104_client_config.h"
+#include "iec104_utility.h"
 
 using namespace std;
 
@@ -50,7 +47,7 @@ void IEC104::setJsonConfig(const std::string& stack_configuration,
 
 void IEC104::start()
 {
-    Logger::getLogger()->info("Starting iec104");
+    Iec104Utility::log_info("Starting iec104");
 
     switch (m_config->LogLevel())
     {
@@ -146,12 +143,12 @@ IEC104::m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool with
         if(withTime)
             time = stol(params[TS]->value);
 
-        Logger::getLogger()->debug("operate: single command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
+        Iec104Utility::log_debug("operate: single command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
 
         return m_client->sendSingleCommand(ca, ioa, value, withTime, select, time);
     }
     else {
-        Logger::getLogger()->error("operation parameter missing");
+        Iec104Utility::log_error("operation parameter missing");
         return false;
     }
 }
@@ -179,12 +176,12 @@ IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool with
         if(withTime)
             time = stol(params[TS]->value);
 
-        Logger::getLogger()->debug("operate: double command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
+        Iec104Utility::log_debug("operate: double command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
 
         return m_client->sendDoubleCommand(ca, ioa, value, withTime, select, time);
     }
     else {
-        Logger::getLogger()->error("operation parameter missing");
+        Iec104Utility::log_error("operation parameter missing");
         return false;
     }
 }
@@ -212,12 +209,12 @@ IEC104::m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTi
         if(withTime)
             time = stol(params[TS]->value);
 
-        Logger::getLogger()->debug("operate: step command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
+        Iec104Utility::log_debug("operate: step command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
 
         return m_client->sendStepCommand(ca, ioa, value, withTime, select, time);
     }
     else {
-        Logger::getLogger()->error("operation parameter missing");
+        Iec104Utility::log_error("operation parameter missing");
         return false;
     }
 }
@@ -241,12 +238,12 @@ IEC104::m_setpointNormalized(int count, PLUGIN_PARAMETER** params, bool withTime
         if(withTime)
             time = stol(params[TS]->value);
 
-        Logger::getLogger()->debug("operate: setpoint command (normalized) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
+        Iec104Utility::log_debug("operate: setpoint command (normalized) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
 
         return m_client->sendSetpointNormalized(ca, ioa, value, withTime, time);
     }
     else {
-        Logger::getLogger()->error("operation parameter missing");
+        Iec104Utility::log_error("operation parameter missing");
         return false;
     }
 }
@@ -270,12 +267,12 @@ IEC104::m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime)
         if(withTime)
             time = stol(params[TS]->value);
 
-        Logger::getLogger()->debug("operate: setpoint command (scaled) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
+        Iec104Utility::log_debug("operate: setpoint command (scaled) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
 
         return m_client->sendSetpointScaled(ca, ioa, value, withTime, time);
     }
     else {
-        Logger::getLogger()->error("operation parameter missing");
+        Iec104Utility::log_error("operation parameter missing");
         return false;
     }
 }
@@ -298,12 +295,12 @@ IEC104::m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime)
         if(withTime)
             time = stol(params[TS]->value);
 
-        Logger::getLogger()->debug("operate: setpoint command (short) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
+        Iec104Utility::log_debug("operate: setpoint command (short) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
 
         return m_client->sendSetpointShort(ca, ioa, value, withTime, time);
     }
     else {
-        Logger::getLogger()->error("operation parameter missing");
+        Iec104Utility::log_error("operation parameter missing");
         return false;
     }
 }
@@ -323,7 +320,7 @@ IEC104::operation(const std::string& operation, int count,
                        PLUGIN_PARAMETER** params)
 {
     if (m_client == nullptr) {
-        Logger::getLogger()->error("operation called but plugin is not yet initialized");
+        Iec104Utility::log_error("operation called but plugin is not yet initialized");
 
         return false;
     }
@@ -363,16 +360,16 @@ IEC104::operation(const std::string& operation, int count,
             case C_SE_NC_1: return m_setpointShort(count, params, false);
             case C_SE_TC_1: return m_setpointShort(count, params, true);
             default:
-                Logger::getLogger()->error("Unrecognised command type %s", type.c_str());
+                Iec104Utility::log_error("Unrecognised command type %s", type.c_str());
                 return false;
         }
     }
     else if (operation == "request_connection_status") {
-        Logger::getLogger()->info("received request_connection_status", operation.c_str());
+        Iec104Utility::log_info("received request_connection_status", operation.c_str());
         return m_client->sendConnectionStatus();
     }
 
-    Logger::getLogger()->error("Unrecognised operation %s", operation.c_str());
+    Iec104Utility::log_error("Unrecognised operation %s", operation.c_str());
 
     return false;
 }

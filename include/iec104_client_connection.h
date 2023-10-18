@@ -3,10 +3,15 @@
 
 #include <thread>
 #include <mutex>
-#include "iec104.h"
+#include <vector>
+
 #include <lib60870/cs104_connection.h>
+#include <lib60870/tls_config.h>
 
 class IEC104Client;
+class IEC104ClientRedGroup;
+class IEC104ClientConfig;
+class RedGroupCon;
 
 class IEC104ClientConnection
 {
@@ -22,7 +27,7 @@ public:
     void Disonnect();
     void Connect();
 
-    bool Autostart() {return m_redGroupConnection->Start();};
+    bool Autostart();
     bool Disconnected() {return ((m_connecting == false) && (m_connected == false));};
     bool Connecting() {return m_connecting;};
     bool Connected() {return m_connected;};

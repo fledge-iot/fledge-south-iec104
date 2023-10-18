@@ -8,17 +8,19 @@
  * Author: Michael Zillgith
  */
 
-#include <iec104.h>
-#include <logger.h>
-#include <reading.h>
-#include <lib60870/cs104_connection.h>
-
-#include <cmath>
 #include <ctime>
-#include <fstream>
-#include <iostream>
-#include <utility>
 #include <algorithm>
+#include <map>
+
+#include <lib60870/hal_time.h>
+#include <lib60870/hal_thread.h>
+
+#include "iec104.h"
+#include "iec104_client.h"
+#include "iec104_client_config.h"
+#include "iec104_client_redgroup.h"
+#include "iec104_client_connection.h"
+#include "iec104_utility.h"
 
 using namespace std;
 
@@ -72,6 +74,13 @@ IEC104Client::broadcastCA()
         return 0xff;
 
     return 0xffff;
+}
+
+template <class T>
+Datapoint* IEC104Client::m_createDatapoint(const std::string& dataname, const T value)
+{
+    DatapointValue dp_value = DatapointValue(value);
+    return new Datapoint(dataname, dp_value);
 }
 
 Datapoint* IEC104Client::m_createQualityUpdateForDataObject(DataExchangeDefinition* dataDefinition, QualityDescriptor* qd, CP56Time2a ts)
@@ -170,7 +179,7 @@ void IEC104Client::checkOutstandingCommandTimeouts()
             if (command->timeout + m_config->CmdExecTimeout() < currentTime) {
                 printf("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
 
-                Logger::getLogger()->warn("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
+                Iec104Utility::log_warn("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
 
                 listOfTimedoutCommands.push_back(command);
             }
@@ -179,7 +188,7 @@ void IEC104Client::checkOutstandingCommandTimeouts()
             if (command->timeout + m_config->CmdExecTimeout() < currentTime) {
                 printf("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
 
-                Logger::getLogger()->warn("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
+                Iec104Utility::log_warn("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
 
                 listOfTimedoutCommands.push_back(command);
             }
@@ -553,7 +562,7 @@ IEC104Client::sendCnxLossStatus(bool value)
     DataExchangeDefinition* dp = m_config->getCnxLossStatusDatapoint();
 
     if (dp) {
-        Logger::getLogger()->warn("send cnx_loss_status (data point: %s)", dp->label.c_str());
+        Iec104Utility::log_warn("send cnx_loss_status (data point: %s)", dp->label.c_str());
 
         Datapoint* cnxLossStatusDp = m_createCnxLossStatus(dp, value, Hal_getTimeInMs());
 
@@ -750,12 +759,12 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
                     labels.push_back(*label);
                 }
                 else {
-                    Logger::getLogger()->warn("ASDU type %s not supported for %s (CA: %i IOA: %i)", mapAsduTypeIdStr[typeId].c_str(), label->c_str(), ca, ioa);
+                    Iec104Utility::log_warn("ASDU type %s not supported for %s (CA: %i IOA: %i)", mapAsduTypeIdStr[typeId].c_str(), label->c_str(), ca, ioa);
                 }
             }
             else {
                 if (handledAsdu) {
-                    Logger::getLogger()->debug("No data point found in exchange configuration for %s with CA: %i IOA: %i", mapAsduTypeIdStr[typeId].c_str(), ca, ioa);
+                    Iec104Utility::log_debug("No data point found in exchange configuration for %s with CA: %i IOA: %i", mapAsduTypeIdStr[typeId].c_str(), ca, ioa);
                 }
             }
 
@@ -763,7 +772,7 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
         }
         else
         {
-            Logger::getLogger()->error("ASDU with invalid or unknown information object");
+            Iec104Utility::log_error("ASDU with invalid or unknown information object");
         }
     }
 
@@ -1335,7 +1344,7 @@ IEC104Client::OutstandingCommand* IEC104Client::addOutstandingCommandAndCheckLim
 
             printf("Maximum number of parallel command exceeded -> ignore command\n");
 
-            Logger::getLogger()->warn("Maximum number of parallel command exceeded -> ignore command");
+            Iec104Utility::log_warn("Maximum number of parallel command exceeded -> ignore command");
 
             return nullptr;
         }
@@ -1360,7 +1369,7 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SC_NA_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send C_SC_NA_1 command - no such data point");
+        Iec104Utility::log_error("Failed to send C_SC_NA_1 command - no such data point");
 
         return false;
     }
@@ -1392,7 +1401,7 @@ IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool 
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_DC_NA_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send C_DC_NA_1 command - no such data point");
+        Iec104Utility::log_error("Failed to send C_DC_NA_1 command - no such data point");
 
         return false;
     }
@@ -1424,7 +1433,7 @@ IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool se
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_RC_NA_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send C_RC_NA_1 command - no such data point");
+        Iec104Utility::log_error("Failed to send C_RC_NA_1 command - no such data point");
 
         return false;
     }
@@ -1456,7 +1465,7 @@ IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SE_NA_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send C_SE_NA_1 command - no such data point");
+        Iec104Utility::log_error("Failed to send C_SE_NA_1 command - no such data point");
 
         return false;
     }
@@ -1488,7 +1497,7 @@ IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime, long
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SE_NB_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send C_SE_NB_1 command - no such data point");
+        Iec104Utility::log_error("Failed to send C_SE_NB_1 command - no such data point");
 
         return false;
     }
@@ -1520,7 +1529,7 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime, lon
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SE_NC_1, ca, ioa) == nullptr) {
-        Logger::getLogger()->error("Failed to send C_SE_NC_1 command - no such data point");
+        Iec104Utility::log_error("Failed to send C_SE_NC_1 command - no such data point");
 
         return false;
     }

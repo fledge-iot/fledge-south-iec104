@@ -1,5 +1,7 @@
 #include "iec104_client_redgroup.h"
 
+using namespace std;
+
 RedGroupCon::RedGroupCon(const string& serverIp, int tcpPort, bool conn, bool start, const string* clientIp)
 {
     m_serverIp = serverIp;

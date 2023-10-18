@@ -10,14 +10,11 @@
  */
 
 #include <config_category.h>
-#include <iec104.h>
-#include <logger.h>
 #include <plugin_api.h>
 #include <version.h>
 
-#include <fstream>
-#include <iostream>
-#include <string>
+#include "iec104.h"
+#include "iec104_utility.h"
 
 using namespace std;
 
@@ -179,7 +176,7 @@ extern "C"
      */
     PLUGIN_INFORMATION *plugin_info()
     {
-        Logger::getLogger()->info("104 Config is %s", info.config);
+        Iec104Utility::log_info("104 Config is %s", info.config);
         return &info;
     }
 
@@ -189,7 +186,7 @@ extern "C"
     PLUGIN_HANDLE plugin_init(ConfigCategory *config)
     {
         IEC104* iec104 = nullptr;
-        Logger::getLogger()->info("Initializing the plugin");
+        Iec104Utility::log_info("Initializing the plugin");
 
         iec104 = new IEC104();
 
@@ -217,7 +214,7 @@ extern "C"
     {
         if (!handle) return;
 
-        Logger::getLogger()->info("Starting the plugin");
+        Iec104Utility::log_info("Starting the plugin");
 
         auto *iec104 = reinterpret_cast<IEC104 *>(handle);
         iec104->start();
@@ -263,12 +260,12 @@ extern "C"
         if (config.itemExists("asset"))
         {
             iec104->setAssetName(config.getValue("asset"));
-            Logger::getLogger()->info(
+            Iec104Utility::log_info(
                 "104 plugin restart after reconfigure asset");
             iec104->start();
         }
         else {
-            Logger::getLogger()->error(
+            Iec104Utility::log_error(
                 "104 plugin restart failed");
         }
     }

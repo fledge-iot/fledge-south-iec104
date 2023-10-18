@@ -1,13 +1,17 @@
-#include <config_category.h>
 #include <gtest/gtest.h>
-#include <iec104.h>
-#include <plugin_api.h>
-#include <string.h>
-#include "cs104_slave.h"
 
-#include <boost/thread.hpp>
+#include <plugin_api.h>
+#include <config_category.h>
+
 #include <utility>
 #include <vector>
+#include <string>
+
+#include "cs104_slave.h"
+
+#include "iec104.h"
+#include "iec104_client_config.h"
+#include "iec104_utility.h"
 
 using namespace std;
 
@@ -1715,7 +1719,6 @@ protected:
         return true;
     }
 
-    static boost::thread thread_;
     IEC104TestComp* iec104 = nullptr;
     static int ingestCallbackCalled;
     static std::vector<Reading*> storedReadings;
@@ -1757,12 +1760,12 @@ protected:
             if(params[7] != 0)
                 time = stol(params[7]->value);
 
-            // Logger::getLogger()->debug("operate: single command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
+            // Iec104Utility::log_debug("operate: single command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
 
             return checkTypeCommand(ca, ioa, value, select, time, typeId, config);
         }
         else {
-            Logger::getLogger()->error("operation parameter missing");
+            Iec104Utility::log_error("operation parameter missing");
             return false;
         }
     }
@@ -1771,7 +1774,7 @@ protected:
     {
         // check if the data point is in the exchange configuration
         if (config->checkExchangeDataLayer(typeId, ca, ioa) == nullptr) {
-            Logger::getLogger()->error("Failed to send C_SC_NA_1 command - no such data point");
+            Iec104Utility::log_error("Failed to send C_SC_NA_1 command - no such data point");
 
             return false;
         }
@@ -1781,7 +1784,6 @@ protected:
     }
 };
 
-boost::thread ConfigTest::thread_;
 int ConfigTest::ingestCallbackCalled;
 std::vector<Reading*> ConfigTest::storedReadings;
 int ConfigTest::asduHandlerCalled;

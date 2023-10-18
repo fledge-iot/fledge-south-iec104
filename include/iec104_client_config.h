@@ -2,33 +2,31 @@
 #define IEC104_CLIENT_CONFIG_H
 
 
-#include <logger.h>
 #include <map>
 #include <vector>
-#include "iec104_client_redgroup.h"
 
-using namespace std;
+class IEC104ClientRedGroup;
 
-typedef struct {
+struct DataExchangeDefinition {
     int ca;
     int ioa;
     int typeId;
     std::string label;
     int giGroups;
-} DataExchangeDefinition;
+};
 
 class IEC104ClientConfig
 {
 public:
     IEC104ClientConfig() {m_exchangeDefinitions.clear();};
-    //IEC104ClientConfig(const string& protocolConfig, const string& exchangeConfig);
+    //IEC104ClientConfig(const std::string& protocolConfig, const std::string& exchangeConfig);
     ~IEC104ClientConfig();
 
     int LogLevel() {return 1;};
 
-    void importProtocolConfig(const string& protocolConfig);
-    void importExchangeConfig(const string& exchangeConfig);
-    void importTlsConfig(const string& tlsConfig);
+    void importProtocolConfig(const std::string& protocolConfig);
+    void importExchangeConfig(const std::string& exchangeConfig);
+    void importTlsConfig(const std::string& tlsConfig);
 
     int CaSize() {return m_caSize;};
     int IOASize() {return m_ioaSize;};
@@ -59,7 +57,7 @@ public:
     std::vector<std::string>& GetRemoteCertificates() {return m_remoteCertificates;};
     std::vector<std::string>& GetCaCertificates() {return m_caCertificates;};
 
-    static bool isValidIPAddress(const string& addrStr);
+    static bool isValidIPAddress(const std::string& addrStr);
 
     std::vector<IEC104ClientRedGroup*>& RedundancyGroups() {return m_redundancyGroups;};
 
@@ -67,7 +65,7 @@ public:
 
     std::vector<int>& ListOfCAs() {return m_listOfCAs;};
 
-    static int GetTypeIdByName(const string& name);
+    static int GetTypeIdByName(const std::string& name);
 
     std::string* checkExchangeDataLayer(int typeId, int ca, int ioa);
 
