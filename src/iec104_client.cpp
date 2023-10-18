@@ -167,6 +167,7 @@ IEC104Client::OutstandingCommand* IEC104Client::checkForOutstandingCommand(int t
 
 void IEC104Client::checkOutstandingCommandTimeouts()
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::checkOutstandingCommandTimeouts -";
     uint64_t currentTime = getMonotonicTimeInMs();
 
     std::vector<OutstandingCommand*> listOfTimedoutCommands;
@@ -177,13 +178,15 @@ void IEC104Client::checkOutstandingCommandTimeouts()
     {
         if (command->actConReceived) {
             if (command->timeout + m_config->CmdExecTimeout() < currentTime) {
-                Iec104Utility::log_warn("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
+                Iec104Utility::log_warn("%s ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i", beforeLog.c_str(),
+                                        command->typeId, command->ca, command->ioa);
                 listOfTimedoutCommands.push_back(command);
             }
         }
         else {
             if (command->timeout + m_config->CmdExecTimeout() < currentTime) {
-                Iec104Utility::log_warn("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
+                Iec104Utility::log_warn("%s ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i", beforeLog.c_str(),
+                                        command->typeId, command->ca, command->ioa);
                 listOfTimedoutCommands.push_back(command);
             }
         }
@@ -553,10 +556,11 @@ IEC104Client::updateGiStatus(GiStatus newState)
 bool
 IEC104Client::sendCnxLossStatus(bool value)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::sendCnxLossStatus -";
     DataExchangeDefinition* dp = m_config->getCnxLossStatusDatapoint();
 
     if (dp) {
-        Iec104Utility::log_warn("send cnx_loss_status (data point: %s)", dp->label.c_str());
+        Iec104Utility::log_warn("%s send cnx_loss_status (data point: %s)", beforeLog.c_str(), dp->label.c_str());
 
         Datapoint* cnxLossStatusDp = m_createCnxLossStatus(dp, value, Hal_getTimeInMs());
 
@@ -604,6 +608,7 @@ isInterrogationResponse(CS101_ASDU asdu)
 bool
 IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::handleASDU -";
     bool handledAsdu = true;
 
     vector<Datapoint*> datapoints;
@@ -753,12 +758,14 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
                     labels.push_back(*label);
                 }
                 else {
-                    Iec104Utility::log_warn("ASDU type %s not supported for %s (CA: %i IOA: %i)", mapAsduTypeIdStr[typeId].c_str(), label->c_str(), ca, ioa);
+                    Iec104Utility::log_warn("%s ASDU type %s not supported for %s (CA: %i IOA: %i)", beforeLog.c_str(),
+                                            mapAsduTypeIdStr[typeId].c_str(), label->c_str(), ca, ioa);
                 }
             }
             else {
                 if (handledAsdu) {
-                    Iec104Utility::log_debug("No data point found in exchange configuration for %s with CA: %i IOA: %i", mapAsduTypeIdStr[typeId].c_str(), ca, ioa);
+                    Iec104Utility::log_debug("%s No data point found in exchange configuration for %s with CA: %i IOA: %i",
+                                            beforeLog.c_str(), mapAsduTypeIdStr[typeId].c_str(), ca, ioa);
                 }
             }
 
@@ -766,7 +773,7 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
         }
         else
         {
-            Iec104Utility::log_error("ASDU with invalid or unknown information object");
+            Iec104Utility::log_error("%s ASDU with invalid or unknown information object", beforeLog.c_str());
         }
     }
 
@@ -948,21 +955,22 @@ void IEC104Client::handle_C_SC_NA_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa,
                              OutstandingCommand* outstandingCommand)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::handle_C_SC_NA_1 -";
     auto io_casted = (SingleCommandWithCP56Time2a)io;
     int64_t state = SingleCommand_getState((SingleCommand)io_casted);
 
     QualifierOfCommand qu = SingleCommand_getQU((SingleCommand)io_casted);
 
-    Iec104Utility::log_debug("C_SC_NA_1 - COT: %s\n", CS101_CauseOfTransmission_toString(CS101_ASDU_getCOT(asdu)));
+    Iec104Utility::log_debug("%s C_SC_NA_1 - COT: %s", beforeLog.c_str(), CS101_CauseOfTransmission_toString(CS101_ASDU_getCOT(asdu)));
 
     if (outstandingCommand) {
         if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-            Iec104Utility::log_debug("C_SC_NA_1: received ACT-CON\n");
+            Iec104Utility::log_debug("%s C_SC_NA_1: received ACT-CON", beforeLog.c_str());
             outstandingCommand->actConReceived = true;
             outstandingCommand->timeout = getMonotonicTimeInMs();
         }
         else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_TERMINATION) {
-            Iec104Utility::log_debug("C_SC_NA_1: received ACT-TERM\n");
+            Iec104Utility::log_debug("%s C_SC_NA_1: received ACT-TERM", beforeLog.c_str());
             removeOutstandingCommand(outstandingCommand);
         }
     }
@@ -1322,6 +1330,7 @@ IEC104Client::sendInterrogationCommand(int ca)
 
 IEC104Client::OutstandingCommand* IEC104Client::addOutstandingCommandAndCheckLimit(int ca, int ioa, bool withTime, int typeIdWithTimestamp, int typeIdNoTimestamp)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::addOutstandingCommandAndCheckLimit -";
     OutstandingCommand* command = nullptr;
 
     // check if number of allowed parallel commands is not exceeded.
@@ -1335,7 +1344,7 @@ IEC104Client::OutstandingCommand* IEC104Client::addOutstandingCommandAndCheckLim
         }
         else {
             m_outstandingCommandsMtx.unlock();
-            Iec104Utility::log_warn("Maximum number of parallel command exceeded -> ignore command");
+            Iec104Utility::log_warn("%s Maximum number of parallel command exceeded -> ignore command", beforeLog.c_str());
             return nullptr;
         }
     }
@@ -1354,12 +1363,13 @@ IEC104Client::OutstandingCommand* IEC104Client::addOutstandingCommandAndCheckLim
 bool
 IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool select, long time)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::sendSingleCommand -";
     // send single command over active connection
     bool success = false;
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SC_NA_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("Failed to send C_SC_NA_1 command - no such data point");
+        Iec104Utility::log_error("%s Failed to send C_SC_NA_1 command - no such data point", beforeLog.c_str());
 
         return false;
     }
@@ -1386,12 +1396,13 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
 bool
 IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool select, long time)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::sendDoubleCommand -";
     // send double command over active connection
     bool success = false;
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_DC_NA_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("Failed to send C_DC_NA_1 command - no such data point");
+        Iec104Utility::log_error("%s Failed to send C_DC_NA_1 command - no such data point", beforeLog.c_str());
 
         return false;
     }
@@ -1418,12 +1429,13 @@ IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool 
 bool
 IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool select, long time)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::sendStepCommand -";
     // send step command over active connection
     bool success = false;
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_RC_NA_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("Failed to send C_RC_NA_1 command - no such data point");
+        Iec104Utility::log_error("%s Failed to send C_RC_NA_1 command - no such data point", beforeLog.c_str());
 
         return false;
     }
@@ -1450,12 +1462,13 @@ IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool se
 bool
 IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime, long time)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::sendSetpointNormalized -";
     // send setpoint command normalized over active connection
     bool success = false;
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SE_NA_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("Failed to send C_SE_NA_1 command - no such data point");
+        Iec104Utility::log_error("%s Failed to send C_SE_NA_1 command - no such data point", beforeLog.c_str());
 
         return false;
     }
@@ -1482,12 +1495,13 @@ IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime
 bool
 IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime, long time)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::sendSetpointScaled -";
     // send setpoint command scaled over active connection
     bool success = false;
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SE_NB_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("Failed to send C_SE_NB_1 command - no such data point");
+        Iec104Utility::log_error("%s Failed to send C_SE_NB_1 command - no such data point", beforeLog.c_str());
 
         return false;
     }
@@ -1514,12 +1528,13 @@ IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime, long
 bool
 IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime, long time)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::sendSetpointShort -";
     // send setpoint command short over active connection
     bool success = false;
 
     // check if the data point is in the exchange configuration
     if (m_config->checkExchangeDataLayer(C_SE_NC_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("Failed to send C_SE_NC_1 command - no such data point");
+        Iec104Utility::log_error("%s Failed to send C_SE_NC_1 command - no such data point", beforeLog.c_str());
 
         return false;
     }

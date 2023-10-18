@@ -15,8 +15,11 @@
 #include <string>
 #include <logger.h>
 
+#define PLUGIN_NAME "iec104"
 
 namespace Iec104Utility {
+
+    static const std::string PluginName = PLUGIN_NAME;
 
     /*
      * Log helper function that will log both in the Fledge syslog file and in stdout for unit tests

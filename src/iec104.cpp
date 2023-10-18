@@ -47,7 +47,8 @@ void IEC104::setJsonConfig(const std::string& stack_configuration,
 
 void IEC104::start()
 {
-    Iec104Utility::log_info("Starting iec104");
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104::start -";
+    Iec104Utility::log_info("%s Starting iec104", beforeLog.c_str());
 
     switch (m_config->LogLevel())
     {
@@ -123,6 +124,7 @@ enum CommandParameters{
 bool
 IEC104::m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104::m_singleCommandOperation -";
     if (count > 8) {
         // common address of the asdu
         int ca = atoi(params[CA]->value.c_str());
@@ -143,12 +145,13 @@ IEC104::m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool with
         if(withTime)
             time = stol(params[TS]->value);
 
-        Iec104Utility::log_debug("operate: single command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
+        Iec104Utility::log_debug("%s operate: single command - CA: %i IOA: %i value: %i select: %i timestamp: %i", beforeLog.c_str(),
+                                ca, ioa, value, select, time);
 
         return m_client->sendSingleCommand(ca, ioa, value, withTime, select, time);
     }
     else {
-        Iec104Utility::log_error("operation parameter missing");
+        Iec104Utility::log_error("%s operation parameter missing", beforeLog.c_str());
         return false;
     }
 }
@@ -156,6 +159,7 @@ IEC104::m_singleCommandOperation(int count, PLUGIN_PARAMETER** params, bool with
 bool
 IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104::m_doubleCommandOperation -";
     if (count > 8) {
         // common address of the asdu
         int ca = atoi(params[CA]->value.c_str());
@@ -176,12 +180,13 @@ IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool with
         if(withTime)
             time = stol(params[TS]->value);
 
-        Iec104Utility::log_debug("operate: double command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
+        Iec104Utility::log_debug("%s operate: double command - CA: %i IOA: %i value: %i select: %i timestamp: %i", beforeLog.c_str(),
+                                ca, ioa, value, select, time);
 
         return m_client->sendDoubleCommand(ca, ioa, value, withTime, select, time);
     }
     else {
-        Iec104Utility::log_error("operation parameter missing");
+        Iec104Utility::log_error("%s operation parameter missing", beforeLog.c_str());
         return false;
     }
 }
@@ -189,6 +194,7 @@ IEC104::m_doubleCommandOperation(int count, PLUGIN_PARAMETER** params, bool with
 bool
 IEC104::m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104::m_stepCommandOperation -";
     if (count > 8) {
         // common address of the asdu
         int ca = atoi(params[CA]->value.c_str());
@@ -209,12 +215,13 @@ IEC104::m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTi
         if(withTime)
             time = stol(params[TS]->value);
 
-        Iec104Utility::log_debug("operate: step command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
+        Iec104Utility::log_debug("%s operate: step command - CA: %i IOA: %i value: %i select: %i timestamp: %i", beforeLog.c_str(),
+                                ca, ioa, value, select, time);
 
         return m_client->sendStepCommand(ca, ioa, value, withTime, select, time);
     }
     else {
-        Iec104Utility::log_error("operation parameter missing");
+        Iec104Utility::log_error("%s operation parameter missing", beforeLog.c_str());
         return false;
     }
 }
@@ -222,6 +229,7 @@ IEC104::m_stepCommandOperation(int count, PLUGIN_PARAMETER** params, bool withTi
 bool
 IEC104::m_setpointNormalized(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104::m_setpointNormalized -";
     if (count > 8) {
         // common address of the asdu
         int ca = atoi(params[CA]->value.c_str());
@@ -238,12 +246,13 @@ IEC104::m_setpointNormalized(int count, PLUGIN_PARAMETER** params, bool withTime
         if(withTime)
             time = stol(params[TS]->value);
 
-        Iec104Utility::log_debug("operate: setpoint command (normalized) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
+        Iec104Utility::log_debug("%s operate: setpoint command (normalized) - CA: %i IOA: %i value: %i timestamp: %i", beforeLog.c_str(),
+                                ca, ioa, value, time);
 
         return m_client->sendSetpointNormalized(ca, ioa, value, withTime, time);
     }
     else {
-        Iec104Utility::log_error("operation parameter missing");
+        Iec104Utility::log_error("%s operation parameter missing", beforeLog.c_str());
         return false;
     }
 }
@@ -251,6 +260,7 @@ IEC104::m_setpointNormalized(int count, PLUGIN_PARAMETER** params, bool withTime
 bool
 IEC104::m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104::m_setpointScaled -";
     if (count > 8) {
         // common address of the asdu
         int ca = atoi(params[CA]->value.c_str());
@@ -267,12 +277,13 @@ IEC104::m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime)
         if(withTime)
             time = stol(params[TS]->value);
 
-        Iec104Utility::log_debug("operate: setpoint command (scaled) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
+        Iec104Utility::log_debug("%s operate: setpoint command (scaled) - CA: %i IOA: %i value: %i timestamp: %i", beforeLog.c_str(),
+                                ca, ioa, value, time);
 
         return m_client->sendSetpointScaled(ca, ioa, value, withTime, time);
     }
     else {
-        Iec104Utility::log_error("operation parameter missing");
+        Iec104Utility::log_error("%s operation parameter missing", beforeLog.c_str());
         return false;
     }
 }
@@ -280,6 +291,7 @@ IEC104::m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime)
 bool
 IEC104::m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104::m_setpointShort -";
     if (count > 8) {
         // common address of the asdu
         int ca = atoi(params[CA]->value.c_str());
@@ -295,12 +307,13 @@ IEC104::m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime)
         if(withTime)
             time = stol(params[TS]->value);
 
-        Iec104Utility::log_debug("operate: setpoint command (short) - CA: %i IOA: %i value: %i timestamp: %i", ca, ioa, value, time);
+        Iec104Utility::log_debug("%s operate: setpoint command (short) - CA: %i IOA: %i value: %i timestamp: %i", beforeLog.c_str(),
+                                ca, ioa, value, time);
 
         return m_client->sendSetpointShort(ca, ioa, value, withTime, time);
     }
     else {
-        Iec104Utility::log_error("operation parameter missing");
+        Iec104Utility::log_error("%s operation parameter missing", beforeLog.c_str());
         return false;
     }
 }
@@ -319,8 +332,9 @@ bool
 IEC104::operation(const std::string& operation, int count,
                        PLUGIN_PARAMETER** params)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104::operation -";
     if (m_client == nullptr) {
-        Iec104Utility::log_error("operation called but plugin is not yet initialized");
+        Iec104Utility::log_error("%s operation called but plugin is not yet initialized", beforeLog.c_str());
 
         return false;
     }
@@ -360,16 +374,16 @@ IEC104::operation(const std::string& operation, int count,
             case C_SE_NC_1: return m_setpointShort(count, params, false);
             case C_SE_TC_1: return m_setpointShort(count, params, true);
             default:
-                Iec104Utility::log_error("Unrecognised command type %s", type.c_str());
+                Iec104Utility::log_error("%s Unrecognised command type %s", beforeLog.c_str(), type.c_str());
                 return false;
         }
     }
     else if (operation == "request_connection_status") {
-        Iec104Utility::log_info("received request_connection_status", operation.c_str());
+        Iec104Utility::log_info("%s received request_connection_status", beforeLog.c_str(), operation.c_str());
         return m_client->sendConnectionStatus();
     }
 
-    Iec104Utility::log_error("Unrecognised operation %s", operation.c_str());
+    Iec104Utility::log_error("%s Unrecognised operation %s", beforeLog.c_str(), operation.c_str());
 
     return false;
 }

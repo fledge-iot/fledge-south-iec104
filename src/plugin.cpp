@@ -20,8 +20,6 @@ using namespace std;
 
 typedef void (*INGEST_CB)(void *, Reading);
 
-#define PLUGIN_NAME "iec104"
-
 /**
  * Default configuration
  */
@@ -176,7 +174,8 @@ extern "C"
      */
     PLUGIN_INFORMATION *plugin_info()
     {
-        Iec104Utility::log_info("104 Config is %s", info.config);
+        std::string beforeLog = Iec104Utility::PluginName + " - plugin_info -";
+        Iec104Utility::log_info("%s 104 Config is %s", beforeLog.c_str(), info.config);
         return &info;
     }
 
@@ -185,8 +184,9 @@ extern "C"
      */
     PLUGIN_HANDLE plugin_init(ConfigCategory *config)
     {
+        std::string beforeLog = Iec104Utility::PluginName + " - plugin_init -";
         IEC104* iec104 = nullptr;
-        Iec104Utility::log_info("Initializing the plugin");
+        Iec104Utility::log_info("%s Initializing the plugin", beforeLog.c_str());
 
         iec104 = new IEC104();
 
@@ -212,9 +212,10 @@ extern "C"
      */
     void plugin_start(PLUGIN_HANDLE *handle)
     {
+        std::string beforeLog = Iec104Utility::PluginName + " - plugin_start -";
         if (!handle) return;
 
-        Iec104Utility::log_info("Starting the plugin");
+        Iec104Utility::log_info("%s Starting the plugin", beforeLog.c_str());
 
         auto *iec104 = reinterpret_cast<IEC104 *>(handle);
         iec104->start();
@@ -236,8 +237,7 @@ extern "C"
      */
     Reading plugin_poll(PLUGIN_HANDLE *handle)
     {
-        throw runtime_error(
-            "IEC_104 is an async plugin, poll should not be called");
+        throw runtime_error("IEC_104 is an async plugin, poll should not be called");
     }
 
     /**
@@ -245,6 +245,7 @@ extern "C"
      */
     void plugin_reconfigure(PLUGIN_HANDLE *handle, string &newConfig)
     {
+        std::string beforeLog = Iec104Utility::PluginName + " - plugin_reconfigure -";
         ConfigCategory config("newConfig", newConfig);
         auto *iec104 = reinterpret_cast<IEC104 *>(*handle);
 
@@ -260,13 +261,11 @@ extern "C"
         if (config.itemExists("asset"))
         {
             iec104->setAssetName(config.getValue("asset"));
-            Iec104Utility::log_info(
-                "104 plugin restart after reconfigure asset");
+            Iec104Utility::log_info("%s 104 plugin restart after reconfigure asset", beforeLog.c_str());
             iec104->start();
         }
         else {
-            Iec104Utility::log_error(
-                "104 plugin restart failed");
+            Iec104Utility::log_error("%s 104 plugin restart failed", beforeLog.c_str());
         }
     }
 
