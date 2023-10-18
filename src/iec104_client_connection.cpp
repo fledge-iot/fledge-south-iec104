@@ -880,7 +880,6 @@ IEC104ClientConnection::prepareConnection()
                 }
             }
             else {
-                printf("TLS configuration failed\n");
                 Iec104Utility::log_error("TLS configuration failed");
             }
         }

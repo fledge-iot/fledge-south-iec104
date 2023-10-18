@@ -177,19 +177,13 @@ void IEC104Client::checkOutstandingCommandTimeouts()
     {
         if (command->actConReceived) {
             if (command->timeout + m_config->CmdExecTimeout() < currentTime) {
-                printf("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
-
                 Iec104Utility::log_warn("ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
-
                 listOfTimedoutCommands.push_back(command);
             }
         }
         else {
             if (command->timeout + m_config->CmdExecTimeout() < currentTime) {
-                printf("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i ack: %i\n", command->typeId, command->ca, command->ioa, command->actConReceived);
-
                 Iec104Utility::log_warn("ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i", command->typeId, command->ca, command->ioa);
-
                 listOfTimedoutCommands.push_back(command);
             }
         }
@@ -959,16 +953,16 @@ void IEC104Client::handle_C_SC_NA_1(vector<Datapoint*>& datapoints, string& labe
 
     QualifierOfCommand qu = SingleCommand_getQU((SingleCommand)io_casted);
 
-    printf("C_SC_NA_1 - COT: %s\n", CS101_CauseOfTransmission_toString(CS101_ASDU_getCOT(asdu)));
+    Iec104Utility::log_debug("C_SC_NA_1 - COT: %s\n", CS101_CauseOfTransmission_toString(CS101_ASDU_getCOT(asdu)));
 
     if (outstandingCommand) {
         if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-            printf("C_SC_NA_1: received ACT-CON\n");
+            Iec104Utility::log_debug("C_SC_NA_1: received ACT-CON\n");
             outstandingCommand->actConReceived = true;
             outstandingCommand->timeout = getMonotonicTimeInMs();
         }
         else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_TERMINATION) {
-            printf("C_SC_NA_1: received ACT-TERM\n");
+            Iec104Utility::log_debug("C_SC_NA_1: received ACT-TERM\n");
             removeOutstandingCommand(outstandingCommand);
         }
     }
@@ -1341,11 +1335,7 @@ IEC104Client::OutstandingCommand* IEC104Client::addOutstandingCommandAndCheckLim
         }
         else {
             m_outstandingCommandsMtx.unlock();
-
-            printf("Maximum number of parallel command exceeded -> ignore command\n");
-
             Iec104Utility::log_warn("Maximum number of parallel command exceeded -> ignore command");
-
             return nullptr;
         }
     }
