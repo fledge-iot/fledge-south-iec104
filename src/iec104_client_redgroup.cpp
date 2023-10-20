@@ -18,6 +18,7 @@ RedGroupCon::~RedGroupCon()
 
 void IEC104ClientRedGroup::AddConnection(RedGroupCon* con)
 {
+    con->SetConnId(m_connections.size());
     m_connections.push_back(con);
 }
 

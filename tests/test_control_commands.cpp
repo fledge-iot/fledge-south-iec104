@@ -12,6 +12,7 @@
 #include <lib60870/hal_thread.h>
 
 #include "iec104.h"
+#include "iec104_client_config.h"
 
 using namespace std;
 
@@ -423,7 +424,10 @@ protected:
     {
         ControlCommandsTest* self = (ControlCommandsTest*)parameter;
 
-        printf("asduHandler: type: %i COT: %s\n", CS101_ASDU_getTypeID(asdu), CS101_CauseOfTransmission_toString(CS101_ASDU_getCOT(asdu)));
+        auto typeId = CS101_ASDU_getTypeID(asdu);
+        auto cot = CS101_ASDU_getCOT(asdu);
+        printf("asduHandler: type: %s (%d) COT: %s (%d)\n", IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                CS101_CauseOfTransmission_toString(cot), cot);
 
         lastConnection = NULL;
         lastOA = CS101_ASDU_getOA(asdu);
@@ -434,7 +438,7 @@ protected:
 
         int ioa = InformationObject_getObjectAddress(io);
 
-        if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1) {
+        if (typeId == C_SC_NA_1) {
             printf("  C_SC_NA_1 (single-command)\n");
 
             if (ca == 41025 && ioa == 2000) {
@@ -442,7 +446,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1) {
+        else if (typeId == C_SC_TA_1) {
             printf("  C_SC_TA_1 (single-command w/timetag)\n");
 
             if (ca == 41025 && ioa == 2010) {
@@ -450,7 +454,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_DC_NA_1) {
+        else if (typeId == C_DC_NA_1) {
             printf("  C_DC_NA_1 (double-command)\n");
 
             if (ca == 41025 && ioa == 2002) {
@@ -458,7 +462,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SE_TC_1) {
+        else if (typeId == C_SE_TC_1) {
             printf("  C_SE_TC_1 (setpoint command short)\n");
 
             if (ca == 41025 && ioa == 2003) {
@@ -466,7 +470,7 @@ protected:
                 lastConnection = connection;
             }
         }
-         else if (CS101_ASDU_getTypeID(asdu) == C_SE_NC_1) {
+         else if (typeId == C_SE_NC_1) {
             printf("  C_SE_NC_1 (setpoint command short)\n");
 
             if (ca == 41025 && ioa == 2012) {
@@ -474,7 +478,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SE_NA_1) {
+        else if (typeId == C_SE_NA_1) {
             printf("  C_SE_NA_1 (setpoint command normalized)\n");
 
             if (ca == 41025 && ioa == 2006) {
@@ -482,7 +486,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SE_TA_1) {
+        else if (typeId == C_SE_TA_1) {
             printf("  C_SE_TA_1 (setpoint command normalized)\n");
 
             if (ca == 41025 && ioa == 2007) {
@@ -490,7 +494,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SE_NB_1) {
+        else if (typeId == C_SE_NB_1) {
             printf("  C_SE_NB_1 (setpoint command scaled)\n");
 
             if (ca == 41025 && ioa == 2008) {
@@ -498,7 +502,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SE_TB_1) {
+        else if (typeId == C_SE_TB_1) {
             printf("  C_SE_TB_1 (setpoint command scaled)\n");
 
             if (ca == 41025 && ioa == 2009) {
@@ -506,7 +510,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_RC_TA_1) {
+        else if (typeId == C_RC_TA_1) {
             printf("  C_RC_TA_1 (step command)\n");
 
             if (ca == 41025 && ioa == 2011) {
@@ -514,7 +518,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_DC_TA_1) {
+        else if (typeId == C_DC_TA_1) {
             printf("  C_DC_TA_1 (double-command)\n");
 
             if (ca == 41025 && ioa == 2004) {
@@ -522,7 +526,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_RC_NA_1) {
+        else if (typeId == C_RC_NA_1) {
             printf("  C_RC_NA_1 (step-command wo time)\n");
 
             if (ca == 41025 && ioa == 2005) {
@@ -533,7 +537,7 @@ protected:
 
         InformationObject_destroy(io);
 
-        if (CS101_ASDU_getTypeID(asdu) != C_IC_NA_1)
+        if (typeId != C_IC_NA_1)
             asduHandlerCalled++;
 
         return true;
@@ -578,7 +582,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommand)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_SC_NA_1"};
     params[0] = &type;
@@ -658,7 +662,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSingleCommandNotInExchangeConfig)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_SC_NA_1"};
     params[0] = &type;
@@ -716,7 +720,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommand)
     // quality update for measurement data points
     ASSERT_EQ(3, ingestCallbackCalled);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_DC_NA_1"};
     params[0] = &type;
@@ -795,7 +799,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommandWithTimestamp)
     // quality update for measurement data points
     ASSERT_EQ(3, ingestCallbackCalled);
 
-     PLUGIN_PARAMETER* params[9];
+     PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_DC_TA_1"};
     params[0] = &type;
@@ -876,7 +880,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendDoubleCommandNotConnected)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_DC_NA_1"};
     params[0] = &type;
@@ -924,7 +928,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSetpointCommandShort)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_SE_TC_1"};
     params[0] = &type;
@@ -1008,7 +1012,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSetpointCommandShortNoTime)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_SE_NC_1"};
     params[0] = &type;
@@ -1089,7 +1093,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSetpointNormalizedTime)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_SE_TA_1"};
     params[0] = &type;
@@ -1174,7 +1178,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSetpointCommandNormalizedNoTime)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_SE_NA_1"};
     params[0] = &type;
@@ -1255,7 +1259,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSetpointScaledNoTime)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_SE_NB_1"};
     params[0] = &type;
@@ -1336,7 +1340,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSetpointCommandScaledWithTime)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_SE_TB_1"};
     params[0] = &type;
@@ -1420,7 +1424,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendSinglePointCommandWithTime)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_SC_TA_1"};
     params[0] = &type;
@@ -1504,7 +1508,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendStepCommandTime)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_RC_TA_1"};
     params[0] = &type;
@@ -1590,7 +1594,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendTwoSingleCommands)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_SC_NA_1"};
     params[0] = &type;
@@ -1675,7 +1679,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendStepCommand)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params[9];
+    PLUGIN_PARAMETER* params[9] = {};
 
     PLUGIN_PARAMETER type = {"type", "C_RC_NA_1"};
     params[0] = &type;
@@ -1920,7 +1924,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendBrokenCommands2)
 
     Thread_sleep(500);
 
-    PLUGIN_PARAMETER* params1[9];
+    PLUGIN_PARAMETER* params1[9] = {};
 
     PLUGIN_PARAMETER type1 = {"type", "C_SC_NA_1"};
     params1[0] = &type1;
@@ -1940,7 +1944,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendBrokenCommands2)
     PLUGIN_PARAMETER select1 = {"", "0"};
     params1[5] = &select1;
 
-    PLUGIN_PARAMETER* params3[9];
+    PLUGIN_PARAMETER* params3[9] = {};
 
     PLUGIN_PARAMETER type3 = {"type", "C_DC_NA_1"};
     params3[0] = &type3;
@@ -1960,7 +1964,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendBrokenCommands2)
     PLUGIN_PARAMETER select3 = {"", "0"};
     params3[5] = &select3;
 
-    PLUGIN_PARAMETER* params5[9];
+    PLUGIN_PARAMETER* params5[9] = {};
 
     PLUGIN_PARAMETER type5 = {"type", "C_RC_NA_1"};
     params5[0] = &type5;
@@ -1980,7 +1984,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendBrokenCommands2)
     PLUGIN_PARAMETER select5 = {"", "0"};
     params5[5] = &select5;
 
-    PLUGIN_PARAMETER* params7[9];
+    PLUGIN_PARAMETER* params7[9] = {};
 
     PLUGIN_PARAMETER type7 = {"type", "C_SE_NA_1"};
     params7[0] = &type7;
@@ -2000,7 +2004,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendBrokenCommands2)
     PLUGIN_PARAMETER select7 = {"", "0"};
     params7[5] = &select7;
 
-    PLUGIN_PARAMETER* params9[9];
+    PLUGIN_PARAMETER* params9[9] = {};
 
     PLUGIN_PARAMETER type9 = {"type", "C_SE_NB_1"};
     params9[0] = &type9;
@@ -2020,7 +2024,7 @@ TEST_F(ControlCommandsTest, IEC104Client_sendBrokenCommands2)
     PLUGIN_PARAMETER select9 = {"", "0"};
     params9[5] = &select9;
 
-    PLUGIN_PARAMETER* params11[9];
+    PLUGIN_PARAMETER* params11[9] = {};
 
     PLUGIN_PARAMETER type11 = {"type", "C_SE_NC_1"};
     params11[0] = &type11;

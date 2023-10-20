@@ -13,6 +13,7 @@
 #include <lib60870/hal_thread.h>
 
 #include "iec104.h"
+#include "iec104_client_config.h"
 
 using namespace std;
 
@@ -570,7 +571,10 @@ protected:
     {
         InterrogationTest* self = (InterrogationTest*)parameter;
 
-        printf("asduHandler: type: %i\n", CS101_ASDU_getTypeID(asdu));
+        auto typeId = CS101_ASDU_getTypeID(asdu);
+        auto cot = CS101_ASDU_getCOT(asdu);
+        printf("asduHandler: type: %s (%d) COT: %s (%d)\n", IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                CS101_CauseOfTransmission_toString(cot), cot);
 
         self->lastConnection = NULL;
         self->lastOA = CS101_ASDU_getOA(asdu);
@@ -581,7 +585,7 @@ protected:
 
         int ioa = InformationObject_getObjectAddress(io);
 
-        if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1) {
+        if (typeId == C_SC_NA_1) {
             printf("  C_SC_NA_1 (single-command)\n");
 
             if (ca == 41025 && ioa == 2000) {
@@ -591,7 +595,7 @@ protected:
 
 
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1) {
+        else if (typeId == C_SC_TA_1) {
             printf("  C_SC_TA_1 (single-command w/timetag)\n");
 
             if (ca == 41025 && ioa == 2001) {
@@ -599,7 +603,7 @@ protected:
                 self->lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_DC_NA_1) {
+        else if (typeId == C_DC_NA_1) {
             printf("  C_DC_NA_1 (double-command)\n");
 
             if (ca == 41025 && ioa == 2002) {

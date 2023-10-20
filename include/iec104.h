@@ -51,7 +51,7 @@ private:
     bool m_setpointScaled(int count, PLUGIN_PARAMETER** params, bool withTime);
     bool m_setpointShort(int count, PLUGIN_PARAMETER** params, bool withTime);
 
-    IEC104ClientConfig* m_config;
+    IEC104ClientConfig* m_config = nullptr;
 
     std::string m_asset;
 
@@ -60,7 +60,7 @@ protected:
 
 private:
     INGEST_CB m_ingest = nullptr;  // Callback function used to send data to south service
-    void* m_data;        // Ingest function data
+    void* m_data = nullptr;        // Ingest function data
     IEC104Client* m_client = nullptr;
 };
 

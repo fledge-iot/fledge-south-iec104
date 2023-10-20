@@ -188,6 +188,13 @@ extern "C"
         IEC104* iec104 = nullptr;
         Iec104Utility::log_info("%s Initializing the plugin", beforeLog.c_str());
 
+        if (config == nullptr) {
+            Iec104Utility::log_warn("%s No config provided for plugin, using default config", beforeLog.c_str());
+            auto pluginInfo = plugin_info();
+            config = new ConfigCategory("newConfig", pluginInfo->config);
+            config->setItemsValueFromDefault();
+        }
+
         iec104 = new IEC104();
 
         if (iec104) {
@@ -204,6 +211,8 @@ extern "C"
                                       config->getValue("tls"));
         }
 
+        Iec104Utility::log_info("%s Plugin initialized", beforeLog.c_str());
+
         return (PLUGIN_HANDLE)iec104;
     }
 
@@ -215,10 +224,11 @@ extern "C"
         std::string beforeLog = Iec104Utility::PluginName + " - plugin_start -";
         if (!handle) return;
 
-        Iec104Utility::log_info("%s Starting the plugin", beforeLog.c_str());
+        Iec104Utility::log_info("%s Starting the plugin...", beforeLog.c_str());
 
         auto *iec104 = reinterpret_cast<IEC104 *>(handle);
         iec104->start();
+        Iec104Utility::log_info("%s Plugin started", beforeLog.c_str());
     }
 
     /**
@@ -246,6 +256,8 @@ extern "C"
     void plugin_reconfigure(PLUGIN_HANDLE *handle, string &newConfig)
     {
         std::string beforeLog = Iec104Utility::PluginName + " - plugin_reconfigure -";
+        Iec104Utility::log_info("%s New config: %s", beforeLog.c_str(), newConfig.c_str());
+
         ConfigCategory config("newConfig", newConfig);
         auto *iec104 = reinterpret_cast<IEC104 *>(*handle);
 
@@ -274,6 +286,8 @@ extern "C"
      */
     void plugin_shutdown(PLUGIN_HANDLE *handle)
     {
+        std::string beforeLog = Iec104Utility::PluginName + " - plugin_shutdown -";
+        Iec104Utility::log_info("%s Shutting down the plugin...", beforeLog.c_str());
         auto *iec104 = reinterpret_cast<IEC104 *>(handle);
 
         iec104->stop();

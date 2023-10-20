@@ -90,7 +90,7 @@ private:
 
     std::vector<DataExchangeDefinition*> m_listOfStationGroupDatapoints;
 
-    IEC104ClientConfig* m_config;
+    IEC104ClientConfig* m_config = nullptr;
 
     Datapoint* m_createCnxLossStatus(DataExchangeDefinition* dp, bool value, uint64_t timestamp);
 
@@ -99,10 +99,10 @@ private:
 
         explicit OutstandingCommand(int typeId, int ca, int ioa, IEC104ClientConnection* con);
 
-        int typeId;
-        int ca;
-        int ioa;
-        IEC104ClientConnection* clientCon;
+        int typeId = 0;
+        int ca = 0;
+        int ioa = 0;
+        IEC104ClientConnection* clientCon = nullptr;
         bool actConReceived = false;
         uint64_t timeout = 0;
     };
@@ -291,7 +291,7 @@ private:
             return std::to_string(ms);
     }
 
-    IEC104* m_iec104;
+    IEC104* m_iec104 = nullptr;
 };
 
 #endif  // INCLUDE_IEC104_CLIENT_H_

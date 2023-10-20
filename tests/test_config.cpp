@@ -1603,7 +1603,10 @@ protected:
     {
         ConfigTest* self = (ConfigTest*)parameter;
 
-        printf("asduHandler: type: %i COT: %s\n", CS101_ASDU_getTypeID(asdu), CS101_CauseOfTransmission_toString(CS101_ASDU_getCOT(asdu)));
+        auto typeId = CS101_ASDU_getTypeID(asdu);
+        auto cot = CS101_ASDU_getCOT(asdu);
+        printf("asduHandler: type: %s (%d) COT: %s (%d)\n", IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                CS101_CauseOfTransmission_toString(cot), cot);
 
         lastConnection = NULL;
         lastOA = CS101_ASDU_getOA(asdu);
@@ -1614,7 +1617,7 @@ protected:
 
         int ioa = InformationObject_getObjectAddress(io);
 
-        if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1) {
+        if (typeId == C_SC_NA_1) {
             printf("  C_SC_NA_1 (single-command)\n");
 
             if (ca == 41025 && ioa == 2000) {
@@ -1622,7 +1625,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1) {
+        else if (typeId == C_SC_TA_1) {
             printf("  C_SC_TA_1 (single-command w/timetag)\n");
 
             if (ca == 41025 && ioa == 2010) {
@@ -1630,7 +1633,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_DC_NA_1) {
+        else if (typeId == C_DC_NA_1) {
             printf("  C_DC_NA_1 (double-command)\n");
 
             if (ca == 41025 && ioa == 2002) {
@@ -1638,7 +1641,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SE_TC_1) {
+        else if (typeId == C_SE_TC_1) {
             printf("  C_SE_TC_1 (setpoint command short)\n");
 
             if (ca == 41025 && ioa == 2003) {
@@ -1646,7 +1649,7 @@ protected:
                 lastConnection = connection;
             }
         }
-         else if (CS101_ASDU_getTypeID(asdu) == C_SE_NC_1) {
+         else if (typeId == C_SE_NC_1) {
             printf("  C_SE_NC_1 (setpoint command short)\n");
 
             if (ca == 41025 && ioa == 2012) {
@@ -1654,7 +1657,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SE_NA_1) {
+        else if (typeId == C_SE_NA_1) {
             printf("  C_SE_NA_1 (setpoint command normalized)\n");
 
             if (ca == 41025 && ioa == 2006) {
@@ -1662,7 +1665,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SE_TA_1) {
+        else if (typeId == C_SE_TA_1) {
             printf("  C_SE_TA_1 (setpoint command normalized)\n");
 
             if (ca == 41025 && ioa == 2007) {
@@ -1670,7 +1673,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SE_NB_1) {
+        else if (typeId == C_SE_NB_1) {
             printf("  C_SE_NB_1 (setpoint command scaled)\n");
 
             if (ca == 41025 && ioa == 2008) {
@@ -1678,7 +1681,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_SE_TB_1) {
+        else if (typeId == C_SE_TB_1) {
             printf("  C_SE_TB_1 (setpoint command scaled)\n");
 
             if (ca == 41025 && ioa == 2009) {
@@ -1686,7 +1689,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_RC_TA_1) {
+        else if (typeId == C_RC_TA_1) {
             printf("  C_RC_TA_1 (step command)\n");
 
             if (ca == 41025 && ioa == 2011) {
@@ -1694,7 +1697,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_DC_TA_1) {
+        else if (typeId == C_DC_TA_1) {
             printf("  C_DC_TA_1 (double-command)\n");
 
             if (ca == 41025 && ioa == 2004) {
@@ -1702,7 +1705,7 @@ protected:
                 lastConnection = connection;
             }
         }
-        else if (CS101_ASDU_getTypeID(asdu) == C_RC_NA_1) {
+        else if (typeId == C_RC_NA_1) {
             printf("  C_RC_NA_1 (step-command wo time)\n");
 
             if (ca == 41025 && ioa == 2005) {
@@ -1713,7 +1716,7 @@ protected:
 
         InformationObject_destroy(io);
 
-        if (CS101_ASDU_getTypeID(asdu) != C_IC_NA_1)
+        if (typeId != C_IC_NA_1)
             asduHandlerCalled++;
 
         return true;
@@ -1733,7 +1736,7 @@ protected:
         IEC104ClientConfig* config = new IEC104ClientConfig();
         std::string type = params[0]->value;
 
-        int typeID = config->GetTypeIdByName(type);
+        int typeID = config->getTypeIdFromString(type);
 
         return m_commandOperation(count, params, typeID, config);
     }
@@ -1760,7 +1763,7 @@ protected:
             if(params[7] != 0)
                 time = stol(params[7]->value);
 
-            // Iec104Utility::log_debug("operate: single command - CA: %i IOA: %i value: %i select: %i timestamp: %i", ca, ioa, value, select, time);
+            // Iec104Utility::log_debug("operate: single command - CA: %i IOA: %i value: %i select: %i timestamp: %ld", ca, ioa, value, select, time);
 
             return checkTypeCommand(ca, ioa, value, select, time, typeId, config);
         }
@@ -1910,7 +1913,7 @@ TEST_F(ConfigTest, ConfigTest23) {
 //     // quality update for measurement data points
 //     ASSERT_EQ(3, ingestCallbackCalled);
 
-//     PLUGIN_PARAMETER* params[9];
+//     PLUGIN_PARAMETER* params[9] = {};
 
 //     PLUGIN_PARAMETER type = {"type", "C_SC_NA_1"};
 //     params[0] = &type;

@@ -8,11 +8,11 @@
 class IEC104ClientRedGroup;
 
 struct DataExchangeDefinition {
-    int ca;
-    int ioa;
-    int typeId;
+    int ca = 0;
+    int ioa = 0;
+    int typeId = 0;
     std::string label;
-    int giGroups;
+    int giGroups = 0;
 };
 
 class IEC104ClientConfig
@@ -65,7 +65,8 @@ public:
 
     std::vector<int>& ListOfCAs() {return m_listOfCAs;};
 
-    static int GetTypeIdByName(const std::string& name);
+    static int getTypeIdFromString(const std::string& name);
+    static std::string getStringFromTypeID(int typeId);
 
     std::string* checkExchangeDataLayer(int typeId, int ca, int ioa);
 

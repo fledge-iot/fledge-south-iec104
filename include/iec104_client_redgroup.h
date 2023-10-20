@@ -17,10 +17,13 @@ public:
     int TcpPort() {return m_tcpPort;};
     bool Conn() {return m_conn;};
     bool Start() {return m_start;};
+    long ConnId() {return m_connId;};
+    void SetConnId(long connId) {m_connId = connId;};
 
 private:
     
     /* configuration properties */
+    long m_connId = -1;
     std::string m_serverIp;
     const std::string* m_clientIp = nullptr;
     int m_tcpPort = 2404;
@@ -32,7 +35,7 @@ class IEC104ClientRedGroup
 {
 public:
 
-    IEC104ClientRedGroup() {};
+    IEC104ClientRedGroup(const std::string& name): m_name(name) {};
     ~IEC104ClientRedGroup();
 
     const std::string& Name() {return m_name;};

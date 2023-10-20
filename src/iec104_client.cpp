@@ -40,33 +40,6 @@ getMonotonicTimeInMs()
     return timeVal;
 }
 
-static map<int, string> mapAsduTypeIdStr = {
-    {M_ME_NB_1, "M_ME_NB_1"},
-    {M_SP_NA_1, "M_SP_NA_1"},
-    {M_SP_TB_1, "M_SP_TB_1"},
-    {M_DP_NA_1, "M_DP_NA_1"},
-    {M_DP_TB_1, "M_DP_TB_1"},
-    {M_ST_NA_1, "M_ST_NA_1"},
-    {M_ST_TB_1, "M_ST_TB_1"},
-    {M_ME_NA_1, "M_ME_NA_1"},
-    {M_ME_TD_1, "M_ME_TD_1"},
-    {M_ME_TE_1, "M_ME_TE_1"},
-    {M_ME_NC_1, "M_ME_NC_1"},
-    {M_ME_TF_1, "M_ME_TF_1"},
-    {C_SC_TA_1, "C_SC_TA_1"},
-    {C_SC_NA_1, "C_SC_NA_1"},
-    {C_DC_TA_1, "C_DC_TA_1"},
-    {C_DC_NA_1, "C_DC_NA_1"},
-    {C_RC_TA_1, "C_RC_TA_1"},
-    {C_RC_NA_1, "C_RC_NA_1"},
-    {C_SE_TA_1, "C_SE_TA_1"},
-    {C_SE_NA_1, "C_SE_NA_1"},
-    {C_SE_TB_1, "C_SE_TB_1"},
-    {C_SE_NB_1, "C_SE_NB_1"},
-    {C_SE_TC_1, "C_SE_TC_1"},
-    {C_SE_NC_1, "C_SE_NC_1"}
-};
-
 int
 IEC104Client::broadcastCA()
 {
@@ -87,7 +60,7 @@ Datapoint* IEC104Client::m_createQualityUpdateForDataObject(DataExchangeDefiniti
 {
     auto* attributes = new vector<Datapoint*>;
 
-    attributes->push_back(m_createDatapoint("do_type", mapAsduTypeIdStr[dataDefinition->typeId]));
+    attributes->push_back(m_createDatapoint("do_type", IEC104ClientConfig::getStringFromTypeID(dataDefinition->typeId)));
 
     attributes->push_back(m_createDatapoint("do_ca", (long)dataDefinition->ca));
 
@@ -178,15 +151,17 @@ void IEC104Client::checkOutstandingCommandTimeouts()
     {
         if (command->actConReceived) {
             if (command->timeout + m_config->CmdExecTimeout() < currentTime) {
-                Iec104Utility::log_warn("%s ACT-TERM timeout for outstanding command - type: %i ca: %i ioa: %i", beforeLog.c_str(),
-                                        command->typeId, command->ca, command->ioa);
+                Iec104Utility::log_warn("%s ACT-TERM timeout for outstanding command - type: %s (%i) ca: %i ioa: %i", beforeLog.c_str(),
+                                        IEC104ClientConfig::getStringFromTypeID(command->typeId).c_str(), command->typeId,
+                                        command->ca, command->ioa);
                 listOfTimedoutCommands.push_back(command);
             }
         }
         else {
             if (command->timeout + m_config->CmdExecTimeout() < currentTime) {
-                Iec104Utility::log_warn("%s ACT-CON timeout for outstanding command - type: %i ca: %i ioa: %i", beforeLog.c_str(),
-                                        command->typeId, command->ca, command->ioa);
+                Iec104Utility::log_warn("%s ACT-CON timeout for outstanding command - type: %s (%i) ca: %i ioa: %i", beforeLog.c_str(),
+                                        IEC104ClientConfig::getStringFromTypeID(command->typeId).c_str(), command->typeId,
+                                        command->ca, command->ioa);
                 listOfTimedoutCommands.push_back(command);
             }
         }
@@ -342,7 +317,7 @@ Datapoint* IEC104Client::m_createDataObject(CS101_ASDU asdu, int64_t ioa, const 
 {
     auto* attributes = new vector<Datapoint*>;
 
-    attributes->push_back(m_createDatapoint("do_type", mapAsduTypeIdStr[CS101_ASDU_getTypeID(asdu)]));
+    attributes->push_back(m_createDatapoint("do_type", IEC104ClientConfig::getStringFromTypeID(CS101_ASDU_getTypeID(asdu))));
 
     attributes->push_back(m_createDatapoint("do_ca", (long)CS101_ASDU_getCA(asdu)));
 
@@ -389,7 +364,7 @@ Datapoint* IEC104Client::m_createCnxLossStatus(DataExchangeDefinition* dp, bool 
 {
     auto* attributes = new vector<Datapoint*>;
 
-    attributes->push_back(m_createDatapoint("do_type", mapAsduTypeIdStr[dp->typeId]));
+    attributes->push_back(m_createDatapoint("do_type", IEC104ClientConfig::getStringFromTypeID(dp->typeId)));
 
     attributes->push_back(m_createDatapoint("do_ca", (long)dp->ca));
 
@@ -450,7 +425,10 @@ IEC104Client::sendData(vector<Datapoint*> datapoints,
 IEC104Client::OutstandingCommand::OutstandingCommand(int typeId, int ca, int ioa, IEC104ClientConnection* con):
     typeId(typeId), ca(ca), ioa(ioa), clientCon(con)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::OutstandingCommand::OutstandingCommand -";
     timeout = getMonotonicTimeInMs();
+    Iec104Utility::log_debug("%s Created outstanding command: typeId=%s, CA=%d, IOA=%d, timeout=%d", beforeLog.c_str(),
+                            IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), ca, ioa, timeout);
 }
 
 void
@@ -560,7 +538,7 @@ IEC104Client::sendCnxLossStatus(bool value)
     DataExchangeDefinition* dp = m_config->getCnxLossStatusDatapoint();
 
     if (dp) {
-        Iec104Utility::log_warn("%s send cnx_loss_status (data point: %s)", beforeLog.c_str(), dp->label.c_str());
+        Iec104Utility::log_info("%s send cnx_loss_status (data point: %s)", beforeLog.c_str(), dp->label.c_str());
 
         Datapoint* cnxLossStatusDp = m_createCnxLossStatus(dp, value, Hal_getTimeInMs());
 
@@ -617,10 +595,13 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
     IEC60870_5_TypeID typeId = CS101_ASDU_getTypeID(asdu);
     int ca = CS101_ASDU_getCA(asdu);
 
-    if (isInterrogationResponse(asdu)) {
+    bool isResponse = isInterrogationResponse(asdu);
+    if (isResponse) {
         if (getGiStatus() == GiStatus::STARTED)
             updateGiStatus(GiStatus::IN_PROGRESS);
     }
+
+    Iec104Utility::log_debug("%s Received ASDU with CA: %i, interrogation response: %s", beforeLog.c_str(), ca, isResponse?"true":"false");
 
     for (int i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
     {
@@ -636,19 +617,21 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
 
             if (isSupportedCommand(typeId)) {
                 outstandingCommand = checkForOutstandingCommand(typeId, ca, ioa, connection);
+                Iec104Utility::log_debug("%s Found supported command type: %s (%d) (CA: %i IOA: %i)", beforeLog.c_str(),
+                                        IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId, ca, ioa);
             }
 
-            if ((label != nullptr) && isInterrogationResponse(asdu)) {
+            if ((label != nullptr) && isResponse) {
                 DataExchangeDefinition* exgDef = m_config->ExchangeDefinition()[ca][ioa];
 
                 if (exgDef) {
                     if (isInStationGroup(exgDef)) {
                         removeFromListOfDatapoints(m_listOfStationGroupDatapoints, exgDef);
+                        Iec104Utility::log_debug("%s Removed station group datapoint for type %s (%d) with CA: %i IOA: %i", beforeLog.c_str(),
+                                                IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId, label->c_str(), ca, ioa);
                     }
                 }
             }
-
-            bool typeSupported = true;
 
             switch (typeId)
             {
@@ -756,24 +739,26 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
             if (label) {
                 if (handledAsdu) {
                     labels.push_back(*label);
+                    Iec104Utility::log_info("%s Created data object for ASDU of type %s (%d) with CA: %i IOA: %i", beforeLog.c_str(),
+                                            IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId, label->c_str(), ca, ioa);
                 }
                 else {
-                    Iec104Utility::log_warn("%s ASDU type %s not supported for %s (CA: %i IOA: %i)", beforeLog.c_str(),
-                                            mapAsduTypeIdStr[typeId].c_str(), label->c_str(), ca, ioa);
+                    Iec104Utility::log_warn("%s ASDU type %s (%d) not supported for %s (CA: %i IOA: %i)", beforeLog.c_str(),
+                                            IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId, label->c_str(), ca, ioa);
                 }
             }
             else {
                 if (handledAsdu) {
-                    Iec104Utility::log_debug("%s No data point found in exchange configuration for %s with CA: %i IOA: %i",
-                                            beforeLog.c_str(), mapAsduTypeIdStr[typeId].c_str(), ca, ioa);
+                    Iec104Utility::log_debug("%s No data point found in exchange configuration for type %s (%d) with CA: %i IOA: %i",
+                                            beforeLog.c_str(), IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId, ca, ioa);
                 }
             }
 
             InformationObject_destroy(io);
         }
-        else
-        {
-            Iec104Utility::log_error("%s ASDU with invalid or unknown information object", beforeLog.c_str());
+        else {
+            Iec104Utility::log_error("%s Received ASDU with invalid or unknown information object for type %s (%d) CA: %i", beforeLog.c_str(),
+                                    IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId, ca);
         }
     }
 
@@ -961,21 +946,25 @@ void IEC104Client::handle_C_SC_NA_1(vector<Datapoint*>& datapoints, string& labe
 
     QualifierOfCommand qu = SingleCommand_getQU((SingleCommand)io_casted);
 
-    Iec104Utility::log_debug("%s C_SC_NA_1 - COT: %s", beforeLog.c_str(), CS101_CauseOfTransmission_toString(CS101_ASDU_getCOT(asdu)));
-
+    auto typeId = CS101_ASDU_getTypeID(asdu);
+    auto cot = CS101_ASDU_getCOT(asdu);
     if (outstandingCommand) {
-        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
-            Iec104Utility::log_debug("%s C_SC_NA_1: received ACT-CON", beforeLog.c_str());
+        if (cot == CS101_COT_ACTIVATION_CON) {
+            Iec104Utility::log_debug("%s Received ACT-CON for %s (%d) COT: %s (%d)", beforeLog.c_str(),
+                                    IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                                    CS101_CauseOfTransmission_toString(cot), cot);
             outstandingCommand->actConReceived = true;
             outstandingCommand->timeout = getMonotonicTimeInMs();
         }
-        else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_TERMINATION) {
-            Iec104Utility::log_debug("%s C_SC_NA_1: received ACT-TERM", beforeLog.c_str());
+        else if (cot == CS101_COT_ACTIVATION_TERMINATION) {
+            Iec104Utility::log_debug("%s Received ACT-TERM for %s (%d) COT: %s (%d)", beforeLog.c_str(),
+                                    IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                                    CS101_CauseOfTransmission_toString(cot), cot);
             removeOutstandingCommand(outstandingCommand);
         }
     }
 
-    if (CS101_ASDU_getTypeID(asdu) == C_SC_TA_1)
+    if (typeId == C_SC_TA_1)
     {
         CP56Time2a ts = SingleCommandWithCP56Time2a_getTimestamp(io_casted);
         bool is_invalid = CP56Time2a_isInvalid(ts);
@@ -993,22 +982,31 @@ void IEC104Client::handle_C_DC_NA_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa,
                              OutstandingCommand* outstandingCommand)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::handle_C_DC_NA_1 -";
     auto io_casted = (DoubleCommandWithCP56Time2a)io;
     int64_t state = DoubleCommand_getState((DoubleCommand)io_casted);
 
     QualifierOfCommand qu = DoubleCommand_getQU((DoubleCommand)io_casted);
 
+    auto typeId = CS101_ASDU_getTypeID(asdu);
+    auto cot = CS101_ASDU_getCOT(asdu);
     if (outstandingCommand) {
-        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        if (cot == CS101_COT_ACTIVATION_CON) {
+            Iec104Utility::log_debug("%s Received ACT-CON for %s (%d) COT: %s (%d)", beforeLog.c_str(),
+                                    IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                                    CS101_CauseOfTransmission_toString(cot), cot);
             outstandingCommand->actConReceived = true;
             outstandingCommand->timeout = getMonotonicTimeInMs();
         }
-        else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_TERMINATION) {
+        else if (cot == CS101_COT_ACTIVATION_TERMINATION) {
+            Iec104Utility::log_debug("%s Received ACT-TERM for %s (%d) COT: %s (%d)", beforeLog.c_str(),
+                                    IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                                    CS101_CauseOfTransmission_toString(cot), cot);
             removeOutstandingCommand(outstandingCommand);
         }
     }
 
-    if (CS101_ASDU_getTypeID(asdu) == C_DC_TA_1)
+    if (typeId == C_DC_TA_1)
     {
         CP56Time2a ts = DoubleCommandWithCP56Time2a_getTimestamp(io_casted);
 
@@ -1024,22 +1022,31 @@ void IEC104Client::handle_C_RC_NA_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa,
                              OutstandingCommand* outstandingCommand)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::handle_C_RC_NA_1 -";
     auto io_casted = (StepCommandWithCP56Time2a)io;
     int64_t state = StepCommand_getState((StepCommand)io_casted);
 
     QualifierOfCommand qu = StepCommand_getQU((StepCommand)io_casted);
 
+    auto typeId = CS101_ASDU_getTypeID(asdu);
+    auto cot = CS101_ASDU_getCOT(asdu);
     if (outstandingCommand) {
-        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        if (cot == CS101_COT_ACTIVATION_CON) {
+            Iec104Utility::log_debug("%s Received ACT-CON for %s (%d) COT: %s (%d)", beforeLog.c_str(),
+                        IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                        CS101_CauseOfTransmission_toString(cot), cot);
             outstandingCommand->actConReceived = true;
             outstandingCommand->timeout = getMonotonicTimeInMs();
         }
-        else if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_TERMINATION) {
+        else if (cot == CS101_COT_ACTIVATION_TERMINATION) {
+            Iec104Utility::log_debug("%s Received ACT-TERM for %s (%d) COT: %s (%d)", beforeLog.c_str(),
+                                    IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                                    CS101_CauseOfTransmission_toString(cot), cot);
             removeOutstandingCommand(outstandingCommand);
         }
     }
 
-    if (CS101_ASDU_getTypeID(asdu) == C_RC_TA_1)
+    if (typeId == C_RC_TA_1)
     {
         CP56Time2a ts = StepCommandWithCP56Time2a_getTimestamp(io_casted);
 
@@ -1055,19 +1062,25 @@ void IEC104Client::handle_C_SE_NA_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa,
                              OutstandingCommand* outstandingCommand)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::handle_C_SE_NA_1 -";
     auto io_casted = (SetpointCommandNormalizedWithCP56Time2a)io;
 
     float value = SetpointCommandNormalized_getValue((SetpointCommandNormalized)io_casted);
 
     QualifierOfCommand ql = SetpointCommandNormalized_getQL((SetpointCommandNormalized)io_casted);
 
+    auto typeId = CS101_ASDU_getTypeID(asdu);
+    auto cot = CS101_ASDU_getCOT(asdu);
     if (outstandingCommand) {
-        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        if (cot == CS101_COT_ACTIVATION_CON) {
+            Iec104Utility::log_debug("%s Received ACT-CON for %s (%d) COT: %s (%d)", beforeLog.c_str(),
+                        IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                        CS101_CauseOfTransmission_toString(cot), cot);
             removeOutstandingCommand(outstandingCommand);
         }
     }
 
-    if (CS101_ASDU_getTypeID(asdu) == C_SE_TA_1)
+    if (typeId == C_SE_TA_1)
     {
         CP56Time2a ts = SetpointCommandNormalizedWithCP56Time2a_getTimestamp(io_casted);
 
@@ -1083,19 +1096,25 @@ void IEC104Client::handle_C_SE_NB_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa,
                              OutstandingCommand* outstandingCommand)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::handle_C_SE_NB_1 -";
     auto io_casted = (SetpointCommandScaledWithCP56Time2a)io;
 
     int64_t value = SetpointCommandScaled_getValue((SetpointCommandScaled)io_casted);
 
     QualifierOfCommand ql = SetpointCommandScaled_getQL((SetpointCommandScaled)io_casted);
 
+    auto typeId = CS101_ASDU_getTypeID(asdu);
+    auto cot = CS101_ASDU_getCOT(asdu);
     if (outstandingCommand) {
-        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        if (cot == CS101_COT_ACTIVATION_CON) {
+            Iec104Utility::log_debug("%s Received ACT-CON for %s (%d) COT: %s (%d)", beforeLog.c_str(),
+                        IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                        CS101_CauseOfTransmission_toString(cot), cot);
             removeOutstandingCommand(outstandingCommand);
         }
     }
 
-    if (CS101_ASDU_getTypeID(asdu) == C_SE_TB_1)
+    if (typeId == C_SE_TB_1)
     {
         CP56Time2a ts = SetpointCommandScaledWithCP56Time2a_getTimestamp(io_casted);
 
@@ -1111,19 +1130,25 @@ void IEC104Client::handle_C_SE_NC_1(vector<Datapoint*>& datapoints, string& labe
                              uint64_t ioa,
                              OutstandingCommand* outstandingCommand)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::handle_C_SE_NC_1 -";
     auto io_casted = (SetpointCommandShortWithCP56Time2a)io;
 
     float value = SetpointCommandShort_getValue((SetpointCommandShort)io_casted);
 
     QualifierOfCommand ql = SetpointCommandShort_getQL((SetpointCommandShort)io_casted);
 
+    auto typeId = CS101_ASDU_getTypeID(asdu);
+    auto cot = CS101_ASDU_getCOT(asdu);
     if (outstandingCommand) {
-        if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION_CON) {
+        if (cot == CS101_COT_ACTIVATION_CON) {
+            Iec104Utility::log_debug("%s Received ACT-CON for %s (%d) COT: %s (%d)", beforeLog.c_str(),
+                        IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId,
+                        CS101_CauseOfTransmission_toString(cot), cot);
             removeOutstandingCommand(outstandingCommand);
         }
     }
 
-    if (CS101_ASDU_getTypeID(asdu) == C_SE_TC_1)
+    if (typeId == C_SE_TC_1)
     {
         CP56Time2a ts = SetpointCommandShortWithCP56Time2a_getTimestamp(io_casted);
 
@@ -1159,6 +1184,8 @@ IEC104Client::prepareConnections()
 void
 IEC104Client::start()
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::start -";
+    Iec104Utility::log_info("%s IEC104 client starting (started: %s)...", beforeLog.c_str(), m_started?"true":"false");
     if (m_started == false) {
 
         prepareConnections();
@@ -1166,26 +1193,31 @@ IEC104Client::start()
         m_started = true;
         m_monitoringThread = new std::thread(&IEC104Client::_monitoringThread, this);
     }
+    Iec104Utility::log_info("%s IEC104 client started!", beforeLog.c_str());
 }
 
 void
 IEC104Client::stop()
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::stop -";
+    Iec104Utility::log_info("%s IEC104 client stopping...", beforeLog.c_str());
     if (m_started == true)
     {
         m_started = false;
-
+        Iec104Utility::log_debug("%s Waiting for monitoring thread to join", beforeLog.c_str());
         if (m_monitoringThread != nullptr) {
             m_monitoringThread->join();
             delete m_monitoringThread;
             m_monitoringThread = nullptr;
         }
     }
+    Iec104Utility::log_info("%s IEC104 client stopped!", beforeLog.c_str());
 }
 
 void
 IEC104Client::_monitoringThread()
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::_monitoringThread -";
     uint64_t qualityUpdateTimeout = 500; /* 500 ms */
     uint64_t qualityUpdateTimer = 0;
     bool qualityUpdated = false;
@@ -1193,6 +1225,7 @@ IEC104Client::_monitoringThread()
 
     if (m_started)
     {
+        Iec104Utility::log_info("%s Starting all client connections", beforeLog.c_str());
         for (auto clientConnection : m_connections)
         {
             clientConnection->Start();
@@ -1228,6 +1261,7 @@ IEC104Client::_monitoringThread()
 
                     updateConnectionStatus(ConnectionStatus::STARTED);
 
+                    Iec104Utility::log_info("%s Activated connection", beforeLog.c_str());
                     break;
                 }
             }
@@ -1237,14 +1271,15 @@ IEC104Client::_monitoringThread()
                 qualityUpdateTimer = 0;
                 qualityUpdated = false;
             }
-
-            if (foundOpenConnections == false) {
+            else {
 
                 if (firstConnected) {
 
                     if (qualityUpdated == false) {
                         if (qualityUpdateTimer != 0) {
                             if (getMonotonicTimeInMs() > qualityUpdateTimer) {
+                                Iec104Utility::log_info("%s Sending all data objects with non topical quality after connection lost for %dms",
+                                                        beforeLog.c_str(), qualityUpdateTimer);
                                 updateQualityForAllDataObjects(IEC60870_QUALITY_NON_TOPICAL);
                                 qualityUpdated = true;
                             }
@@ -1260,6 +1295,7 @@ IEC104Client::_monitoringThread()
 
                 if (Hal_getTimeInMs() > backupConnectionStartTime)
                 {
+                    Iec104Utility::log_info("%s Activating backup connections", beforeLog.c_str());
                     /* Connect all disconnected connections */
                     for (auto clientConnection : m_connections)
                     {
@@ -1277,6 +1313,7 @@ IEC104Client::_monitoringThread()
 
             if (m_activeConnection->Connected() == false)
             {
+                Iec104Utility::log_info("%s Active connection lost", beforeLog.c_str());
                 m_activeConnection = nullptr;
             }
             else {
@@ -1286,6 +1323,7 @@ IEC104Client::_monitoringThread()
                 {
                     if (clientConnection != m_activeConnection) {
                         if (clientConnection->Connected() && !clientConnection->Autostart()) {
+                            Iec104Utility::log_info("%s Disconnecting unnecessary connection", beforeLog.c_str());
                             clientConnection->Disonnect();
                         }
                     }
@@ -1300,6 +1338,7 @@ IEC104Client::_monitoringThread()
         Thread_sleep(100);
     }
 
+    Iec104Utility::log_info("%s Terminating all client connections", beforeLog.c_str());
     for (auto clientConnection : m_connections)
     {
         clientConnection->Stop();
@@ -1337,19 +1376,22 @@ IEC104Client::OutstandingCommand* IEC104Client::addOutstandingCommandAndCheckLim
 
     m_outstandingCommandsMtx.lock();
 
-    if (m_config->CmdParallel() > 0) {
+    int cmdParrallel = m_config->CmdParallel();
+    int typeId = withTime ? typeIdWithTimestamp : typeIdNoTimestamp;
+    if (cmdParrallel > 0) {
 
-        if (m_outstandingCommands.size() < m_config->CmdParallel()) {
-            command = new OutstandingCommand(withTime ? C_SC_TA_1 : C_SC_NA_1, ca, ioa, m_activeConnection);
+        if (m_outstandingCommands.size() < cmdParrallel) {
+            command = new OutstandingCommand(typeId, ca, ioa, m_activeConnection);
         }
         else {
             m_outstandingCommandsMtx.unlock();
-            Iec104Utility::log_warn("%s Maximum number of parallel command exceeded -> ignore command", beforeLog.c_str());
+            Iec104Utility::log_warn("%s Maximum number of parallel command exceeded (%d) -> ignore command with typeId=%s, CA=%d, IOA=%d",
+                                    beforeLog.c_str(), cmdParrallel, IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), ca, ioa);
             return nullptr;
         }
     }
     else {
-        command = new OutstandingCommand(withTime ? C_SC_TA_1 : C_SC_NA_1, ca, ioa, m_activeConnection);
+        command = new OutstandingCommand(typeId, ca, ioa, m_activeConnection);
     }
 
     if (command)
@@ -1368,9 +1410,10 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
     bool success = false;
 
     // check if the data point is in the exchange configuration
+    std::string cmdName = withTime?"C_SC_TA_1":"C_SC_NA_1";
     if (m_config->checkExchangeDataLayer(C_SC_NA_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("%s Failed to send C_SC_NA_1 command - no such data point", beforeLog.c_str());
-
+        Iec104Utility::log_error("%s Command %s (CA: %d, IOA: %d) not found in exchange configuration",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
         return false;
     }
 
@@ -1384,6 +1427,10 @@ IEC104Client::sendSingleCommand(int ca, int ioa, bool value, bool withTime, bool
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSingleCommand(ca, ioa, value, withTime, select, time);
+    }
+    else {
+        Iec104Utility::log_warn("%s No active connection, cannot send command %s (CA: %d, IOA: %d)",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
     }
 
     m_activeConnectionMtx.unlock();
@@ -1401,9 +1448,10 @@ IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool 
     bool success = false;
 
     // check if the data point is in the exchange configuration
+    std::string cmdName = withTime?"C_DC_TA_1":"C_DC_NA_1";
     if (m_config->checkExchangeDataLayer(C_DC_NA_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("%s Failed to send C_DC_NA_1 command - no such data point", beforeLog.c_str());
-
+        Iec104Utility::log_error("%s Command %s (CA: %d, IOA: %d) not found in exchange configuration",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
         return false;
     }
 
@@ -1417,6 +1465,10 @@ IEC104Client::sendDoubleCommand(int ca, int ioa, int value, bool withTime, bool 
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendDoubleCommand(ca, ioa, value, withTime, select, time);
+    }
+    else {
+        Iec104Utility::log_warn("%s No active connection, cannot send command %s (CA: %d, IOA: %d)",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
     }
 
     m_activeConnectionMtx.unlock();
@@ -1434,9 +1486,10 @@ IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool se
     bool success = false;
 
     // check if the data point is in the exchange configuration
+    std::string cmdName = withTime?"C_RC_TA_1":"C_RC_NA_1";
     if (m_config->checkExchangeDataLayer(C_RC_NA_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("%s Failed to send C_RC_NA_1 command - no such data point", beforeLog.c_str());
-
+        Iec104Utility::log_error("%s Command %s (CA: %d, IOA: %d) not found in exchange configuration",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
         return false;
     }
 
@@ -1450,6 +1503,10 @@ IEC104Client::sendStepCommand(int ca, int ioa, int value, bool withTime, bool se
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendStepCommand(ca, ioa, value, withTime, select, time);
+    }
+    else {
+        Iec104Utility::log_warn("%s No active connection, cannot send command %s (CA: %d, IOA: %d)",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
     }
 
     m_activeConnectionMtx.unlock();
@@ -1467,9 +1524,10 @@ IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime
     bool success = false;
 
     // check if the data point is in the exchange configuration
+    std::string cmdName = withTime?"C_SE_TA_1":"C_SE_NA_1";
     if (m_config->checkExchangeDataLayer(C_SE_NA_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("%s Failed to send C_SE_NA_1 command - no such data point", beforeLog.c_str());
-
+        Iec104Utility::log_error("%s Command %s (CA: %d, IOA: %d) not found in exchange configuration",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
         return false;
     }
 
@@ -1483,6 +1541,10 @@ IEC104Client::sendSetpointNormalized(int ca, int ioa, float value, bool withTime
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSetpointNormalized(ca, ioa, value, withTime, time);
+    }
+    else {
+        Iec104Utility::log_warn("%s No active connection, cannot send command %s (CA: %d, IOA: %d)",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
     }
 
     m_activeConnectionMtx.unlock();
@@ -1500,9 +1562,10 @@ IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime, long
     bool success = false;
 
     // check if the data point is in the exchange configuration
+    std::string cmdName = withTime?"C_SE_TB_1":"C_SE_NB_1";
     if (m_config->checkExchangeDataLayer(C_SE_NB_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("%s Failed to send C_SE_NB_1 command - no such data point", beforeLog.c_str());
-
+        Iec104Utility::log_error("%s Command %s (CA: %d, IOA: %d) not found in exchange configuration",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
         return false;
     }
 
@@ -1516,6 +1579,10 @@ IEC104Client::sendSetpointScaled(int ca, int ioa, int value, bool withTime, long
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSetpointScaled(ca, ioa, value, withTime, time);
+    }
+    else {
+        Iec104Utility::log_warn("%s No active connection, cannot send command %s (CA: %d, IOA: %d)",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
     }
 
     m_activeConnectionMtx.unlock();
@@ -1533,9 +1600,10 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime, lon
     bool success = false;
 
     // check if the data point is in the exchange configuration
+    std::string cmdName = withTime?"C_SE_TC_1":"C_SE_NC_1";
     if (m_config->checkExchangeDataLayer(C_SE_NC_1, ca, ioa) == nullptr) {
-        Iec104Utility::log_error("%s Failed to send C_SE_NC_1 command - no such data point", beforeLog.c_str());
-
+        Iec104Utility::log_error("%s Command %s (CA: %d, IOA: %d) not found in exchange configuration",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
         return false;
     }
 
@@ -1549,6 +1617,10 @@ IEC104Client::sendSetpointShort(int ca, int ioa, float value, bool withTime, lon
     if (m_activeConnection != nullptr)
     {
         success = m_activeConnection->sendSetpointShort(ca, ioa, value, withTime, time);
+    }
+    else {
+        Iec104Utility::log_warn("%s No active connection, cannot send command %s (CA: %d, IOA: %d)",
+                                beforeLog.c_str(), cmdName.c_str(), ca, ioa);
     }
 
     m_activeConnectionMtx.unlock();
