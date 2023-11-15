@@ -1,14 +1,17 @@
-#include <config_category.h>
 #include <gtest/gtest.h>
-#include <iec104.h>
-#include <plugin_api.h>
-#include <string.h>
-#include "cs104_slave.h"
 
-#include <boost/thread.hpp>
+#include <config_category.h>
+#include <plugin_api.h>
+
 #include <utility>
 #include <vector>
+#include <string>
 
+#include "cs104_slave.h"
+#include <lib60870/hal_time.h>
+#include <lib60870/hal_thread.h>
+
+#include "iec104.h"
 #include "conf_init.h"
 
 using namespace std;
