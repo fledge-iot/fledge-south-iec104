@@ -3,10 +3,15 @@
 
 #include <thread>
 #include <mutex>
-#include "iec104.h"
+#include <vector>
+
 #include <lib60870/cs104_connection.h>
+#include <lib60870/tls_config.h>
 
 class IEC104Client;
+class IEC104ClientRedGroup;
+class IEC104ClientConfig;
+class RedGroupCon;
 
 class IEC104ClientConnection
 {
@@ -22,7 +27,7 @@ public:
     void Disonnect();
     void Connect();
 
-    bool Autostart() {return m_redGroupConnection->Start();};
+    bool Autostart();
     bool Disconnected() {return ((m_connecting == false) && (m_connected == false));};
     bool Connecting() {return m_connecting;};
     bool Connected() {return m_connected;};
@@ -55,10 +60,10 @@ private:
         CON_STATE_FATAL_ERROR
     } ConState;
 
-    IEC104ClientConfig* m_config;
-    IEC104ClientRedGroup* m_redGroup;
-    RedGroupCon* m_redGroupConnection;
-    IEC104Client* m_client;
+    IEC104ClientConfig* m_config = nullptr;
+    IEC104ClientRedGroup* m_redGroup = nullptr;
+    RedGroupCon* m_redGroupConnection = nullptr;
+    IEC104Client* m_client = nullptr;
 
     /* global state information */
     bool m_connected = false; /* connection is in connected state */
@@ -84,16 +89,16 @@ private:
     bool m_timeSynchronized = false;
     bool m_timeSyncCommandSent = false;
     bool m_firstTimeSyncOperationCompleted = false;
-    uint64_t m_nextTimeSync;
+    uint64_t m_nextTimeSync = 0;
 
     bool m_firstGISent = false;
     bool m_interrogationInProgress = false;
     int m_interrogationRequestState = 0; /* 0 - idle, 1 - waiting for ACT_CON, 2 - waiting for ACT_TERM */
-    uint64_t m_interrogationRequestSent;
-    uint64_t m_nextGIStartTime;
+    uint64_t m_interrogationRequestSent = 0;
+    uint64_t m_nextGIStartTime = 0;
     bool m_endOfInitReceived = false;
 
-    uint64_t m_delayExpirationTime;
+    uint64_t m_delayExpirationTime = 0;
 
     std::thread* m_conThread = nullptr;
     void _conThread();

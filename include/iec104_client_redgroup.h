@@ -4,30 +4,28 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
-//class IEC104ClientRedGroupConnection
-
-
 class RedGroupCon
 {
 public:
 
-    RedGroupCon(const string& serverIp, int tcpPort, bool conn, bool start, const string* clientIp);
+    RedGroupCon(const std::string& serverIp, int tcpPort, bool conn, bool start, const std::string* clientIp);
 
     ~RedGroupCon();
 
-    const string& ServerIP() {return m_serverIp;};
-    const string* ClientIP() {return m_clientIp;};
+    const std::string& ServerIP() {return m_serverIp;};
+    const std::string* ClientIP() {return m_clientIp;};
     int TcpPort() {return m_tcpPort;};
     bool Conn() {return m_conn;};
     bool Start() {return m_start;};
+    long ConnId() {return m_connId;};
+    void SetConnId(long connId) {m_connId = connId;};
 
 private:
     
     /* configuration properties */
-    string m_serverIp;
-    const string* m_clientIp = nullptr;
+    long m_connId = -1;
+    std::string m_serverIp;
+    const std::string* m_clientIp = nullptr;
     int m_tcpPort = 2404;
     bool m_conn = true;
     bool m_start = true;
@@ -37,10 +35,10 @@ class IEC104ClientRedGroup
 {
 public:
 
-    IEC104ClientRedGroup() {};
+    IEC104ClientRedGroup(const std::string& name): m_name(name) {};
     ~IEC104ClientRedGroup();
 
-    const string& Name() {return m_name;};
+    const std::string& Name() {return m_name;};
     bool UseTLS() {return m_useTls;};
 
     std::vector<RedGroupCon*>& Connections() {return m_connections;};
@@ -67,7 +65,7 @@ private:
 
     std::vector<RedGroupCon*> m_connections;
 
-    string m_name;
+    std::string m_name;
     bool m_useTls = false;
     
     int m_k = 12;

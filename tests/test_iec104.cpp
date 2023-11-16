@@ -1,14 +1,17 @@
-#include <config_category.h>
 #include <gtest/gtest.h>
-#include <iec104.h>
-#include <plugin_api.h>
-#include <string.h>
-#include "cs104_slave.h"
 
-#include <boost/thread.hpp>
+#include <config_category.h>
+#include <plugin_api.h>
+
 #include <utility>
 #include <vector>
+#include <string>
 
+#include "cs104_slave.h"
+#include <lib60870/hal_time.h>
+#include <lib60870/hal_thread.h>
+
+#include "iec104.h"
 #include "conf_init.h"
 
 using namespace std;
@@ -1279,7 +1282,9 @@ TEST_F(IEC104Test, IEC104_receiveGI_M_ST_NA_1)
     ASSERT_EQ((int64_t) 41025, getIntValue(getChild(*data_object, "do_ca")));
     ASSERT_EQ((int64_t) CS101_COT_INTERROGATED_BY_STATION, getIntValue(getChild(*data_object, "do_cot")));
     ASSERT_EQ((int64_t) 4202853, getIntValue(getChild(*data_object, "do_ioa")));
-
+    ASSERT_EQ((char*) "[1,true]", getStrValue(getChild(*data_object,"do_value")));  
+    printf("%s", getStrValue(getChild(*data_object,"do_value")).c_str());
+    CS104_Slave_stop(slave);
     CS104_Slave_stop(slave);
 
     CS104_Slave_destroy(slave);
