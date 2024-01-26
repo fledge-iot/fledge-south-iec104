@@ -94,12 +94,14 @@ void IEC104::stop()
 // void IEC104::ingest(Reading& reading) { (*m_ingest)(m_data, reading); }
 void IEC104::ingest(std::string assetName, std::vector<Datapoint*>& points)
 {
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104::ingest -";
     if (!m_ingest) {
-        std::string beforeLog = Iec104Utility::PluginName + " - IEC104::ingest -";
         Iec104Utility::log_error("%s Ingest callback is not defined", beforeLog.c_str());
         return;
     }
-     m_ingest(m_data, Reading(assetName, points));
+    Reading reading(assetName, points);
+    Iec104Utility::log_debug("%s Ingest reading: %s", beforeLog.c_str(), reading.toJSON().c_str());
+    m_ingest(m_data, reading);
 }
 
 /**
