@@ -454,6 +454,10 @@ IEC104::operation(const std::string& operation, int count,
     else if (operation == "IEC104Command"){
         std::string type = params[0]->value;
 
+        if(type[0] == '"'){
+            type = type.substr(1,type.length()-2);
+        }
+
         int typeID = m_config->getTypeIdFromString(type);
 
         switch (typeID){
