@@ -434,14 +434,21 @@ IEC104Client::OutstandingCommand::OutstandingCommand(int typeId, int ca, int ioa
 void
 IEC104Client::sendSouthMonitoringEvent(bool connxStatus, bool giStatus)
 {
-    if (m_config == nullptr)
+    std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::sendSouthMonitoringEvent -";
+    if (m_config == nullptr) {
+        Iec104Utility::log_error("%s Cannot send south event: Config is not defined", beforeLog.c_str());
         return;
+    }
 
-    if (m_config->GetConnxStatusSignal().empty())
+    if (m_config->GetConnxStatusSignal().empty()) {
+        Iec104Utility::log_warn("%s Cannot send south event: Connexion status signal is not defined", beforeLog.c_str());
         return;
+    } 
 
-    if ((connxStatus == false) && (giStatus == false))
+    if ((connxStatus == false) && (giStatus == false)) {
+        Iec104Utility::log_debug("%s No data requested for south event", beforeLog.c_str());
         return;
+    } 
 
     auto* attributes = new vector<Datapoint*>;
 
@@ -740,7 +747,7 @@ IEC104Client::handleASDU(IEC104ClientConnection* connection, CS101_ASDU asdu)
                 if (handledAsdu) {
                     labels.push_back(*label);
                     Iec104Utility::log_info("%s Created data object for ASDU of type %s (%d) with CA: %i IOA: %i", beforeLog.c_str(),
-                                            IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId, label->c_str(), ca, ioa);
+                                            IEC104ClientConfig::getStringFromTypeID(typeId).c_str(), typeId, ca, ioa);
                 }
                 else {
                     Iec104Utility::log_warn("%s ASDU type %s (%d) not supported for %s (CA: %i IOA: %i)", beforeLog.c_str(),
