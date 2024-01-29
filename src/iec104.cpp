@@ -50,6 +50,7 @@ void IEC104::start()
     std::string beforeLog = Iec104Utility::PluginName + " - IEC104::start -";
     Iec104Utility::log_info("%s Starting iec104", beforeLog.c_str());
 
+/* NOT NEEDED, LET SOUTH SERVICE MANAGE MIN LOG LEVEL
     switch (m_config->LogLevel())
     {
         case 1:
@@ -67,6 +68,7 @@ void IEC104::start()
             break;
         //LCOV_EXCL_STOP    
     }
+    */
 
     m_client = new IEC104Client(this, m_config);
 
