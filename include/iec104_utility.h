@@ -29,8 +29,8 @@ namespace Iec104Utility {
         #ifdef UNIT_TEST
         printf(std::string(format).append("\n").c_str(), std::forward<Args>(args)...);
         fflush(stdout);
-        #endif
         Logger::getLogger()->debug(format.c_str(), std::forward<Args>(args)...);
+        #endif
     }
 
     template<class... Args>
