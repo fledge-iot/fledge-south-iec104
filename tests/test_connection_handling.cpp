@@ -764,62 +764,62 @@ TEST_F(ConnectionHandlingTest, TwoConnectionsOnlyOneConfiguredToConnect)
     CS104_Slave_destroy(slave);
 }
 
-// Broken since lib60870 v2.3.3
-// TEST_F(ConnectionHandlingTest, SingleConnectionTLS)
-// {
-//     openConnections = 0;
-//     activations = 0;
-//     deactivations = 0;
+// Was broken
+TEST_F(ConnectionHandlingTest, SingleConnectionTLS)
+{
+    openConnections = 0;
+    activations = 0;
+    deactivations = 0;
 
-//     asduHandlerCalled = 0;
-//     clockSyncHandlerCalled = 0;
-//     lastConnection = NULL;
-//     ingestCallbackCalled = 0;
+    asduHandlerCalled = 0;
+    clockSyncHandlerCalled = 0;
+    lastConnection = NULL;
+    ingestCallbackCalled = 0;
 
-//     iec104->setJsonConfig(protocol_config_4, exchanged_data, tls_config_2);
+    iec104->setJsonConfig(protocol_config_4, exchanged_data, tls_config_2);
 
-//     setenv("FLEDGE_DATA", "./data", 1);
+    setenv("FLEDGE_DATA", "./data", 1);
 
-//     TLSConfiguration tlsConfig = TLSConfiguration_create();
+    TLSConfiguration tlsConfig = TLSConfiguration_create();
 
-//     TLSConfiguration_addCACertificateFromFile(tlsConfig, "data/etc/certs/iec104_ca.cer");
-//     TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "data/etc/certs/iec104_server.cer");
-//     TLSConfiguration_setOwnKeyFromFile(tlsConfig, "data/etc/certs/iec104_server.key", NULL);
-//     TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "data/etc/certs/iec104_client.cer");
-//     TLSConfiguration_setChainValidation(tlsConfig, true);
-//     TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
+    TLSConfiguration_addCACertificateFromFile(tlsConfig, "data/etc/certs/iec104_ca.cer");
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "data/etc/certs/iec104_server.cer");
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig, "data/etc/certs/iec104_server.key", NULL);
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "data/etc/certs/iec104_client.cer");
+    TLSConfiguration_setChainValidation(tlsConfig, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
 
-//     CS104_Slave slave = CS104_Slave_createSecure(10, 10, tlsConfig);
-//     ASSERT_NE(slave, nullptr);
+    CS104_Slave slave = CS104_Slave_createSecure(10, 10, tlsConfig);
+    ASSERT_NE(slave, nullptr);
 
-//     CS104_Slave_setLocalPort(slave, TEST_PORT);
+    CS104_Slave_setLocalPort(slave, TEST_PORT);
 
-//     CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
-//     CS104_Slave_setASDUHandler(slave, asduHandler, this);
-//     CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, this);
+    CS104_Slave_setClockSyncHandler(slave, clockSynchronizationHandler, this);
+    CS104_Slave_setASDUHandler(slave, asduHandler, this);
+    CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, this);
 
-//     CS104_Slave_start(slave);
+    CS104_Slave_start(slave);
 
-//     CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
 
-//     ASSERT_EQ(0, openConnections);
+    ASSERT_EQ(0, openConnections);
 
-//     iec104->start();
+    iec104->start();
 
-//     Thread_sleep(2000);
+    Thread_sleep(2000);
 
-//     ASSERT_EQ(1, openConnections);
-//     ASSERT_EQ(1, maxConnections);
+    ASSERT_EQ(1, openConnections);
+    ASSERT_EQ(1, maxConnections);
 
-//     ASSERT_EQ(1, activations);
-//     ASSERT_EQ(0, deactivations);
+    ASSERT_EQ(1, activations);
+    ASSERT_EQ(0, deactivations);
 
-//     CS104_Slave_stop(slave);
+    CS104_Slave_stop(slave);
 
-//     CS104_Slave_destroy(slave);
+    CS104_Slave_destroy(slave);
 
-//     TLSConfiguration_destroy(tlsConfig);
-// }
+    TLSConfiguration_destroy(tlsConfig);
+}
 
 
 
