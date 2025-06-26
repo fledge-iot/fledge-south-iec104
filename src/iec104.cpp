@@ -61,7 +61,7 @@ void IEC104::start()
         default:
             Logger::getLogger()->setMinLevel("error");
             break;
-        //LCOV_EXCL_STOP    
+        //LCOV_EXCL_STOP
     }
     */
 
@@ -479,6 +479,23 @@ IEC104::operation(const std::string& operation, int count, PLUGIN_PARAMETER** pa
     }
     else if (operation == "request_connection_status") {
         return m_client->sendConnectionStatus();
+    }
+    else if (operation == "north_status") {
+        std::string north_status_type = params[0]->value;
+        if(north_status_type[0] == '"'){
+            north_status_type = north_status_type.substr(1,north_status_type.length()-2);
+        }
+        if (north_status_type == "init_socket_finished"){
+            // schedule a Interrogation command to the control station
+            if(m_client->scheduleGI()){
+                Iec104Utility::log_info("init_socket_finished operation received, scheduling GI");
+            }else{
+                Iec104Utility::log_info("Too many GI schedule GI ignored");
+            }
+                return true;
+
+        }
+        Iec104Utility::log_error("%s Unrecognised operation %s type=%s", beforeLog.c_str(), operation.c_str(), north_status_type.c_str());
     }
 
     Iec104Utility::log_error("%s Unrecognised operation %s", beforeLog.c_str(), operation.c_str());

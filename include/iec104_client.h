@@ -58,6 +58,8 @@ public:
 
     bool sendConnectionStatus();
 
+    bool scheduleGI();
+
     bool handleASDU(const IEC104ClientConnection* connection, CS101_ASDU asdu);
 
     void start();

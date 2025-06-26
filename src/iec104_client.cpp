@@ -378,12 +378,12 @@ IEC104Client::sendSouthMonitoringEvent(bool connxStatus, bool giStatus)
     if (m_config->GetConnxStatusSignal().empty()) {
         Iec104Utility::log_warn("%s Cannot send south event: Connexion status signal is not defined", beforeLog.c_str());
         return;
-    } 
+    }
 
     if ((connxStatus == false) && (giStatus == false)) {
         Iec104Utility::log_debug("%s No data requested for south event", beforeLog.c_str());
         return;
-    } 
+    }
 
     auto* attributes = new vector<Datapoint*>;
 
@@ -1606,4 +1606,13 @@ const std::string&
 IEC104Client::getServiceName() const
 {
     return m_iec104->getServiceName();
+}
+
+bool IEC104Client::scheduleGI()
+{
+    if (m_activeConnection != nullptr)
+    {
+        return m_activeConnection->addScheduledGI();
+    }
+    return false;
 }

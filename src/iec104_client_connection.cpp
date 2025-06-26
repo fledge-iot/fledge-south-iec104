@@ -13,6 +13,7 @@
 #include "iec104_client_redgroup.h"
 #include "iec104_utility.h"
 
+
 //DUPLICATE! see iec104_client.c
 static uint64_t getMonotonicTimeInMs()
 {
@@ -47,7 +48,7 @@ IEC104ClientConnection::Activate()
     std::string beforeLog = Iec104Utility::PluginName + " - IEC104ClientConnection::Activate - ["
                         + m_redGroup->Name() + ", " + std::to_string(m_redGroupConnection->ConnId()) + ", "
                         + m_redGroupConnection->ServerIP() + ":" + std::to_string(m_redGroupConnection->TcpPort()) + "] -";
-    
+
     std::lock_guard<std::mutex> lock(m_conLock);
     if (m_connectionState == CON_STATE_CONNECTED_INACTIVE) {
         if (m_connection) {
@@ -681,10 +682,26 @@ IEC104ClientConnection::executePeriodicTasks()
                         setGiRequested(false);
                         startNewInterrogationCycle();
                     }
+                    else if (m_giPendingCount > 0 && (m_client->getGiStatus() == IEC104Client::GiStatus::FAILED || m_client->getGiStatus() == IEC104Client::GiStatus::FINISHED)) {
+                        Iec104Utility::log_debug("%s Starting Scheduled GI cycle on request.", beforeLog.c_str());
+                        m_giPendingCount--;
+                        startNewInterrogationCycle();
+                    }
                 }
             }
         }
     }
+}
+/**
+
+*/
+bool IEC104ClientConnection::addScheduledGI(){
+    int old = m_giPendingCount.load();
+    if (old < MAX_GI_PENDING) {
+        m_giPendingCount++;
+        return true;
+    }
+    return false;
 }
 
 bool
@@ -692,7 +709,7 @@ IEC104ClientConnection::m_asduReceivedHandler(void* parameter, int address,
                                    CS101_ASDU asdu)
 {
     IEC104ClientConnection* self = static_cast<IEC104ClientConnection*>(parameter);
-    
+
     std::string beforeLog = Iec104Utility::PluginName + " - IEC104ClientConnection::m_asduReceivedHandler - ["
                         + self->m_redGroup->Name() + ", "
                         + std::to_string(self->m_redGroupConnection->ConnId()) + ", "
