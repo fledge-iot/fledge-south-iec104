@@ -7,6 +7,7 @@
 #include <memory>
 #include <utility>
 #include <unordered_set>
+#include <unordered_map>
 
 #include <rapidjson/document.h>
 
@@ -84,7 +85,13 @@ public:
      *
      * @return True if the given pair is present in the address set
      */
-    bool isTsAddressCgTriggering(int ca, int ioa) { return m_cgTriggeringTsAdresses.find(std::make_pair(ca, ioa)) != m_cgTriggeringTsAdresses.end(); }
+    int valueTsAddressCgTriggering(int ca, int ioa) {
+        auto it = m_cgTriggeringTsAdresses.find(std::make_pair(ca, ioa));
+        if (it == m_cgTriggeringTsAdresses.end()){
+            return -1;
+        }
+        return it->second;
+    }
 
     std::vector<int>& ListOfCAs() {return m_listOfCAs;};
 
@@ -110,8 +117,8 @@ private:
 
     std::map<int, std::map<int, std::shared_ptr<DataExchangeDefinition>>> m_exchangeDefinitions;
 
-    /* Set of TS addresses that triggers a CG if the TS value is 0. First member is ca, second is ioa */
-    std::unordered_set<std::pair<int, int>, pairHash<int, int>> m_cgTriggeringTsAdresses;
+    /* Set of TS addresses that triggers a CG with its trigger value. First member of the pair is ca, second is ioa. The third is the trigger value */
+    std::unordered_map<std::pair<int, int>, int, pairHash<int, int>> m_cgTriggeringTsAdresses;
 
     std::vector<int> m_listOfCAs;
 

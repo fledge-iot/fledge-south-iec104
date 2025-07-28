@@ -710,16 +710,33 @@ bool IEC104Client::isAsduTriggerGi(vector<Datapoint*>& datapoints,
                             uint64_t ioa,
                             IEC60870_5_TypeID typeId) {
     std::string beforeLog = Iec104Utility::PluginName + " - IEC104Client::isAsduTriggerGi -";
-    if (m_config->isTsAddressCgTriggering(ca, ioa) && isTypeIdSP(typeId) && (CS101_ASDU_getCOT(asdu) != CS101_CauseOfTransmission::CS101_COT_INTERROGATED_BY_STATION)) {
-        int valueTriggering = isTypeIdSingleSP(typeId) ? 0 : 1; // if it is a simple TS 0 is 0 if it is a double 0 is 1 because 01 is 0, 10 is 1, 11 is transient
+    int trigger_value = m_config->valueTsAddressCgTriggering(ca, ioa);
+    if ((trigger_value != -1) && isTypeIdSP(typeId) && (CS101_ASDU_getCOT(asdu) != CS101_CauseOfTransmission::CS101_COT_INTERROGATED_BY_STATION)) {
         for (auto datapoint : *(datapoints.back()->getData().getDpVec())) {
-            if (datapoint->getName() == "do_value" && datapoint->getData().toInt() == valueTriggering) {
-                if (m_activeConnection.get() == nullptr) {
-                    Iec104Utility::log_info("%s No active connexion, skip GI request.", beforeLog.c_str());
-                    return false;
+            if (datapoint->getName() == "do_value") {
+                // Single TS case
+                if ((isTypeIdSingleSP(typeId) && datapoint->getData().toInt() == trigger_value)) {
+                    if (m_activeConnection.get() == nullptr) {
+                        Iec104Utility::log_info("%s No active connexion, skip GI request.", beforeLog.c_str());
+                        return false;
+                    }
+                    if(!m_activeConnection->getGiRequested()){
+                        return true;
+                    }
                 }
-                if(!m_activeConnection->getGiRequested()){
-                    return true;
+                // Double TS case
+                else if (isTypeIdDoubleSP(typeId)) {
+                    int datapoint_value = datapoint->getData().toInt();
+                    // For double TS, 0 is represented by the binary number 01 = 1 and 1 is represented by the binary number 10 = 2
+                    if ((datapoint_value == 1 && trigger_value == 0) || (datapoint_value == 2 && trigger_value == 1)){
+                        if (m_activeConnection.get() == nullptr) {
+                            Iec104Utility::log_info("%s No active connexion, skip GI request.", beforeLog.c_str());
+                            return false;
+                        }
+                        if(!m_activeConnection->getGiRequested()){
+                            return true;
+                        }
+                    }
                 }
             }
         }

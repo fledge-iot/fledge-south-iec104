@@ -1106,11 +1106,19 @@ void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
         string label = datapoint[JSON_LABEL].GetString();
 
 
-        bool isGiTriggeringTs = false;
+        int trigger_value = -1;
         if (datapoint.HasMember(JSON_PIVOT_SUBTYPES) && datapoint[JSON_PIVOT_SUBTYPES].IsArray()) {
             for (const Value &subtype : datapoint[JSON_PIVOT_SUBTYPES].GetArray()) {
-                if (subtype.IsString() && subtype.GetString() == string(JSON_TRIGGER_SOUTH_GI_PIVOT_SUBTYPE)) {
-                    isGiTriggeringTs = true;
+                if (subtype.IsObject() && subtype.HasMember(JSON_TRIGGER_SOUTH_GI_PIVOT_SUBTYPE)) {
+                    if (subtype[JSON_TRIGGER_SOUTH_GI_PIVOT_SUBTYPE].IsUint()){
+                        trigger_value = subtype[JSON_TRIGGER_SOUTH_GI_PIVOT_SUBTYPE].GetInt();
+                        if (trigger_value != 0 && trigger_value != 1) {
+                            Iec104Utility::log_error("%s %s is not a valid value (need to be 0 or 1)", beforeLog.c_str(), JSON_TRIGGER_SOUTH_GI_PIVOT_SUBTYPE);
+                        }
+                    }
+                    else {
+                        Iec104Utility::log_error("%s %s is not an int", beforeLog.c_str(), JSON_TRIGGER_SOUTH_GI_PIVOT_SUBTYPE);
+                    }
                     break;
                 }
             }
@@ -1203,9 +1211,9 @@ void IEC104ClientConfig::importExchangeConfig(const string& exchangeConfig)
                                                 typeIdStr.c_str());
                         ExchangeDefinition()[ca][ioa] = def;
 
-                        if (isGiTriggeringTs) {
+                        if (trigger_value == 0 || trigger_value == 1) {
                             Iec104Utility::log_debug("Adding TS %s with ca %d ioa %d to GI triggering one", def->label, def->ca, def->ioa);
-                            m_cgTriggeringTsAdresses.insert(make_pair(ca, ioa));
+                            m_cgTriggeringTsAdresses.insert({make_pair(ca, ioa), trigger_value});
                         }
                     }
                 } else {
