@@ -1460,7 +1460,7 @@ static string gi_triggering_ts_exchange_data = QUOTE({
                 "pivot_type": "DpsTyp",
                 "pivot_subtypes": [
                 "transient",
-                "trigger_south_gi"
+                {"trigger_south_gi" : 1}
                 ],
                 "protocols": [
                 {
@@ -1475,7 +1475,7 @@ static string gi_triggering_ts_exchange_data = QUOTE({
                 "pivot_id": "S_2367_3_45_27",
                 "pivot_type": "SpsTyp",
                 "pivot_subtypes": [
-                "trigger_south_gi"
+                    {"trigger_south_gi" : 0}
                 ],
                 "protocols": [
                 {
@@ -2028,9 +2028,9 @@ TEST_F(ConfigTest, ConfigTest24) {
     config.importTlsConfig(tls_config);
 
     ASSERT_TRUE(config.isConfigComplete());
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 20706));
-    ASSERT_TRUE(config.isTsAddressCgTriggering(37873, 21096));
-    ASSERT_TRUE(config.isTsAddressCgTriggering(37873, 3519059));
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 20706), -1);
+    ASSERT_NE(config.valueTsAddressCgTriggering(37873, 21096), -1);
+    ASSERT_NE(config.valueTsAddressCgTriggering(37873, 3519059), -1);
 }
 
 // Test for error case in pivot subtype GI triggering TS
@@ -2042,9 +2042,9 @@ TEST_F(ConfigTest, ConfigTest25) {
     config.importTlsConfig(tls_config);
 
     ASSERT_TRUE(config.isConfigComplete());
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 20706));
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 21096));
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 3519059));
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 20706), -1);
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 21096), -1);
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 3519059), -1);
 }
 
 // Test for error case in pivot subtype GI triggering TS
@@ -2056,9 +2056,9 @@ TEST_F(ConfigTest, ConfigTest26) {
     config.importTlsConfig(tls_config);
 
     ASSERT_TRUE(config.isConfigComplete());
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 20706));
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 21096));
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 3519059));
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 20706), -1);
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 21096), -1);
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 3519059), -1);
 }
 
 // Test for error case in pivot subtype GI triggering TS
@@ -2070,9 +2070,9 @@ TEST_F(ConfigTest, ConfigTest27) {
     config.importTlsConfig(tls_config);
 
     ASSERT_TRUE(config.isConfigComplete());
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 20706));
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 21096));
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 3519059));
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 20706), -1);
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 21096), -1);
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 3519059), -1);
 }
 
 // Test for error case in pivot subtype GI triggering TS
@@ -2084,9 +2084,9 @@ TEST_F(ConfigTest, ConfigTest28) {
     config.importTlsConfig(tls_config);
 
     ASSERT_TRUE(config.isConfigComplete());
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 20706));
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 21096));
-    ASSERT_FALSE(config.isTsAddressCgTriggering(37873, 3519059));
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 20706), -1);
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 21096), -1);
+    ASSERT_EQ(config.valueTsAddressCgTriggering(37873, 3519059), -1);
 }
 
 // TEST_F(ConfigTest, ConfigTest1)

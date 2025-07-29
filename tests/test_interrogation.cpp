@@ -198,7 +198,7 @@ static string exchanged_data = QUOTE({
                 {
                     "label":"TS-2",
                     "pivot_subtypes": [
-                        "trigger_south_gi"
+                        {"trigger_south_gi" : 0}
                     ],
                     "protocols":[
                        {
@@ -212,12 +212,40 @@ static string exchanged_data = QUOTE({
                 {
                     "label":"TS-3",
                     "pivot_subtypes": [
-                        "trigger_south_gi"
+                        {"trigger_south_gi" : 0}
                     ],
                     "protocols":[
                        {
                           "name":"iec104",
                           "address":"41025-4206947",
+                          "typeid":"M_DP_TB_1",
+                          "gi_groups":"station"
+                       }
+                    ]
+                },
+                {
+                    "label":"TS-4",
+                    "pivot_subtypes": [
+                        {"trigger_south_gi" : 1}
+                    ],
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4206950",
+                          "typeid":"M_SP_TB_1",
+                          "gi_groups":"station"
+                       }
+                    ]
+                },
+                {
+                    "label":"TS-5",
+                    "pivot_subtypes": [
+                        {"trigger_south_gi" : 1}
+                    ],
+                    "protocols":[
+                       {
+                          "name":"iec104",
+                          "address":"41025-4206951",
                           "typeid":"M_DP_TB_1",
                           "gi_groups":"station"
                        }
@@ -1190,7 +1218,7 @@ TEST_F(InterrogationTest, GICycleReceiveConfiguredDatapoints)
 
 }
 
-TEST_F(InterrogationTest, InterrogationRequestAfterExpPart)
+TEST_F(InterrogationTest, InterrogationRequestAfterExpPartOrPrtInf)
 {
     /* #################################################################
     ** #####                                                       #####
@@ -1252,7 +1280,7 @@ TEST_F(InterrogationTest, InterrogationRequestAfterExpPart)
 
     /* ##################################################################
     ** #####                                                        #####
-    ** #####        Then we send a GI triggering STSCE to 1         #####
+    ** #####        Then we send a GI STSCE that triggers 0 to 1    #####
     ** #####                                                        #####
     ** ##################################################################
     */
@@ -1271,7 +1299,7 @@ TEST_F(InterrogationTest, InterrogationRequestAfterExpPart)
 
     /* ##################################################################
     ** #####                                                        #####
-    ** #####        Then we send a GI triggering STSCE to 0         #####
+    ** #####        Then we send a GI STSCE that triggers 0 to 0    #####
     ** #####                                                        #####
     ** ##################################################################
     */
@@ -1280,6 +1308,45 @@ TEST_F(InterrogationTest, InterrogationRequestAfterExpPart)
     timestamp = Hal_getTimeInMs();
     CP56Time2a_createFromMsTimestamp(&ts, timestamp);
     io = (InformationObject) SinglePointWithCP56Time2a_create(NULL, 4206949, false, IEC60870_QUALITY_GOOD, &ts);
+    CS101_ASDU_addInformationObject(newAsdu, io);
+    InformationObject_destroy(io);
+    CS104_Slave_enqueueASDU(slave, newAsdu);
+    CS101_ASDU_destroy(newAsdu);
+
+    Thread_sleep(500);
+    ASSERT_EQ(1, interrogationRequestsReceived);
+    interrogationRequestsReceived = 0;
+
+    /* ##################################################################
+    ** #####                                                        #####
+    ** #####        Then we send a GI STSCE that triggers 1 to 0    #####
+    ** #####                                                        #####
+    ** ##################################################################
+    */
+
+    newAsdu = CS101_ASDU_create(CS104_Slave_getAppLayerParameters(slave), false, CS101_COT_SPONTANEOUS, 0, 41025, false, false);
+    timestamp = Hal_getTimeInMs();
+    CP56Time2a_createFromMsTimestamp(&ts, timestamp);
+    io = (InformationObject) SinglePointWithCP56Time2a_create(NULL, 4206950, false, IEC60870_QUALITY_GOOD, &ts);
+    CS101_ASDU_addInformationObject(newAsdu, io);
+    InformationObject_destroy(io);
+    CS104_Slave_enqueueASDU(slave, newAsdu);
+    CS101_ASDU_destroy(newAsdu);
+
+    Thread_sleep(500);
+    ASSERT_EQ(0, interrogationRequestsReceived);
+
+    /* ##################################################################
+    ** #####                                                        #####
+    ** #####        Then we send a GI STSCE that triggers 1 to 1    #####
+    ** #####                                                        #####
+    ** ##################################################################
+    */
+
+    newAsdu = CS101_ASDU_create(CS104_Slave_getAppLayerParameters(slave), false, CS101_COT_SPONTANEOUS, 0, 41025, false, false);
+    timestamp = Hal_getTimeInMs();
+    CP56Time2a_createFromMsTimestamp(&ts, timestamp);
+    io = (InformationObject) SinglePointWithCP56Time2a_create(NULL, 4206950, true, IEC60870_QUALITY_GOOD, &ts);
     CS101_ASDU_addInformationObject(newAsdu, io);
     InformationObject_destroy(io);
     CS104_Slave_enqueueASDU(slave, newAsdu);
@@ -1310,7 +1377,7 @@ TEST_F(InterrogationTest, InterrogationRequestAfterExpPart)
 
     /* ##################################################################
     ** #####                                                        #####
-    ** #####        Then we send a GI triggering DTSCE to 1         #####
+    ** #####        Then we send a GI DTSCE that triggers 0 to 1    #####
     ** #####                                                        #####
     ** ##################################################################
     */
@@ -1329,7 +1396,7 @@ TEST_F(InterrogationTest, InterrogationRequestAfterExpPart)
 
     /* ##################################################################
     ** #####                                                        #####
-    ** #####        Then we send a GI triggering DTSCE to 0         #####
+    ** #####        Then we send a GI DTSCE that triggers 0 to 0    #####
     ** #####                                                        #####
     ** ##################################################################
     */
@@ -1346,6 +1413,45 @@ TEST_F(InterrogationTest, InterrogationRequestAfterExpPart)
     Thread_sleep(500);
     ASSERT_EQ(1, interrogationRequestsReceived);
     interrogationRequestsReceived = 0;
+
+    /* ##################################################################
+    ** #####                                                        #####
+    ** #####        Then we send a GI DTSCE that triggers 1 to 1    #####
+    ** #####                                                        #####
+    ** ##################################################################
+    */
+
+    newAsdu = CS101_ASDU_create(CS104_Slave_getAppLayerParameters(slave), false, CS101_COT_SPONTANEOUS, 0, 41025, false, false);
+    timestamp = Hal_getTimeInMs();
+    CP56Time2a_createFromMsTimestamp(&ts, timestamp);
+    io = (InformationObject) DoublePointWithCP56Time2a_create(NULL, 4206951, DoublePointValue::IEC60870_DOUBLE_POINT_ON, IEC60870_QUALITY_GOOD, &ts);
+    CS101_ASDU_addInformationObject(newAsdu, io);
+    InformationObject_destroy(io);
+    CS104_Slave_enqueueASDU(slave, newAsdu);
+    CS101_ASDU_destroy(newAsdu);
+
+    Thread_sleep(500);
+    ASSERT_EQ(1, interrogationRequestsReceived);
+    interrogationRequestsReceived = 0;
+
+    /* ##################################################################
+    ** #####                                                        #####
+    ** #####        Then we send a GI DTSCE that triggers 1 to 0    #####
+    ** #####                                                        #####
+    ** ##################################################################
+    */
+
+    newAsdu = CS101_ASDU_create(CS104_Slave_getAppLayerParameters(slave), false, CS101_COT_SPONTANEOUS, 0, 41025, false, false);
+    timestamp = Hal_getTimeInMs();
+    CP56Time2a_createFromMsTimestamp(&ts, timestamp);
+    io = (InformationObject) DoublePointWithCP56Time2a_create(NULL, 4206951, DoublePointValue::IEC60870_DOUBLE_POINT_OFF, IEC60870_QUALITY_GOOD, &ts);
+    CS101_ASDU_addInformationObject(newAsdu, io);
+    InformationObject_destroy(io);
+    CS104_Slave_enqueueASDU(slave, newAsdu);
+    CS101_ASDU_destroy(newAsdu);
+
+    Thread_sleep(500);
+    ASSERT_EQ(0, interrogationRequestsReceived);
 
     /* ##################################################################
     ** #####                                                        #####
