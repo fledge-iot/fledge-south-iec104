@@ -821,6 +821,13 @@ protected:
             CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create(NULL, 4206949, true, IEC60870_QUALITY_GOOD));
             IMasterConnection_sendASDU(connection, newAsdu);
             CS101_ASDU_destroy(newAsdu);
+            newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION, 0, 41025, false, false);
+            CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create(NULL, 4206950, false, IEC60870_QUALITY_GOOD));
+            IMasterConnection_sendASDU(connection, newAsdu);
+            CS101_ASDU_destroy(newAsdu);
+            newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION, 0, 41025, false, false);
+            CS101_ASDU_addInformationObject(newAsdu, (InformationObject) DoublePointInformation_create(NULL, 4206951, DoublePointValue::IEC60870_DOUBLE_POINT_OFF, IEC60870_QUALITY_GOOD));
+            IMasterConnection_sendASDU(connection, newAsdu);
 
             IMasterConnection_sendACT_TERM(connection, asdu);
         }
@@ -1200,21 +1207,28 @@ TEST_F(InterrogationTest, GICycleReceiveConfiguredDatapoints)
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[2])); // TS-1
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[3])); // TS-2
     ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[4])); // TS-3
-    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[5])); // TM-B-1
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[5])); // TS-4
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[6])); // TS-5
+    ASSERT_TRUE(IsReadingWithQualityInvalid(storedReadings[7])); // TM-B-1
 
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[6])); // TM-1
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[7])); // TM-2
     ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[8])); // TM-1
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[9])); // TS-1
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[10])); // TS-2
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[11])); // TS-3
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[9])); // TM-2
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[10])); // TM-1
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[11])); // TS-1
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[12])); // TS-2
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[13])); // TS-3
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[14])); // TS-4
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[15])); // TS-5
+    
 
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[12])); // TM-1
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[13])); // TM-2
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[14])); // TM-1
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[15])); // TS-1
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[16])); // TS-2
-    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[17])); // TS-3
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[16])); // TM-1
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[17])); // TM-2
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[18])); // TM-1
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[19])); // TS-1
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[20])); // TS-2
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[21])); // TS-3
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[22])); // TS-4
+    ASSERT_TRUE(IsReadingWithQualityGood(storedReadings[23])); // TS-5
 
 }
 
