@@ -1,0 +1,29 @@
+name: Build plugin .deb
+
+on:
+  pull_request:
+  push:
+    branches: [develop]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      core-run-id:
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  deb:
+    uses: fledge-iot/fledge/.github/workflows/plugin-deb.yml@develop
+    with:
+      package: fledge-south-iec104
+      kind: cpp
+      core-run-id: ${{ inputs.core-run-id }}
+    secrets: inherit
